@@ -5,8 +5,9 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { doc, collection, setDoc } from 'firebase/firestore';
 import {
   ref as storageRef,
-  uploadBytes,
+  uploadBytesResumable,
   getDownloadURL,
+  UploadTask,
 } from 'firebase/storage';
 import { useFirestore, useUser, useStorage } from '@/firebase/provider';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import content from '@/app/content/profile-settings.json';
-import { User as UserIcon, UploadCloud } from 'lucide-react';
+import { User as UserIcon, UploadCloud, File as FileIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 function ProfileSkeleton() {
@@ -144,36 +145,51 @@ export default function ProfileSettingsPage() {
     const photoPath = `profile-photos/${user.uid}/${photoFile.name}`;
     const photoStorageRef = storageRef(storage, photoPath);
 
-    try {
-      let progressInterval = setInterval(() => {
-        setUploadProgress((prev) => (prev < 90 ? prev + 10 : prev));
-      }, 200);
+    const uploadTask = uploadBytesResumable(photoStorageRef, photoFile);
 
-      const uploadResult = await uploadBytes(photoStorageRef, photoFile);
-      clearInterval(progressInterval);
-      setUploadProgress(100);
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error('Upload error:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Upload Failed',
+          description:
+            'Could not upload your photo. Please check permissions and try again.',
+        });
+        setIsUploading(false);
+        setUploadProgress(0);
+      },
+      async () => {
+        try {
+          const photoURL = await getDownloadURL(uploadTask.snapshot.ref);
+          await setDoc(userDocRef, { photoURL: photoURL }, { merge: true });
 
-      const photoURL = await getDownloadURL(uploadResult.ref);
+          toast({
+            title: 'Success',
+            description: 'Profile photo updated successfully!',
+          });
 
-      await setDoc(userDocRef, { photoURL: photoURL }, { merge: true });
-
-      toast({
-        title: 'Success',
-        description: 'Profile photo updated successfully!',
-      });
-
-      setPhotoFile(null);
-    } catch (error) {
-      console.error('Error uploading photo:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Upload Failed',
-        description: 'Could not upload your photo. Please try again.',
-      });
-    } finally {
-      setIsUploading(false);
-      setTimeout(() => setUploadProgress(0), 1500);
-    }
+          setPhotoFile(null); // Clear the file selection
+        } catch (saveError) {
+          console.error('Error saving photo URL:', saveError);
+          toast({
+            variant: 'destructive',
+            title: 'Save Failed',
+            description: 'Could not save your new photo. Please try again.',
+          });
+        } finally {
+          setIsUploading(false);
+          // Keep progress at 100 for a moment for user feedback
+          setTimeout(() => setUploadProgress(0), 2000);
+        }
+      }
+    );
   };
 
   const handleSaveName = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -230,7 +246,11 @@ export default function ProfileSettingsPage() {
                     value={name}
                     onChange={handleNameChange}
                     className="text-base"
+                    aria-describedby="name-description"
                   />
+                  <p id="name-description" className="text-sm text-muted-foreground">
+                    Your name as it should appear on official travel documents.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">{content.emailLabel}</Label>
@@ -239,7 +259,7 @@ export default function ProfileSettingsPage() {
                     type="email"
                     value={userProfile.email}
                     readOnly
-                    className="read-only:bg-muted/50 read-only:cursor-not-allowed text-base"
+                    className="text-base"
                   />
                 </div>
                 <div className="space-y-2">
@@ -248,7 +268,7 @@ export default function ProfileSettingsPage() {
                     id="role"
                     value={userProfile.role}
                     readOnly
-                    className="read-only:bg-muted/50 read-only:cursor-not-allowed text-base"
+                    className="text-base"
                   />
                 </div>
                 <div className="flex justify-end">
@@ -285,7 +305,7 @@ export default function ProfileSettingsPage() {
                       accept="image/png, image/jpeg, image/jpg"
                       className="hidden"
                     />
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 items-center flex-wrap">
                       <Button
                         type="button"
                         variant="outline"
@@ -296,15 +316,21 @@ export default function ProfileSettingsPage() {
                         Choose File
                       </Button>
                       {photoFile && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handlePhotoUpload}
-                          disabled={isUploading}
-                        >
-                          <UploadCloud className="mr-2 h-4 w-4" />
-                          {isUploading ? 'Uploading...' : 'Upload & Save'}
-                        </Button>
+                         <>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                            <FileIcon className="h-4 w-4" />
+                            <span className="truncate max-w-xs">{photoFile.name}</span>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handlePhotoUpload}
+                            disabled={isUploading}
+                          >
+                            <UploadCloud className="mr-2 h-4 w-4" />
+                            {isUploading ? 'Uploading...' : 'Upload & Save'}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -316,7 +342,7 @@ export default function ProfileSettingsPage() {
                       className="text-sm text-muted-foreground text-center"
                       aria-live="polite"
                     >
-                      Uploading: {uploadProgress}%
+                      Uploading: {Math.round(uploadProgress)}%
                     </p>
                   </div>
                 )}
