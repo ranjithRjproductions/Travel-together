@@ -13,6 +13,7 @@ import { logout } from '@/lib/actions';
 import { User, LogOut, Settings } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
+import { Skeleton } from './ui/skeleton';
 
 function LogoutButton() {
   return (
@@ -27,11 +28,16 @@ function LogoutButton() {
   );
 }
 
-export function UserNav({ user }: { user: UserType }) {
+export function UserNav({ user }: { user?: UserType | null }) {
+  if (!user) {
+    return <Skeleton className="h-10 w-10 rounded-full" />;
+  }
+
   const initials = user.name
     .split(' ')
     .map((n) => n[0])
-    .join('');
+    .join('')
+    .toUpperCase();
 
   return (
     <DropdownMenu>

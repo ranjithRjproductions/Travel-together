@@ -10,7 +10,7 @@ export default function AppLayout({
   user,
 }: {
   children: React.ReactNode;
-  user: User;
+  user: User | null;
 }) {
   return (
     <div className="flex min-h-screen w-full flex-col">
