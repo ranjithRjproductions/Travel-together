@@ -5,7 +5,7 @@
   },
   "header": {
     "primaryCta": {
-      "label": "Get Started",
+      "label": "Sign Up",
       "action": "signup"
     },
     "secondaryCta": {
@@ -21,8 +21,8 @@
       "action": "signup"
     },
     "secondaryCta": {
-      "label": "Learn How It Works",
-      "action": "learn-more"
+      "label": "Sign In",
+      "action": "login"
     }
   },
   "features": [
