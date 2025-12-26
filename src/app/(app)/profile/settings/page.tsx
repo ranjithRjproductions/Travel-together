@@ -11,8 +11,6 @@ import {
 import { useFirestore, useUser, useStorage } from '@/firebase/provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -22,7 +20,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import content from '@/app/content/profile-settings.json';
 import { User as UserIcon, UploadCloud, File as FileIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
@@ -30,18 +27,9 @@ function ProfileSkeleton() {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-1/4" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-1/4" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-1/4" />
-          <Skeleton className="h-10 w-full" />
-        </div>
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
       </div>
       <div className="flex items-center gap-4 pt-4">
         <Skeleton className="h-20 w-20 rounded-full" />
@@ -74,7 +62,6 @@ export default function ProfileSettingsPage() {
   const [name, setName] = useState('');
   const [photoAlt, setPhotoAlt] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -90,22 +77,6 @@ export default function ProfileSettingsPage() {
       setPhotoAlt(userProfile.photoAlt || '');
     }
   }, [userProfile]);
-
-  useEffect(() => {
-    if (userProfile) {
-      const nameChanged = name !== userProfile.name;
-      const altChanged = photoAlt !== (userProfile.photoAlt || '');
-      setIsDirty(nameChanged || altChanged);
-    }
-  }, [name, photoAlt, userProfile]);
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setName(e.target.value);
-  };
-  
-  const handleAltTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhotoAlt(e.target.value);
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -200,25 +171,37 @@ export default function ProfileSettingsPage() {
       }
     );
   };
+  
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+  };
 
+  const handleAltTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoAlt(e.target.value);
+  };
+  
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!userDocRef || !isDirty) return;
+    if (!userDocRef || !userProfile) return;
+
+    const nameChanged = name !== userProfile.name;
+    const altChanged = photoAlt !== (userProfile.photoAlt || '');
+
+    if(!nameChanged && !altChanged) return;
 
     setIsSaving(true);
     try {
       await setDoc(userDocRef, { name, photoAlt }, { merge: true });
       toast({
         title: 'Success',
-        description: content.successMessage,
+        description: 'Your profile has been updated.',
       });
-      setIsDirty(false);
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: content.errorMessage,
+        description: 'Could not update your profile.',
       });
     } finally {
       setIsSaving(false);
@@ -235,161 +218,151 @@ export default function ProfileSettingsPage() {
 
   return (
     <div>
-      <h1 className="font-headline text-3xl font-bold mb-8">
-        {content.pageTitle}
-      </h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>{content.formTitle}</CardTitle>
-          <CardDescription>{content.formDescription}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading && <ProfileSkeleton />}
-          {!isLoading && userProfile && (
-            <div className="space-y-8">
-              <form onSubmit={handleSave} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{content.nameLabel}</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={handleNameChange}
-                    className="text-base"
-                    aria-describedby="name-description"
-                  />
-                  <p
-                    id="name-description"
-                    className="text-sm text-muted-foreground"
-                  >
-                    Your name as it should appear on official travel documents.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">{content.emailLabel}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={userProfile.email}
-                    readOnly
-                    className="text-base"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">{content.roleLabel}</Label>
-                  <Input
-                    id="role"
-                    value={userProfile.role}
-                    readOnly
-                    className="text-base"
-                  />
-                </div>
+      <CardHeader className="p-0 mb-6">
+        <CardTitle className="text-2xl">Profile Information</CardTitle>
+        <CardDescription>
+          This is your basic identity on the platform. Your email and role are fixed, but you can update your name and photo.
+        </CardDescription>
+      </CardHeader>
 
-                <fieldset className="space-y-6 pt-6 border-t">
-                  <legend className="text-lg font-medium">Profile Photo</legend>
-                  <div className="flex items-center gap-6">
-                    <Avatar className="h-24 w-24 border">
-                      <AvatarImage
-                        src={photoPreview || ''}
-                        alt={photoAlt || `Profile photo of ${name}`}
-                      />
-                      <AvatarFallback className="text-3xl">
-                        {initials || <UserIcon />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-2 flex-1">
-                      <Label htmlFor="photo-upload">Update your photo</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Used for identification during travel. (Max 5MB)
-                      </p>
-                      <Input
-                        id="photo-upload"
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/png, image/jpeg, image/jpg"
-                        className="hidden"
-                      />
-                      <div className="flex gap-2 items-center flex-wrap">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isUploading}
-                        >
-                          Choose File
-                        </Button>
-                        {photoFile && (
-                          <>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                              <FileIcon className="h-4 w-4" />
-                              <span className="truncate max-w-xs">
-                                {photoFile.name}
-                              </span>
-                            </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={handlePhotoUpload}
-                              disabled={isUploading}
-                            >
-                              <UploadCloud className="mr-2 h-4 w-4" />
-                              {isUploading ? 'Uploading...' : 'Upload & Save Photo'}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                       {isUploading && (
-                        <div className="space-y-2">
-                          <Progress value={uploadProgress} className="w-full" />
-                          <p
-                            className="text-sm text-muted-foreground text-center"
-                            aria-live="polite"
-                          >
-                            Uploading: {Math.round(uploadProgress)}%
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {photoPreview && (
-                     <div className="space-y-2">
-                        <Label htmlFor="photoAlt">Photo Description (Alt Text)</Label>
-                         <Input
-                           id="photoAlt"
-                           value={photoAlt}
-                           onChange={handleAltTextChange}
-                           placeholder="e.g., A photo of me smiling on a beach"
-                           aria-describedby="alt-text-description"
-                         />
-                         <p id="alt-text-description" className="text-sm text-muted-foreground">
-                            Describe your photo for screen reader users.
-                         </p>
-                     </div>
-                  )}
-                </fieldset>
+      {isLoading && <ProfileSkeleton />}
+      {!isLoading && userProfile && (
+        <div className="space-y-8">
+          <form onSubmit={handleSave} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={handleNameChange}
+                aria-describedby="name-description"
+              />
+              <p id="name-description" className="text-sm text-muted-foreground">
+                Your name as it should appear on official travel documents.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={userProfile.email}
+                readOnly
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">User Role</Label>
+              <Input id="role" value={userProfile.role} readOnly />
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Name'}
+              </Button>
+            </div>
+          </form>
 
-                <div className="flex justify-end">
+          <fieldset className="space-y-6 pt-6 border-t">
+            <legend className="text-lg font-medium">Profile Photo</legend>
+            <div className="flex items-center gap-6">
+              <Avatar className="h-24 w-24 border">
+                <AvatarImage
+                  src={photoPreview || ''}
+                  alt={photoAlt || `Profile photo of ${name}`}
+                />
+                <AvatarFallback className="text-3xl">
+                  {initials || <UserIcon />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="grid gap-2 flex-1">
+                <Label htmlFor="photo-upload">Update your photo</Label>
+                <p className="text-sm text-muted-foreground">
+                  Used for identification during travel. (Max 5MB)
+                </p>
+                <Input
+                  id="photo-upload"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/png, image/jpeg, image/jpg"
+                  className="hidden"
+                />
+                <div className="flex gap-2 items-center flex-wrap">
                   <Button
-                    type="submit"
-                    disabled={!isDirty || isSaving}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
                   >
-                    {isSaving
-                      ? content.saveButtonSubmitting
-                      : content.saveButton}
+                    Choose File
+                  </Button>
+                  {photoFile && (
+                    <>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                        <FileIcon className="h-4 w-4" />
+                        <span className="truncate max-w-xs">
+                          {photoFile.name}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handlePhotoUpload}
+                        disabled={isUploading}
+                      >
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        {isUploading ? 'Uploading...' : 'Upload Photo'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+                {isUploading && (
+                  <div className="space-y-2">
+                    <Progress value={uploadProgress} className="w-full" />
+                    <p
+                      className="text-sm text-muted-foreground text-center"
+                      aria-live="polite"
+                    >
+                      Uploading: {Math.round(uploadProgress)}%
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {photoPreview && (
+              <form onSubmit={handleSave} className="space-y-2">
+                <Label htmlFor="photoAlt">
+                  Photo Description (Alt Text)
+                </Label>
+                <Input
+                  id="photoAlt"
+                  value={photoAlt}
+                  onChange={handleAltTextChange}
+                  placeholder="e.g., A photo of me smiling on a beach"
+                  aria-describedby="alt-text-description"
+                />
+                <p
+                  id="alt-text-description"
+                  className="text-sm text-muted-foreground"
+                >
+                  Describe your photo for screen reader users.
+                </p>
+                <div className="flex justify-end pt-2">
+                   <Button type="submit" disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save Description'}
                   </Button>
                 </div>
               </form>
-            </div>
-          )}
-          {error && (
-            <p className="text-destructive-foreground">
-              There was an error loading your profile.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </fieldset>
+        </div>
+      )}
+      {error && (
+        <p className="text-destructive-foreground">
+          There was an error loading your profile.
+        </p>
+      )}
     </div>
   );
 }

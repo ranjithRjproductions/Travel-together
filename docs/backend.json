@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user in the system with their associated role.",
+      "description": "Represents a user in the system with their associated role and profile information.",
       "properties": {
         "id": {
           "type": "string",
@@ -22,7 +22,7 @@
         "role": {
           "type": "string",
           "description": "The user's role (e.g., Traveler, Guide). This determines their access and permissions.",
-          "format": "string"
+          "enum": ["Traveler", "Guide"]
         },
         "photoURL": {
           "type": "string",
@@ -32,6 +32,44 @@
         "photoAlt": {
           "type": "string",
           "description": "The user-provided alternative text for their profile photo."
+        },
+        "address": {
+          "type": "object",
+          "description": "The user's primary address.",
+          "properties": {
+            "addressLine1": { "type": "string" },
+            "addressLine2": { "type": "string" },
+            "city": { "type": "string" },
+            "state": { "type": "string" },
+            "postalCode": { "type": "string" },
+            "country": { "type": "string" }
+          },
+          "required": ["addressLine1", "city", "state", "postalCode", "country"]
+        },
+        "contact": {
+          "type": "object",
+          "description": "The user's contact information.",
+          "properties": {
+            "primaryPhone": { "type": "string" },
+            "whatsappNumber": { "type": "string" },
+            "whatsappSameAsPrimary": { "type": "boolean" }
+          },
+          "required": ["primaryPhone", "whatsappSameAsPrimary"]
+        },
+        "disability": {
+          "type": "object",
+          "description": "Voluntary disability disclosure for accessibility purposes.",
+          "properties": {
+            "visionImpairment": { "type": "boolean" },
+            "lowVision": { "type": "boolean" },
+            "blind": { "type": "boolean" },
+            "hearingImpairment": { "type": "boolean" },
+            "mobilityImpairment": { "type": "boolean" },
+            "preferNotToSay": { "type": "boolean" },
+            "disabilityIdUrl": { "type": "string", "format": "uri" },
+            "agreedToVoluntaryDisclosure": { "type": "boolean" }
+          },
+          "required": ["agreedToVoluntaryDisclosure"]
         }
       },
       "required": [
@@ -57,7 +95,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user data, including name, email, and role.  The 'role' field determines the user's permissions and is immutable after signup.",
+          "description": "Stores user data, including name, email, and role.  The 'role' field is immutable after signup.",
           "params": [
             {
               "name": "userId",
