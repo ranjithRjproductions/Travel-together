@@ -141,66 +141,56 @@ export default function ProfileSettingsPage() {
     const filePath = `profile-photos/${user.uid}/${photoFile.name}`;
     const fileRef = storageRef(storage, filePath);
 
-    try {
-      setIsUploading(true);
-      setUploadProgress(0);
+    setIsUploading(true);
+    setUploadProgress(0);
 
-      const uploadTask = uploadBytesResumable(fileRef, photoFile);
+    const uploadTask = uploadBytesResumable(fileRef, photoFile);
 
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setUploadProgress(Math.round(progress));
-        },
-        (error) => {
-          console.error('Upload error:', error);
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(Math.round(progress));
+      },
+      (error) => {
+        console.error('Upload error:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Upload failed',
+          description: 'Unable to upload image. Please try again.',
+        });
+        setIsUploading(false);
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+          await setDoc(
+            userDocRef,
+            { photoURL: downloadURL },
+            { merge: true }
+          );
+
+          toast({
+            title: 'Upload complete',
+            description: 'Your profile photo has been updated.',
+          });
+
+          setPhotoFile(null);
+        } catch (err) {
+          console.error('Saving URL failed:', err);
           toast({
             variant: 'destructive',
-            title: 'Upload failed',
-            description: 'Unable to upload image. Please try again.',
+            title: 'Save failed',
+            description: 'Photo uploaded but could not be saved.',
           });
+        } finally {
           setIsUploading(false);
-        },
-        async () => {
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
-            await setDoc(
-              userDocRef,
-              { photoURL: downloadURL },
-              { merge: true }
-            );
-
-            toast({
-              title: 'Upload complete',
-              description: 'Your profile photo has been updated.',
-            });
-
-            setPhotoFile(null);
-          } catch (err) {
-            console.error('Saving URL failed:', err);
-            toast({
-              variant: 'destructive',
-              title: 'Save failed',
-              description: 'Photo uploaded but could not be saved.',
-            });
-          } finally {
-            setIsUploading(false);
-            setUploadProgress(0);
-          }
+          setUploadProgress(0);
         }
-      );
-    } catch (err) {
-      console.error('Unexpected upload error:', err);
-      toast({
-        variant: 'destructive',
-        title: 'Upload failed',
-        description: 'Unexpected error occurred.',
-      });
-      setIsUploading(false);
-    }
+      }
+    );
   };
 
   const handleSaveName = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -273,7 +263,7 @@ export default function ProfileSettingsPage() {
                     type="email"
                     value={userProfile.email}
                     readOnly
-                    className="text-base read-only:bg-muted/50 read-only:focus:ring-0"
+                    className="text-base read-only:bg-muted/50 read-only:focus-visible:ring-0"
                   />
                 </div>
                 <div className="space-y-2">
@@ -282,7 +272,7 @@ export default function ProfileSettingsPage() {
                     id="role"
                     value={userProfile.role}
                     readOnly
-                    className="text-base read-only:bg-muted/50 read-only:focus:ring-0"
+                    className="text-base read-only:bg-muted/50 read-only:focus-visible:ring-0"
                   />
                 </div>
 
