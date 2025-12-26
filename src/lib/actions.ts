@@ -16,7 +16,9 @@ export async function login(idToken: string) {
     const userDoc = await db.collection('users').doc(uid).get();
 
     if (!userDoc.exists) {
-      return { message: 'User data not found in Firestore.', success: false, redirectTo: '' };
+      // In a server action that redirects, we can't easily return a message.
+      // Redirecting with a query param is a common pattern.
+      redirect('/login?message=User data not found. Please try again.');
     }
 
     const userData = userDoc.data() as User;
@@ -41,7 +43,8 @@ export async function login(idToken: string) {
         ? '/guide/dashboard'
         : '/traveler/dashboard';
         
-    return { success: true, redirectTo };
+    // The server now handles the redirect directly.
+    redirect(redirectTo);
 
   } catch (error: any) {
     console.error('Login error:', error);
@@ -49,7 +52,8 @@ export async function login(idToken: string) {
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/id-token-revoked') {
       message = 'Your session has expired or been revoked. Please log in again.';
     }
-    return { message, success: false, redirectTo: '' };
+    // Redirect back to login with an error message
+    redirect(`/login?message=${encodeURIComponent(message)}`);
   }
 }
 

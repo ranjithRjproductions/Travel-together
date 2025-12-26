@@ -18,7 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { login } from '@/lib/actions';
-import { useRouter } from 'next/navigation';
 import content from '@/app/content/login.json';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
@@ -32,7 +31,6 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
 export function LoginForm() {
   const { toast } = useToast();
   const auth = useAuth();
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,20 +46,14 @@ export function LoginForm() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const idToken = await userCredential.user.getIdToken(true);
-      const result = await login(idToken);
+      // Instead of processing the response, we just call the action.
+      // The action will handle the redirect.
+      await login(idToken);
+      
+      // If the action redirects, the code below won't execute.
+      // If it returns due to an error that doesn't redirect, we might need to handle it.
+      // However, the current action always redirects.
 
-      if (result && result.success) {
-        router.replace(result.redirectTo);
-      } else {
-        const message = result.message || 'An unexpected error occurred.';
-        setError(message);
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: message,
-        });
-        setIsSubmitting(false);
-      }
     } catch (error: any) {
         let message = 'An unexpected error occurred.';
         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
