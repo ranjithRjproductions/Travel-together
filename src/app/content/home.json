@@ -10,16 +10,23 @@
     },
     "secondaryCta": {
       "label": "Sign In"
-    }
+    },
+    "navigation": [
+      { "label": "Home", "href": "/" },
+      { "label": "About", "href": "/about" },
+      { "label": "Sign In", "href": "/login" }
+    ]
   },
   "hero": {
     "heading": "Accessible Travel for Everyone",
     "description": "Plan trips, connect with guides, and travel confidently with accessibility at the center.",
     "primaryCta": {
-      "label": "Create Account"
+      "label": "Create Account",
+      "action": "signup"
     },
     "secondaryCta": {
-      "label": "Sign In"
+      "label": "Learn More",
+      "action": "learn-more"
     }
   },
   "features": [
@@ -39,9 +46,16 @@
   "callToAction": {
     "heading": "Start Your Journey Today",
     "description": "Create an account and begin planning your accessible travel experience.",
-    "buttonLabel": "Get Started"
+    "buttonLabel": "Get Started",
+    "action": "signup"
+
   },
   "footer": {
-    "copyright": "© 2025 Travel Together"
+    "copyright": "© 2025 Travel Together",
+    "links": [
+      { "label": "Privacy Policy", "href": "/privacy" },
+      { "label": "Terms of Service", "href": "/terms" },
+      { "label": "Accessibility", "href": "/accessibility" }
+    ]
   }
 }
