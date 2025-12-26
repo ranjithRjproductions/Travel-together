@@ -35,11 +35,11 @@ function ProfileSkeleton() {
           <Skeleton className="h-10 w-full" />
         </div>
         <div className="space-y-2">
-          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1_4" />
           <Skeleton className="h-10 w-full" />
         </div>
         <div className="space-y-2">
-          <Skeleton className="h-4 w-1/4" />
+          <Skeleton className="h-4 w-1_4" />
           <Skeleton className="h-10 w-full" />
         </div>
       </div>
@@ -75,7 +75,6 @@ export default function ProfileSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isNameDirty, setIsNameDirty] = useState(false);
 
-  // Photo state
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -103,7 +102,6 @@ export default function ProfileSettingsPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Simple client-side validation
       if (!file.type.startsWith('image/')) {
         toast({
           variant: 'destructive',
@@ -112,7 +110,7 @@ export default function ProfileSettingsPage() {
         });
         return;
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         toast({
           variant: 'destructive',
           title: 'File Too Large',
@@ -129,7 +127,7 @@ export default function ProfileSettingsPage() {
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handlePhotoUpload = async () => {
     if (!photoFile || !storage || !user || !userDocRef) {
       toast({
@@ -139,36 +137,32 @@ export default function ProfileSettingsPage() {
       });
       return;
     }
-  
+
     setIsUploading(true);
-    setUploadProgress(0); // Reset progress
-  
-    // Correctly construct the storage path
+    setUploadProgress(0);
+
     const photoPath = `profile-photos/${user.uid}/${photoFile.name}`;
     const photoStorageRef = storageRef(storage, photoPath);
-  
+
     try {
-      // Simulate progress for immediate feedback, then use actual upload
       let progressInterval = setInterval(() => {
         setUploadProgress((prev) => (prev < 90 ? prev + 10 : prev));
       }, 200);
-      
+
       const uploadResult = await uploadBytes(photoStorageRef, photoFile);
       clearInterval(progressInterval);
       setUploadProgress(100);
 
       const photoURL = await getDownloadURL(uploadResult.ref);
-  
+
       await setDoc(userDocRef, { photoURL: photoURL }, { merge: true });
-  
+
       toast({
         title: 'Success',
         description: 'Profile photo updated successfully!',
       });
-  
-      // Reset photo state
+
       setPhotoFile(null);
-  
     } catch (error) {
       console.error('Error uploading photo:', error);
       toast({
@@ -178,11 +172,9 @@ export default function ProfileSettingsPage() {
       });
     } finally {
       setIsUploading(false);
-      // Let the progress bar show 100% for a moment before hiding
       setTimeout(() => setUploadProgress(0), 1500);
     }
   };
-
 
   const handleSaveName = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -195,7 +187,7 @@ export default function ProfileSettingsPage() {
         title: 'Success',
         description: content.successMessage,
       });
-      setIsNameDirty(false); // Reset dirty state for name
+      setIsNameDirty(false);
     } catch (error) {
       console.error('Error saving name:', error);
       toast({
@@ -207,7 +199,7 @@ export default function ProfileSettingsPage() {
       setIsSaving(false);
     }
   };
-  
+
   const isLoading = isUserLoading || isProfileLoading;
   const initials =
     userProfile?.name
@@ -259,71 +251,76 @@ export default function ProfileSettingsPage() {
                     className="read-only:bg-muted/50 read-only:cursor-not-allowed text-base"
                   />
                 </div>
-                 <div className="flex justify-end">
-                    <Button type="submit" disabled={!isNameDirty || isSaving}>
-                      {isSaving
-                        ? content.saveButtonSubmitting
-                        : content.saveButton}
-                    </Button>
-                  </div>
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={!isNameDirty || isSaving}>
+                    {isSaving
+                      ? content.saveButtonSubmitting
+                      : content.saveButton}
+                  </Button>
+                </div>
               </form>
-              
+
               <fieldset className="space-y-6 pt-6 border-t">
-                 <legend className="text-lg font-medium">Profile Photo</legend>
-                 <div className="flex items-center gap-6">
-                    <Avatar className="h-24 w-24 border">
-                      <AvatarImage src={photoPreview || ''} alt="Profile photo preview" />
-                      <AvatarFallback className="text-3xl">
-                        {initials || <UserIcon />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-2 flex-1">
-                      <Label htmlFor="photo-upload">Update your photo</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Used for identification during travel. (Max 5MB)
-                      </p>
-                       <Input
-                        id="photo-upload"
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/png, image/jpeg"
-                        className="hidden"
-                      />
-                      <div className='flex gap-2 items-center'>
+                <legend className="text-lg font-medium">Profile Photo</legend>
+                <div className="flex items-center gap-6">
+                  <Avatar className="h-24 w-24 border">
+                    <AvatarImage
+                      src={photoPreview || ''}
+                      alt="Profile photo preview"
+                    />
+                    <AvatarFallback className="text-3xl">
+                      {initials || <UserIcon />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid gap-2 flex-1">
+                    <Label htmlFor="photo-upload">Update your photo</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Used for identification during travel. (Max 5MB)
+                    </p>
+                    <Input
+                      id="photo-upload"
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/png, image/jpeg, image/jpg"
+                      className="hidden"
+                    />
+                    <div className="flex gap-2 items-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
+                        Choose File
+                      </Button>
+                      {photoFile && (
                         <Button
                           type="button"
-                          variant="outline"
                           size="sm"
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={handlePhotoUpload}
                           disabled={isUploading}
                         >
-                          Choose File
+                          <UploadCloud className="mr-2 h-4 w-4" />
+                          {isUploading ? 'Uploading...' : 'Upload & Save'}
                         </Button>
-                        {photoFile && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={handlePhotoUpload}
-                            disabled={isUploading}
-                          >
-                            <UploadCloud className="mr-2 h-4 w-4" />
-                            {isUploading ? 'Uploading...' : 'Upload & Save'}
-                          </Button>
-                        )}
-                      </div>
+                      )}
                     </div>
-                 </div>
-                 {isUploading && (
-                    <div className="space-y-2">
-                        <Progress value={uploadProgress} className="w-full" />
-                        <p className="text-sm text-muted-foreground text-center" aria-live="polite">
-                          Uploading: {uploadProgress}%
-                        </p>
-                    </div>
+                  </div>
+                </div>
+                {isUploading && (
+                  <div className="space-y-2">
+                    <Progress value={uploadProgress} className="w-full" />
+                    <p
+                      className="text-sm text-muted-foreground text-center"
+                      aria-live="polite"
+                    >
+                      Uploading: {uploadProgress}%
+                    </p>
+                  </div>
                 )}
               </fieldset>
-
             </div>
           )}
           {error && (
