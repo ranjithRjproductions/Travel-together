@@ -34,6 +34,7 @@ export async function getUser(): Promise<User | null> {
       name: userData?.name || 'Unnamed',
       email: decodedClaims.email || 'no-email@example.com',
       role: role,
+      photoURL: userData?.photoURL || undefined,
     } as User;
   } catch (error) {
     // Session cookie is invalid or expired.
