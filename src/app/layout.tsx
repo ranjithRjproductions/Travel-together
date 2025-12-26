@@ -5,8 +5,8 @@ import { FirebaseClientProvider } from '@/firebase';
 import homeContent from './content/home.json';
 
 export const metadata: Metadata = {
-  title: homeContent.title,
-  description: homeContent.subheading,
+  title: homeContent.meta.title,
+  description: homeContent.meta.description,
 };
 
 export default function RootLayout({
