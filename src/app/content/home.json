@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Travel Together – Accessible Travel for Everyone",
-    "description": "Plan and experience travel with confidence. Built for accessibility, inclusion, and ease."
+    "title": "Let's Travel Together – Accessible Journeys for Everyone",
+    "description": "Discover a world of travel without barriers. Connect with trained guides and plan trips with confidence, knowing your accessibility needs are prioritized from start to finish."
   },
   "header": {
     "primaryCta": {
@@ -9,53 +9,65 @@
       "action": "signup"
     },
     "secondaryCta": {
-      "label": "Sign In"
-    },
-    "navigation": [
-      { "label": "Home", "href": "/" },
-      { "label": "About", "href": "/about" },
-      { "label": "Sign In", "href": "/login" }
-    ]
+      "label": "Sign In",
+      "action": "login"
+    }
   },
   "hero": {
     "heading": "Accessible Travel for Everyone",
-    "description": "Plan trips, connect with guides, and travel confidently with accessibility at the center.",
+    "description": "Plan trips, connect with guides, and travel confidently with a platform designed for accessibility at its core.",
     "primaryCta": {
-      "label": "Create Account",
+      "label": "Create Your Account",
       "action": "signup"
     },
     "secondaryCta": {
-      "label": "Learn More",
+      "label": "Learn How It Works",
       "action": "learn-more"
     }
   },
   "features": [
     {
-      "title": "Designed for Accessibility",
-      "description": "Built with screen readers, keyboard navigation, and inclusive design from day one."
+      "title": "Built for Accessibility",
+      "description": "Our platform is designed and built from the ground up to meet WCAG 2.1 AA standards, ensuring a seamless experience for screen reader and keyboard-only users."
     },
     {
-      "title": "Personalized Travel Support",
-      "description": "Get recommendations tailored to your accessibility needs."
+      "title": "Verified Guides",
+      "description": "Connect with professional guides who are trained and experienced in assisting travelers with a wide range of accessibility needs."
     },
     {
-      "title": "Trusted Guides",
-      "description": "Connect with verified guides trained to support diverse accessibility needs."
+      "title": "Personalized Trip Planning",
+      "description": "Receive travel recommendations and itineraries that are specifically tailored to your unique requirements and preferences, ensuring a comfortable journey."
     }
   ],
+  "trust": {
+    "heading": "Travel with Confidence and Peace of Mind",
+    "description": "Your safety and trust are our top priorities. Every guide on our platform undergoes a thorough vetting process, and our secure messaging system ensures your privacy is protected. We are committed to creating a reliable and supportive community for all travelers."
+  },
+  "accessibility": {
+    "heading": "A Commitment to Inclusive Design",
+    "description": "We believe travel should be accessible to everyone. Our application is built with a deep commitment to inclusive design, ensuring that people of all abilities can navigate, plan, and book their journeys with ease and dignity. From high-contrast text to full keyboard navigation, accessibility is not an afterthought—it's our foundation."
+  },
   "callToAction": {
-    "heading": "Start Your Journey Today",
-    "description": "Create an account and begin planning your accessible travel experience.",
-    "buttonLabel": "Get Started",
+    "heading": "Ready to Start Your Next Adventure?",
+    "description": "Create a free account today to explore accessible destinations, connect with guides, and begin planning a trip that is perfectly suited to you.",
+    "buttonLabel": "Sign Up for Free",
     "action": "signup"
-
   },
   "footer": {
-    "copyright": "© 2025 Travel Together",
+    "copyright": "© 2024 Let's Travel Together, Inc.",
     "links": [
-      { "label": "Privacy Policy", "href": "/privacy" },
-      { "label": "Terms of Service", "href": "/terms" },
-      { "label": "Accessibility", "href": "/accessibility" }
+      {
+        "label": "Privacy Policy",
+        "href": "/privacy"
+      },
+      {
+        "label": "Terms of Service",
+        "href": "/terms"
+      },
+      {
+        "label": "Accessibility Statement",
+        "href": "/accessibility"
+      }
     ]
   }
 }
