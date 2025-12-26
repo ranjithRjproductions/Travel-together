@@ -60,12 +60,6 @@ export default function Home() {
                   {content.hero.primaryCta.label}
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="secondary" className="transition-transform duration-300 hover:scale-105">
-                <Link href="/login">
-                  <LogIn aria-hidden="true" />
-                  {content.hero.secondaryCta.label}
-                </Link>
-              </Button>
             </div>
           </div>
         </section>
@@ -85,18 +79,19 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        <section aria-labelledby="cta-heading" className="bg-secondary/50">
-            <div className="container mx-auto px-4 py-16 sm:py-20 text-center">
-                <h2 id="cta-heading" className="text-3xl font-headline font-bold mb-4">{content.callToAction.heading}</h2>
-                <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">{content.callToAction.description}</p>
-                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 transition-transform duration-300 hover:scale-105">
-                    <Link href="/signup">
-                        <UserPlus aria-hidden="true" />
-                        {content.callToAction.buttonLabel}
-                    </Link>
-                </Button>
-            </div>
+        
+        <section aria-labelledby="trust-heading" className="py-16 sm:py-24">
+          <div className="container mx-auto px-4 text-center">
+            <h2 id="trust-heading" className="text-3xl font-headline font-bold mb-4">{content.trust.heading}</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">{content.trust.description}</p>
+          </div>
+        </section>
+        
+        <section aria-labelledby="accessibility-heading" className="py-16 sm:py-24 bg-secondary/50">
+          <div className="container mx-auto px-4 text-center">
+            <h2 id="accessibility-heading" className="text-3xl font-headline font-bold mb-4">{content.accessibility.heading}</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">{content.accessibility.description}</p>
+          </div>
         </section>
       </main>
       <footer className="py-6 bg-background border-t">

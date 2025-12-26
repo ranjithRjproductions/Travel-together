@@ -19,10 +19,6 @@
     "primaryCta": {
       "label": "Create Your Account",
       "action": "signup"
-    },
-    "secondaryCta": {
-      "label": "Sign In",
-      "action": "login"
     }
   },
   "features": [
@@ -46,12 +42,6 @@
   "accessibility": {
     "heading": "A Commitment to Inclusive Design",
     "description": "We believe travel should be accessible to everyone. Our application is built with a deep commitment to inclusive design, ensuring that people of all abilities can navigate, plan, and book their journeys with ease and dignity. From high-contrast text to full keyboard navigation, accessibility is not an afterthought—it's our foundation."
-  },
-  "callToAction": {
-    "heading": "Ready to Start Your Next Adventure?",
-    "description": "Create a free account today to explore accessible destinations, connect with guides, and begin planning a trip that is perfectly suited to you.",
-    "buttonLabel": "Sign Up for Free",
-    "action": "signup"
   },
   "footer": {
     "copyright": "© 2024 Let's Travel Together, Inc.",
