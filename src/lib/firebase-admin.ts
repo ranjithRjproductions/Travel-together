@@ -1,26 +1,36 @@
 import admin from 'firebase-admin';
 
-// This check ensures that the environment variable is set.
+// This check ensures that the full service account key is available in the environment variables.
 // It's critical for server-side Firebase services to function.
 if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
   throw new Error(
-    'FIREBASE_SERVICE_ACCOUNT_KEY is not set. This environment variable is required for server-side Firebase authentication.'
+    'The FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. It must contain the full JSON service account credentials.'
   );
 }
 
-// Safely parse the service account key from the environment variable.
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+// Initialize the service account object.
+let serviceAccount;
 
-// The private key from the environment variable comes with escaped newlines.
-// We need to replace '\\n' with '\n' to format it correctly for the PEM parser.
+try {
+  // Parse the stringified JSON from the environment variable.
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+} catch (error) {
+  console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Make sure it's a valid JSON string.");
+  throw error;
+}
+
+
+// Correct the formatting of the private key.
+// Environment variables often escape newline characters, which must be replaced with actual newlines.
 serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 
-// Initialize Firebase Admin SDK only once.
+// Initialize Firebase Admin SDK only once to avoid re-initialization errors.
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
 }
 
+// Export the initialized auth and firestore instances for use in server-side logic.
 export const auth = admin.auth();
 export const db = admin.firestore();
