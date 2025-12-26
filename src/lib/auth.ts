@@ -35,6 +35,7 @@ export async function getUser(): Promise<User | null> {
       email: decodedClaims.email || 'no-email@example.com',
       role: role,
       photoURL: userData?.photoURL || undefined,
+      photoAlt: userData?.photoAlt || undefined,
     } as User;
   } catch (error) {
     // Session cookie is invalid or expired.

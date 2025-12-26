@@ -72,8 +72,9 @@ export default function ProfileSettingsPage() {
   } = useDoc(userDocRef);
 
   const [name, setName] = useState('');
+  const [photoAlt, setPhotoAlt] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isNameDirty, setIsNameDirty] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -86,17 +87,24 @@ export default function ProfileSettingsPage() {
     if (userProfile) {
       setName(userProfile.name || '');
       setPhotoPreview(userProfile.photoURL || null);
+      setPhotoAlt(userProfile.photoAlt || '');
     }
   }, [userProfile]);
 
   useEffect(() => {
     if (userProfile) {
-      setIsNameDirty(name !== userProfile.name);
+      const nameChanged = name !== userProfile.name;
+      const altChanged = photoAlt !== (userProfile.photoAlt || '');
+      setIsDirty(nameChanged || altChanged);
     }
-  }, [name, userProfile]);
+  }, [name, photoAlt, userProfile]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setName(e.target.value);
+  };
+  
+  const handleAltTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoAlt(e.target.value);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,20 +201,20 @@ export default function ProfileSettingsPage() {
     );
   };
 
-  const handleSaveName = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!userDocRef || !isNameDirty) return;
+    if (!userDocRef || !isDirty) return;
 
     setIsSaving(true);
     try {
-      await setDoc(userDocRef, { name }, { merge: true });
+      await setDoc(userDocRef, { name, photoAlt }, { merge: true });
       toast({
         title: 'Success',
         description: content.successMessage,
       });
-      setIsNameDirty(false);
+      setIsDirty(false);
     } catch (error) {
-      console.error('Error saving name:', error);
+      console.error('Error saving profile:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -239,7 +247,7 @@ export default function ProfileSettingsPage() {
           {isLoading && <ProfileSkeleton />}
           {!isLoading && userProfile && (
             <div className="space-y-8">
-              <form onSubmit={handleSaveName} className="space-y-6">
+              <form onSubmit={handleSave} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">{content.nameLabel}</Label>
                   <Input
@@ -263,7 +271,7 @@ export default function ProfileSettingsPage() {
                     type="email"
                     value={userProfile.email}
                     readOnly
-                    className="text-base read-only:bg-muted/50 read-only:focus-visible:ring-0"
+                    className="text-base"
                   />
                 </div>
                 <div className="space-y-2">
@@ -272,14 +280,100 @@ export default function ProfileSettingsPage() {
                     id="role"
                     value={userProfile.role}
                     readOnly
-                    className="text-base read-only:bg-muted/50 read-only:focus-visible:ring-0"
+                    className="text-base"
                   />
                 </div>
+
+                <fieldset className="space-y-6 pt-6 border-t">
+                  <legend className="text-lg font-medium">Profile Photo</legend>
+                  <div className="flex items-center gap-6">
+                    <Avatar className="h-24 w-24 border">
+                      <AvatarImage
+                        src={photoPreview || ''}
+                        alt={photoAlt || `Profile photo of ${name}`}
+                      />
+                      <AvatarFallback className="text-3xl">
+                        {initials || <UserIcon />}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid gap-2 flex-1">
+                      <Label htmlFor="photo-upload">Update your photo</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Used for identification during travel. (Max 5MB)
+                      </p>
+                      <Input
+                        id="photo-upload"
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/png, image/jpeg, image/jpg"
+                        className="hidden"
+                      />
+                      <div className="flex gap-2 items-center flex-wrap">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          Choose File
+                        </Button>
+                        {photoFile && (
+                          <>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                              <FileIcon className="h-4 w-4" />
+                              <span className="truncate max-w-xs">
+                                {photoFile.name}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handlePhotoUpload}
+                              disabled={isUploading}
+                            >
+                              <UploadCloud className="mr-2 h-4 w-4" />
+                              {isUploading ? 'Uploading...' : 'Upload & Save Photo'}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                       {isUploading && (
+                        <div className="space-y-2">
+                          <Progress value={uploadProgress} className="w-full" />
+                          <p
+                            className="text-sm text-muted-foreground text-center"
+                            aria-live="polite"
+                          >
+                            Uploading: {Math.round(uploadProgress)}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {photoPreview && (
+                     <div className="space-y-2">
+                        <Label htmlFor="photoAlt">Photo Description (Alt Text)</Label>
+                         <Input
+                           id="photoAlt"
+                           value={photoAlt}
+                           onChange={handleAltTextChange}
+                           placeholder="e.g., A photo of me smiling on a beach"
+                           aria-describedby="alt-text-description"
+                         />
+                         <p id="alt-text-description" className="text-sm text-muted-foreground">
+                            Describe your photo for screen reader users.
+                         </p>
+                     </div>
+                  )}
+                </fieldset>
 
                 <div className="flex justify-end">
                   <Button
                     type="submit"
-                    disabled={!isNameDirty || isSaving}
+                    disabled={!isDirty || isSaving}
                   >
                     {isSaving
                       ? content.saveButtonSubmitting
@@ -287,76 +381,6 @@ export default function ProfileSettingsPage() {
                   </Button>
                 </div>
               </form>
-
-              <fieldset className="space-y-6 pt-6 border-t">
-                <legend className="text-lg font-medium">Profile Photo</legend>
-                <div className="flex items-center gap-6">
-                  <Avatar className="h-24 w-24 border">
-                    <AvatarImage
-                      src={photoPreview || ''}
-                      alt="Profile photo preview"
-                    />
-                    <AvatarFallback className="text-3xl">
-                      {initials || <UserIcon />}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid gap-2 flex-1">
-                    <Label htmlFor="photo-upload">Update your photo</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Used for identification during travel. (Max 5MB)
-                    </p>
-                    <Input
-                      id="photo-upload"
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/png, image/jpeg, image/jpg"
-                      className="hidden"
-                    />
-                    <div className="flex gap-2 items-center flex-wrap">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
-                      >
-                        Choose File
-                      </Button>
-                      {photoFile && (
-                        <>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                            <FileIcon className="h-4 w-4" />
-                            <span className="truncate max-w-xs">
-                              {photoFile.name}
-                            </span>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={handlePhotoUpload}
-                            disabled={isUploading}
-                          >
-                            <UploadCloud className="mr-2 h-4 w-4" />
-                            {isUploading ? 'Uploading...' : 'Upload & Save'}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {isUploading && (
-                  <div className="space-y-2">
-                    <Progress value={uploadProgress} className="w-full" />
-                    <p
-                      className="text-sm text-muted-foreground text-center"
-                      aria-live="polite"
-                    >
-                      Uploading: {Math.round(uploadProgress)}%
-                    </p>
-                  </div>
-                )}
-              </fieldset>
             </div>
           )}
           {error && (

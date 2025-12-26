@@ -23,6 +23,15 @@
           "type": "string",
           "description": "The user's role (e.g., Traveler, Guide). This determines their access and permissions.",
           "format": "string"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "The URL of the user's profile photo.",
+          "format": "uri"
+        },
+        "photoAlt": {
+          "type": "string",
+          "description": "The user-provided alternative text for their profile photo."
         }
       },
       "required": [

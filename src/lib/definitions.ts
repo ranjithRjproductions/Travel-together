@@ -4,4 +4,5 @@ export type User = {
   email: string;
   role: 'Traveler' | 'Guide';
   photoURL?: string;
+  photoAlt?: string;
 };
