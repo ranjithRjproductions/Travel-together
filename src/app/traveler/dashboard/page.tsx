@@ -55,7 +55,7 @@ export default async function TravelerDashboard() {
             </p>
           </CardContent>
         </Card>
-      section>
+      </section>
     </div>
   );
 }
