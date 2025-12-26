@@ -157,7 +157,7 @@ export const useFirestore = (): Firestore => {
 
 /** Hook to access Firebase Storage instance. */
 export const useStorage = (): FirebaseStorage => {
-    const { storage }_ = useFirebase();
+    const { storage } = useFirebase();
     return storage;
 };
 

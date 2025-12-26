@@ -64,7 +64,7 @@ export default function ProfileSettingsPage() {
     return doc(collection(firestore, 'users'), user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile, isLoading: isProfileLoading } =
+  const { data: userProfile, isLoading: isProfileLoading, error } =
     useDoc(userDocRef);
 
   const [name, setName] = useState('');
@@ -83,9 +83,11 @@ export default function ProfileSettingsPage() {
   }, [userProfile]);
 
   useEffect(() => {
-    const isNameChanged = userProfile && name !== userProfile.name;
-    const isPhotoChanged = photoFile !== null;
-    setIsDirty(isNameChanged || isPhotoChanged);
+    if (userProfile) {
+      const isNameChanged = name !== userProfile.name;
+      const isPhotoChanged = photoFile !== null;
+      setIsDirty(isNameChanged || isPhotoChanged);
+    }
   }, [name, photoFile, userProfile]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,20 +115,23 @@ export default function ProfileSettingsPage() {
 
     try {
       // 1. Upload photo if it has changed
-      if (photoFile && storage) {
+      if (photoFile && storage && user) {
         const photoStorageRef = storageRef(
           storage,
-          `profile-photos/${user?.uid}`
+          `profile-photos/${user.uid}`
         );
         const uploadResult = await uploadBytes(photoStorageRef, photoFile);
         photoURL = await getDownloadURL(uploadResult.ref);
       }
 
       // 2. Prepare data to save
-      const dataToSave = {
+      const dataToSave: { name: string; photoURL?: string } = {
         name,
-        photoURL,
       };
+      if (photoURL) {
+        dataToSave.photoURL = photoURL;
+      }
+
 
       // 3. Save to Firestore
       await setDoc(userDocRef, dataToSave, { merge: true });
@@ -138,8 +143,6 @@ export default function ProfileSettingsPage() {
 
       // Reset dirty state
       setPhotoFile(null);
-      // The name is now the new source of truth, so we aren't dirty against it anymore
-      // This will be fully reset once the `userProfile` re-syncs, but this prevents a flicker.
       setIsDirty(false);
     } catch (error) {
       console.error('Error saving profile:', error);
