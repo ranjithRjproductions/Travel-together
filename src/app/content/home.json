@@ -1,7 +1,47 @@
 {
-  "title": "Let's Travel Together",
-  "heading": "Let's Travel Together",
-  "subheading": "Discover unique destinations and personalized tours with our expert local guides. Your next adventure awaits.",
-  "getStartedButton": "Get Started",
-  "loginButton": "Login"
+  "meta": {
+    "title": "Travel Together – Accessible Travel for Everyone",
+    "description": "Plan and experience travel with confidence. Built for accessibility, inclusion, and ease."
+  },
+  "header": {
+    "primaryCta": {
+      "label": "Get Started",
+      "action": "signup"
+    },
+    "secondaryCta": {
+      "label": "Sign In"
+    }
+  },
+  "hero": {
+    "heading": "Accessible Travel for Everyone",
+    "description": "Plan trips, connect with guides, and travel confidently with accessibility at the center.",
+    "primaryCta": {
+      "label": "Create Account"
+    },
+    "secondaryCta": {
+      "label": "Sign In"
+    }
+  },
+  "features": [
+    {
+      "title": "Designed for Accessibility",
+      "description": "Built with screen readers, keyboard navigation, and inclusive design from day one."
+    },
+    {
+      "title": "Personalized Travel Support",
+      "description": "Get recommendations tailored to your accessibility needs."
+    },
+    {
+      "title": "Trusted Guides",
+      "description": "Connect with verified guides trained to support diverse accessibility needs."
+    }
+  ],
+  "callToAction": {
+    "heading": "Start Your Journey Today",
+    "description": "Create an account and begin planning your accessible travel experience.",
+    "buttonLabel": "Get Started"
+  },
+  "footer": {
+    "copyright": "© 2025 Travel Together"
+  }
 }

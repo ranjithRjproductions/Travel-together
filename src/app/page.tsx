@@ -3,19 +3,38 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AppLogo } from '@/components/app-logo';
-import { LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, ShieldCheck, UserCheck, Accessibility } from 'lucide-react';
 import content from './content/home.json';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'landing-hero');
+  const featureIcons = [
+    <Accessibility key="a11y" aria-hidden="true" />,
+    <UserCheck key="support" aria-hidden="true" />,
+    <ShieldCheck key="guides" aria-hidden="true" />,
+  ];
 
   return (
     <>
-      <header className="absolute top-0 left-0 w-full p-4 sm:p-6 z-10">
+      <header className="absolute top-0 left-0 w-full p-4 sm:p-6 z-10 flex justify-between items-center">
         <AppLogo />
+        <div className="flex items-center gap-2">
+           <Button asChild size="sm" variant="secondary" className="transition-transform duration-300 hover:scale-105">
+              <Link href="/login">
+                <LogIn aria-hidden="true" />
+                {content.header.secondaryCta.label}
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 transition-transform duration-300 hover:scale-105 hidden sm:flex">
+              <Link href="/signup">
+                <UserPlus aria-hidden="true" />
+                {content.header.primaryCta.label}
+              </Link>
+            </Button>
+        </div>
       </header>
-      <main className="flex flex-col min-h-screen">
-        <div className="relative flex-grow flex items-center justify-center text-center text-white">
+      <main>
+        <section aria-labelledby="hero-heading" className="relative flex min-h-[75vh] items-center justify-center text-center text-white">
           {heroImage && (
             <Image
               src={heroImage.imageUrl}
@@ -28,29 +47,63 @@ export default function Home() {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent"></div>
           <div className="relative z-10 px-4 flex flex-col items-center">
-            <h1 className="text-4xl md:text-6xl font-headline font-bold mb-4 drop-shadow-lg">
-              {content.heading}
+            <h1 id="hero-heading" className="text-4xl md:text-6xl font-headline font-bold mb-4 drop-shadow-lg">
+              {content.hero.heading}
             </h1>
             <p className="text-lg md:text-xl max-w-2xl mb-8 drop-shadow-md">
-              {content.subheading}
+              {content.hero.description}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 transition-transform duration-300 hover:scale-105">
                 <Link href="/signup">
                   <UserPlus aria-hidden="true" />
-                  {content.getStartedButton}
+                  {content.hero.primaryCta.label}
                 </Link>
               </Button>
               <Button asChild size="lg" variant="secondary" className="transition-transform duration-300 hover:scale-105">
                 <Link href="/login">
                   <LogIn aria-hidden="true" />
-                  {content.loginButton}
+                  {content.hero.secondaryCta.label}
                 </Link>
               </Button>
             </div>
           </div>
-        </div>
+        </section>
+
+        <section aria-labelledby="features-heading" className="py-16 sm:py-24 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
+              {content.features.map((feature, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div className="bg-primary text-primary-foreground rounded-full p-4 mb-4">
+                    {featureIcons[index]}
+                  </div>
+                  <h2 id={`feature-heading-${index}`} className="text-xl font-headline font-bold mb-2">{feature.title}</h2>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="cta-heading" className="bg-secondary/50">
+            <div className="container mx-auto px-4 py-16 sm:py-20 text-center">
+                <h2 id="cta-heading" className="text-3xl font-headline font-bold mb-4">{content.callToAction.heading}</h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">{content.callToAction.description}</p>
+                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 transition-transform duration-300 hover:scale-105">
+                    <Link href="/signup">
+                        <UserPlus aria-hidden="true" />
+                        {content.callToAction.buttonLabel}
+                    </Link>
+                </Button>
+            </div>
+        </section>
       </main>
+      <footer className="py-6 bg-background border-t">
+          <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+              <p>{content.footer.copyright}</p>
+          </div>
+      </footer>
     </>
   );
 }
