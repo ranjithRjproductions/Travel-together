@@ -277,7 +277,10 @@ export default function ProfileSettingsPage() {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={!isNameDirty || isSaving}>
+                  <Button
+                    type="submit"
+                    disabled={!isNameDirty || isSaving}
+                  >
                     {isSaving
                       ? content.saveButtonSubmitting
                       : content.saveButton}
