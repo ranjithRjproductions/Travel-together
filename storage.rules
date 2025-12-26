@@ -2,15 +2,10 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Match any file in the 'profile-photos' directory
+    // Allow users to read and write their own profile photos.
+    // The {allPaths=**} is important to allow writes to any file within their directory.
     match /profile-photos/{userId}/{allPaths=**} {
-      // Allow read access to anyone. This is safe for public profile pictures.
-      allow read;
-      
-      // Allow write (create, update, delete) access only if the user is authenticated
-      // and their UID matches the {userId} in the path. This ensures users can only
-      // manage their own photos.
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
