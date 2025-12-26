@@ -1,0 +1,18 @@
+{
+  "pageTitle": "Create an Account",
+  "title": "Create an Account",
+  "description": "Join our community of travelers and guides.",
+  "nameLabel": "Name",
+  "namePlaceholder": "Alex Doe",
+  "emailLabel": "Email",
+  "emailPlaceholder": "alex@example.com",
+  "passwordLabel": "Password",
+  "roleLabel": "I am a...",
+  "roleTraveler": "Traveler",
+  "roleGuide": "Guide",
+  "submitButton": "Create Account",
+  "submitButtonSubmitting": "Creating account...",
+  "loginPrompt": "Already have an account?",
+  "loginLink": "Log in",
+  "errorTitle": "Error"
+}

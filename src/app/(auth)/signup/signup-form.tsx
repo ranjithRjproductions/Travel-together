@@ -23,13 +23,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import content from '@/app/content/signup.json';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   const { pending } = useFormStatus();
   const disabled = isSubmitting || pending;
   return (
-    <Button type="submit" className="w-full" disabled={disabled}>
-       {disabled ? 'Creating account...' : <><UserPlus className="mr-2" /> Create Account</>}
+    <Button type="submit" className="w-full" disabled={disabled} aria-live="polite">
+       {disabled ? content.submitButtonSubmitting : <><UserPlus aria-hidden="true" className="mr-2" /> {content.submitButton}</>}
     </Button>
   );
 }
@@ -45,7 +46,7 @@ export function SignupForm() {
     if (state?.success === false && state.message) {
       toast({
         variant: 'destructive',
-        title: 'Signup Failed',
+        title: content.errorTitle,
         description: state.message,
       });
       setIsSubmitting(false);
@@ -64,10 +65,8 @@ export function SignupForm() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUid = userCredential.user.uid;
       
-      // Add UID to formData before calling the server action
       formData.append('uid', newUid);
 
-      // Programmatically call the server action inside a transition
       startTransition(() => {
         formAction(formData);
       });
@@ -90,61 +89,63 @@ export function SignupForm() {
 
 
   return (
-      <form onSubmit={handleClientSignup}>
+      <form onSubmit={handleClientSignup} aria-labelledby="signup-title">
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
+            <CardTitle id="signup-title" className="font-headline text-2xl">{content.title}</CardTitle>
             <CardDescription>
-              Join our community of travelers and guides.
+              {content.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
              {state?.success === false && state.message && (
-               <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{state.message}</AlertDescription>
-                </Alert>
+               <div role="alert">
+                 <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                    <AlertTitle>{content.errorTitle}</AlertTitle>
+                    <AlertDescription>{state.message}</AlertDescription>
+                  </Alert>
+               </div>
              )}
             <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" placeholder="Alex Doe" required />
+                <Label htmlFor="name">{content.nameLabel}</Label>
+                <Input id="name" name="name" placeholder={content.namePlaceholder} required autoComplete="name"/>
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" placeholder="alex@example.com" required />
+                <Label htmlFor="email">{content.emailLabel}</Label>
+                <Input id="email" name="email" type="email" placeholder={content.emailPlaceholder} required autoComplete="email"/>
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" required />
+                <Label htmlFor="password">{content.passwordLabel}</Label>
+                <Input id="password" name="password" type="password" required autoComplete="new-password"/>
             </div>
 
-            <div className="space-y-3">
-                <Label>I am a...</Label>
+            <fieldset className="space-y-3">
+                <legend className="text-sm font-medium leading-none">{content.roleLabel}</legend>
                 <RadioGroup name="role" required defaultValue="Traveler" className="flex flex-col space-y-1">
                     <div className="flex items-center space-x-3 space-y-0">
                         <RadioGroupItem value="Traveler" id="role-traveler" />
                         <Label htmlFor="role-traveler" className="font-normal flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" /> Traveler
+                            <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" /> {content.roleTraveler}
                         </Label>
                     </div>
                     <div className="flex items-center space-x-3 space-y-0">
                         <RadioGroupItem value="Guide" id="role-guide" />
                         <Label htmlFor="role-guide" className="font-normal flex items-center gap-2">
-                            <Briefcase className="h-4 w-4 text-muted-foreground" /> Guide
+                            <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden="true" /> {content.roleGuide}
                         </Label>
                     </div>
                 </RadioGroup>
-            </div>
+            </fieldset>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <SubmitButton isSubmitting={isSubmitting || isPending}/>
             <p className="text-sm text-center text-muted-foreground">
-              Already have an account?{' '}
+              {content.loginPrompt}{' '}
               <Button variant="link" asChild className="p-0 h-auto">
-                 <Link href="/login">Log in</Link>
+                 <Link href="/login">{content.loginLink}</Link>
               </Button>
             </p>
           </CardFooter>

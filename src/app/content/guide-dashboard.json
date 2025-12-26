@@ -1,0 +1,14 @@
+{
+  "welcome": "Welcome back, {name}!",
+  "createTourButton": "Create New Tour",
+  "profileTitle": "Your Guide Profile",
+  "editProfileButton": "Edit",
+  "profileDescription": "Passionate local guide in Coastal City.",
+  "rating": "4.8/5",
+  "activityFeedTitle": "Activity Feed",
+  "activityFeedDescription": "Upcoming tours and new requests.",
+  "upcomingToursTitle": "Upcoming Tours",
+  "newBookingsTitle": "New Booking Requests",
+  "acceptButton": "Accept",
+  "declineButton": "Decline"
+}

@@ -1,0 +1,14 @@
+{
+  "pageTitle": "Login",
+  "title": "Login",
+  "description": "Enter your credentials to access your dashboard.",
+  "emailLabel": "Email",
+  "emailPlaceholder": "traveler@test.com",
+  "passwordLabel": "Password",
+  "passwordPlaceholder": "password",
+  "submitButton": "Sign In",
+  "submitButtonSubmitting": "Signing in...",
+  "signupPrompt": "Don't have an account?",
+  "signupLink": "Sign up",
+  "successMessage": "Account created successfully! Please log in."
+}

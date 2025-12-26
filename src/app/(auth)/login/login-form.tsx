@@ -19,11 +19,12 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { login } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
+import content from '@/app/content/login.json';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
-    <Button type="submit" className="w-full" disabled={isSubmitting}>
-      {isSubmitting ? 'Signing in...' : <><LogIn className="mr-2" /> Sign In</>}
+    <Button type="submit" className="w-full" disabled={isSubmitting} aria-live="polite">
+      {isSubmitting ? content.submitButtonSubmitting : <><LogIn aria-hidden="true" className="mr-2" /> {content.submitButton}</>}
     </Button>
   );
 }
@@ -33,10 +34,12 @@ export function LoginForm() {
   const auth = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleClientLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
@@ -44,18 +47,18 @@ export function LoginForm() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Force a token refresh to ensure it's valid for the server-side verification.
       const idToken = await userCredential.user.getIdToken(true);
       const result = await login(idToken);
 
       if (result && result.success) {
-        // On success, the client handles the redirect.
         router.replace(result.redirectTo);
       } else {
+        const message = result.message || 'An unexpected error occurred.';
+        setError(message);
         toast({
             variant: "destructive",
             title: "Login Failed",
-            description: result.message,
+            description: message,
         });
         setIsSubmitting(false);
       }
@@ -64,6 +67,7 @@ export function LoginForm() {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
             message = 'Invalid email or password.';
         }
+        setError(message);
         toast({
             variant: "destructive",
             title: "Login Failed",
@@ -75,36 +79,40 @@ export function LoginForm() {
 
 
   return (
-    <form onSubmit={handleClientLogin}>
+    <form onSubmit={handleClientLogin} aria-labelledby="login-title">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Login</CardTitle>
+          <CardTitle id="login-title" className="font-headline text-2xl">{content.title}</CardTitle>
           <CardDescription>
-            Enter your credentials to access your dashboard.
+            {content.description}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div role="alert" aria-live="assertive">
+            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+          </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{content.emailLabel}</Label>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder="traveler@test.com"
+              placeholder={content.emailPlaceholder}
               required
+              autoComplete="email"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" placeholder="password" required />
+            <Label htmlFor="password">{content.passwordLabel}</Label>
+            <Input id="password" name="password" type="password" placeholder={content.passwordPlaceholder} required autoComplete="current-password" />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <SubmitButton isSubmitting={isSubmitting} />
           <p className="text-sm text-center text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            {content.signupPrompt}{' '}
             <Button variant="link" asChild className="p-0 h-auto">
-              <Link href="/signup">Sign up</Link>
+              <Link href="/signup">{content.signupLink}</Link>
             </Button>
           </p>
         </CardFooter>

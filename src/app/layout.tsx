@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
+import homeContent from './content/home.json';
 
 export const metadata: Metadata = {
-  title: "Let's Travel Together",
-  description: 'A platform connecting travelers with local guides.',
+  title: homeContent.title,
+  description: homeContent.subheading,
 };
 
 export default function RootLayout({
@@ -23,7 +24,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased min-h-screen bg-background">
+      <body className="font-body antialiased min-h-screen bg-background text-base">
         <FirebaseClientProvider>
           {children}
         </FirebaseClientProvider>

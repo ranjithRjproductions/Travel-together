@@ -64,5 +64,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 16px; /* Ensure base font size is accessible */
+  }
+
+  /* Add a visible focus ring for all focusable elements */
+  *:focus-visible {
+      @apply outline-none ring-2 ring-offset-2 ring-ring ring-offset-background;
   }
 }

@@ -18,7 +18,7 @@ function LogoutButton() {
         <form action={logout} className="w-full">
             <button type="submit" className="w-full text-left">
                 <DropdownMenuItem className="cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                     <span>Log out</span>
                 </DropdownMenuItem>
             </button>
@@ -37,7 +37,7 @@ export function UserNav({ user }: { user: UserType }) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.name} />
+            <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={`Profile picture of ${user.name}`} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
@@ -54,11 +54,11 @@ export function UserNav({ user }: { user: UserType }) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
+            <User className="mr-2 h-4 w-4" aria-hidden="true" />
             <span>Profile</span>
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" />
+            <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
             <span>Settings</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>

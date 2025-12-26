@@ -1,0 +1,14 @@
+{
+  "welcome": "Welcome back, {name}!",
+  "findTripButton": "Find a New Trip",
+  "nextAdventureTitle": "Your Next Adventure",
+  "nextAdventureLocation": "Coastal City",
+  "nextAdventureDate": "October 15-22, 2024",
+  "nextAdventureDescription": "You are all set for your trip to the coast. Your guide, Marco, will contact you a week before departure.",
+  "viewTripButton": "View Trip Details",
+  "recommendedGuidesTitle": "Recommended Guides",
+  "recommendedGuidesDescription": "Top-rated guides for your next journey.",
+  "viewProfileButton": "View Profile",
+  "popularDestinationsTitle": "Explore Popular Destinations",
+  "popularDestinationsDescription": "Get inspired for your next travel."
+}
