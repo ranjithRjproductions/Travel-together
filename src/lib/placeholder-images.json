@@ -1,0 +1,58 @@
+{
+  "placeholderImages": [
+    {
+      "id": "landing-hero",
+      "description": "A stunning mountain landscape at sunrise, representing adventure and travel.",
+      "imageUrl": "https://images.unsplash.com/photo-1613075019881-f475574c236a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtb3VudGFpbiUyMGxhbmRzY2FwZXxlbnwwfHx8fDE3NjY1NTAwNzJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mountain landscape"
+    },
+    {
+      "id": "traveler-trip-1",
+      "description": "A beautiful coastal city view.",
+      "imageUrl": "https://images.unsplash.com/photo-1667326098780-0b64236a7017?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjb2FzdGFsJTIwY2l0eXxlbnwwfHx8fDE3NjY1NDUwMDB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coastal city"
+    },
+    {
+      "id": "traveler-dest-1",
+      "description": "Ancient ruins in a jungle.",
+      "imageUrl": "https://images.unsplash.com/photo-1717518213995-455025e3b0bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YW5jaWVudCUyMHJ1aW5zfGVufDB8fHx8MTc2NjQ4MjUyNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ancient ruins"
+    },
+    {
+      "id": "traveler-dest-2",
+      "description": "A bustling market in a foreign city.",
+      "imageUrl": "https://images.unsplash.com/photo-1696238707234-643db24ce395?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjaXR5JTIwbWFya2V0fGVufDB8fHx8MTc2NjU2MjE2OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city market"
+    },
+    {
+      "id": "traveler-dest-3",
+      "description": "Snowy mountains.",
+      "imageUrl": "https://images.unsplash.com/photo-1548873903-5fc219569c50?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzbm93eSUyMG1vdW50YWluc3xlbnwwfHx8fDE3NjY1MzQwNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "snowy mountains"
+    },
+    {
+      "id": "guide-profile",
+      "description": "A friendly looking person smiling.",
+      "imageUrl": "https://images.unsplash.com/photo-1603024831285-6c56249e72d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwb3J0cmFpdCUyMHNtaWxpbmd8ZW58MHx8fHwxNzY2NTYyMTY4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait smiling"
+    },
+    {
+      "id": "traveler-avatar-1",
+      "description": "A person looking adventurous.",
+      "imageUrl": "https://images.unsplash.com/photo-1496286726406-2387e8426af0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwb3J0cmFpdCUyMGFkdmVudHVyb3VzfGVufDB8fHx8MTc2NjU2MjE2OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait adventurous"
+    },
+    {
+      "id": "traveler-avatar-2",
+      "description": "A person with a backpack.",
+      "imageUrl": "https://images.unsplash.com/photo-1542014262092-0fe8c05d30f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwZXJzb24lMjBiYWNrcGFja3xlbnwwfHx8fDE3NjY1NjIxNjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person backpack"
+    },
+    {
+      "id": "traveler-avatar-3",
+      "description": "A person smiling.",
+      "imageUrl": "https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXJzb24lMjBzbWlsaW5nfGVufDB8fHx8MTc2NjUxNDQ4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person smiling"
+    }
+  ]
+}

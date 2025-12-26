@@ -1,0 +1,128 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. The primary goal is to
+ * establish a secure source of truth for user identity and roles, as specified in the backend
+ * requirements. All user-specific data is confined to that user's own document, and access is
+ * restricted accordingly.
+ *
+ * Data Structure: The data is organized into a flat structure with two top-level collections:
+ *   - /users/{userId}: Stores the primary profile data for each user, including their immutable role.
+ *   - /roles_admin/{userId}: A lookup collection to identify users with administrative privileges.
+ * This structure avoids nested reads and provides a clear separation of concerns.
+ *
+ * Key Security Decisions:
+ * - User data is private: A user can only access their own document within the `/users` collection.
+ * - User listing is disabled: To protect user privacy and prevent data scraping, it is not possible
+ *   to query the list of all users.
+ * - Roles are immutable: The `role` field is set at creation and cannot be changed, ensuring the
+ *   backend remains the authoritative source for user permissions.
+ * - Admin roles are managed server-side: The `/roles_admin` collection is read-only for admins and
+ *   cannot be modified by any client, preventing privilege escalation. It is assumed this collection
+ *   is managed by a trusted server process using the Admin SDK.
+ *
+ * Denormalization for Authorization: The user's role is denormalized directly onto their user
+ * document. This allows for simple and performant authorization checks without needing to query other
+ * collections. Administrative status is determined by checking for the existence of a document in
+ * `/roles_admin`, a highly efficient lookup.
+ *
+ * Structural Segregation: User data and admin role definitions are kept in separate top-level
+ * collections (`/users` and `/roles_admin`). This provides a clear, secure boundary between general
+ * user information and privileged system roles.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions to abstract and reuse logic.
+    
+    /**
+     * isSignedIn
+     * @description Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * isOwner
+     * @description Checks if the authenticated user's UID matches the requested document's ID.
+     * @param userId The user ID from the document path.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * isExistingOwner
+     * @description A stricter version of isOwner for update/delete that also verifies the document exists.
+     * @param userId The user ID from the document path.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+    
+    /**
+     * isAdmin
+     * @description Checks if the authenticated user is a global administrator by looking up their
+     *              UID in the `roles_admin` collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+    
+    /**
+     * hasValidUserDataOnCreate
+     * @description Validates the essential relational and role fields for a new user document.
+     *              In prototyping mode, we only validate fields critical for authorization.
+     * @param userId The user ID from the document path.
+     */
+    function hasValidUserDataOnCreate(userId) {
+      let data = request.resource.data;
+      return data.id == userId
+          && data.role in ['Traveler', 'Guide'];
+    }
+
+    /**
+     * isUserDataImmutableOnUpdate
+     * @description Ensures critical, identity-defining fields (id, email, role) cannot be changed after creation.
+     */
+    function isUserDataImmutableOnUpdate() {
+      let incomingData = request.resource.data;
+      let existingData = resource.data;
+      return incomingData.id == existingData.id
+          && incomingData.email == existingData.email
+          && incomingData.role == existingData.role;
+    }
+
+    /**
+     * @description Manages user profile data. Each user has a document keyed by their UID.
+     * @path /users/{userId}
+     * @allow (get) A signed-in user fetching their own profile. auth.uid: 'user_abc', path: '/users/user_abc'
+     * @deny (get) An anonymous user or a different user trying to read profile data. auth.uid: 'user_xyz', path: '/users/user_abc'
+     * @deny (list) Any user trying to list all users in the collection.
+     * @principle Restricts access to a user's own data tree and enforces critical data immutability.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && hasValidUserDataOnCreate(userId);
+      allow update: if isExistingOwner(userId) && isUserDataImmutableOnUpdate();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Defines which users have global administrator privileges. This collection acts as a lookup table.
+     * @path /roles_admin/{userId}
+     * @allow (get, list) An authenticated admin reading the admin list. auth.uid is in /roles_admin.
+     * @deny (get, list) A non-admin user trying to read the admin list.
+     * @deny (create, update, delete) Any client-side write operation is forbidden to prevent privilege escalation.
+     * @principle Secures a critical authorization collection by making it read-only for admins and denying all client writes.
+     */
+    match /roles_admin/{userId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
