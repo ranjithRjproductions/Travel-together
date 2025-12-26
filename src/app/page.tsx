@@ -53,14 +53,12 @@ export default function Home() {
             <p className="text-lg md:text-xl max-w-2xl mb-8 drop-shadow-md">
               {content.hero.description}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 transition-transform duration-300 hover:scale-105">
-                <Link href="/signup">
-                  <UserPlus aria-hidden="true" />
-                  {content.hero.primaryCta.label}
-                </Link>
-              </Button>
-            </div>
+            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 transition-transform duration-300 hover:scale-105">
+              <Link href="/signup">
+                <UserPlus aria-hidden="true" />
+                {content.hero.primaryCta.label}
+              </Link>
+            </Button>
           </div>
         </section>
 
@@ -95,9 +93,20 @@ export default function Home() {
         </section>
       </main>
       <footer className="py-6 bg-background border-t">
-          <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-              <p>{content.footer.copyright}</p>
-          </div>
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
+          <p>{content.footer.copyright}</p>
+          <nav aria-label="Footer">
+            <ul className="flex gap-4 mt-4 sm:mt-0">
+              {content.footer.links.map((link) => (
+                <li key={link.href}>
+                  <Button variant="link" asChild className="p-0 h-auto">
+                    <Link href={link.href}>{link.label}</Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
       </footer>
     </>
   );
