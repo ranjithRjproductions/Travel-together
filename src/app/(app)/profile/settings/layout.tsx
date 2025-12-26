@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,9 @@ import {
   MapPin,
   Phone,
   Accessibility,
+  ArrowLeft
 } from 'lucide-react';
+import { CardHeader, CardTitle } from '@/components/ui/card';
 
 const navigation = [
   { name: 'Profile Information', href: '/profile/settings', icon: User },
@@ -25,6 +27,9 @@ export default function ProfileSettingsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  
+  const currentPage = navigation.find(item => item.href === pathname);
 
   return (
     <div className="grid md:grid-cols-[250px_1fr] gap-8 items-start">
@@ -44,7 +49,13 @@ export default function ProfileSettingsLayout({
         ))}
       </nav>
       <Card>
-        <CardContent className="pt-6">{children}</CardContent>
+        <CardHeader className="flex flex-row items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.back()} aria-label="Go back">
+                <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <CardTitle className="text-2xl">{currentPage?.name || 'Profile Settings'}</CardTitle>
+        </CardHeader>
+        <CardContent>{children}</CardContent>
       </Card>
     </div>
   );

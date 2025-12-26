@@ -8,8 +8,6 @@ import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
-  CardHeader,
-  CardTitle,
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,20 +91,15 @@ export default function ContactPage() {
 
   return (
     <div>
-      <CardHeader className="p-0 mb-6">
-         <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl">Contact Details</CardTitle>
-            {!isEditMode && (
-                 <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
-            )}
-        </div>
-        <CardDescription>
-          Provide contact information for communication and emergency use.
-        </CardDescription>
-      </CardHeader>
+      <CardDescription className="mb-6">
+        Provide contact information for communication and emergency use.
+      </CardDescription>
       
       {isEditMode ? (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="flex justify-end">
+             <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
+           </div>
           <div>
             <Label htmlFor="primaryPhone">Primary Phone Number</Label>
             <Input id="primaryPhone" type="tel" {...register('primaryPhone')} />
@@ -118,7 +111,17 @@ export default function ContactPage() {
             {errors.whatsappNumber && <p className="text-sm text-destructive">{errors.whatsappNumber.message}</p>}
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox id="whatsappSameAsPrimary" {...register('whatsappSameAsPrimary')} />
+            <Controller
+              name="whatsappSameAsPrimary"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="whatsappSameAsPrimary"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
             <Label htmlFor="whatsappSameAsPrimary" className="text-sm font-normal">
               Same as primary number
             </Label>
@@ -132,13 +135,19 @@ export default function ContactPage() {
         </form>
       ) : (
          <div className="space-y-2 text-sm">
+           <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
+            </div>
             {userProfile?.contact ? (
                 <>
                     <p><span className="font-medium">Primary Phone:</span> {userProfile.contact.primaryPhone}</p>
                     <p><span className="font-medium">WhatsApp:</span> {userProfile.contact.whatsappNumber}</p>
                 </>
             ) : (
-                <p className="text-muted-foreground">You haven't added contact details yet.</p>
+                <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
+                  <p>You haven't added contact details yet.</p>
+                  <Button variant="secondary" className="mt-4" onClick={() => setIsEditMode(true)}>Add Contact Details</Button>
+                </div>
             )}
         </div>
       )}

@@ -12,8 +12,6 @@ import { useFirestore, useUser, useStorage } from '@/firebase/provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -116,15 +114,15 @@ export default function ProfileSettingsPage() {
       });
       return;
     }
-
+  
     const filePath = `profile-photos/${user.uid}/${photoFile.name}`;
     const fileRef = storageRef(storage, filePath);
-
+  
     setIsUploading(true);
     setUploadProgress(0);
-
+  
     const uploadTask = uploadBytesResumable(fileRef, photoFile);
-
+  
     uploadTask.on(
       'state_changed',
       (snapshot) => {
@@ -144,18 +142,18 @@ export default function ProfileSettingsPage() {
       async () => {
         try {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
+  
           await setDoc(
             userDocRef,
             { photoURL: downloadURL },
             { merge: true }
           );
-
+  
           toast({
             title: 'Upload complete',
             description: 'Your profile photo has been updated.',
           });
-
+  
           setPhotoFile(null);
         } catch (err) {
           console.error('Saving URL failed:', err);
@@ -218,12 +216,9 @@ export default function ProfileSettingsPage() {
 
   return (
     <div>
-      <CardHeader className="p-0 mb-6">
-        <CardTitle className="text-2xl">Profile Information</CardTitle>
-        <CardDescription>
-          This is your basic identity on the platform. Your email and role are fixed, but you can update your name and photo.
-        </CardDescription>
-      </CardHeader>
+      <CardDescription className="mb-6">
+        This is your basic identity on the platform. Your email and role are fixed, but you can update your name and photo.
+      </CardDescription>
 
       {isLoading && <ProfileSkeleton />}
       {!isLoading && userProfile && (

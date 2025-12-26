@@ -8,8 +8,6 @@ import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
-  CardHeader,
-  CardTitle,
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,20 +79,15 @@ export default function AddressPage() {
 
   return (
     <div>
-      <CardHeader className="p-0 mb-6">
-        <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl">My Address</CardTitle>
-            {!isEditMode && (
-                 <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
-            )}
-        </div>
-        <CardDescription>
-          This address is used for travel-related services and communication.
-        </CardDescription>
-      </CardHeader>
+       <CardDescription className="mb-6">
+        This address is used for travel-related services and communication.
+       </CardDescription>
 
       {isEditMode ? (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+           <div className="flex justify-end">
+             <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
+           </div>
           <div>
             <Label htmlFor="addressLine1">Address Line 1</Label>
             <Input id="addressLine1" {...register('addressLine1')} />
@@ -137,6 +130,9 @@ export default function AddressPage() {
         </form>
       ) : (
         <div className="space-y-4 text-sm">
+            <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
+            </div>
             {userProfile?.address ? (
                 <>
                     <p>{userProfile.address.addressLine1}</p>
@@ -145,7 +141,10 @@ export default function AddressPage() {
                     <p>{userProfile.address.country}</p>
                 </>
             ) : (
-                <p className="text-muted-foreground">You haven't added an address yet.</p>
+                <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
+                  <p>You haven't added an address yet.</p>
+                  <Button variant="secondary" className="mt-4" onClick={() => setIsEditMode(true)}>Add Address</Button>
+                </div>
             )}
         </div>
       )}

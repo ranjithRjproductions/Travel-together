@@ -13,8 +13,6 @@ import {
 } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import {
-  CardHeader,
-  CardTitle,
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { File as FileIcon, UploadCloud } from 'lucide-react';
+import { File as FileIcon } from 'lucide-react';
 import Link from 'next/link';
 
 const disabilitySchema = z.object({
@@ -154,17 +152,9 @@ export default function DisabilityPage() {
 
   return (
     <div>
-      <CardHeader className="p-0 mb-6">
-        <div className="flex justify-between items-center">
-            <CardTitle className="text-2xl">Disability Disclosure</CardTitle>
-             {!isEditMode && (
-                 <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
-            )}
-        </div>
-        <CardDescription>
-          Sharing this information is voluntary and helps us provide a more accessible and supportive experience.
-        </CardDescription>
-      </CardHeader>
+      <CardDescription className="mb-6">
+        Sharing this information is voluntary and helps us provide a more accessible and supportive experience.
+      </CardDescription>
       
       {isEditMode ? (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -220,7 +210,10 @@ export default function DisabilityPage() {
         </form>
       ) : (
         <div className="space-y-4 text-sm">
-            {userProfile?.disability ? (
+             <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
+            </div>
+            {userProfile?.disability && (userProfile.disability.visionImpairment || userProfile.disability.hearingImpairment || userProfile.disability.mobilityImpairment || userProfile.disability.preferNotToSay) ? (
                 <>
                    <ul className="list-disc pl-5 space-y-1">
                       {userProfile.disability.visionImpairment && <li>Vision Impairment
@@ -243,7 +236,10 @@ export default function DisabilityPage() {
                    )}
                 </>
             ) : (
-                <p className="text-muted-foreground">You have not disclosed any information.</p>
+                <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
+                  <p>You have not disclosed any information.</p>
+                  <Button variant="secondary" className="mt-4" onClick={() => setIsEditMode(true)}>Add Disclosure</Button>
+                </div>
             )}
         </div>
       )}
