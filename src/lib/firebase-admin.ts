@@ -11,6 +11,10 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
 // Safely parse the service account key from the environment variable.
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
+// The private key from the environment variable comes with escaped newlines.
+// We need to replace '\\n' with '\n' to format it correctly for the PEM parser.
+serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+
 // Initialize Firebase Admin SDK only once.
 if (!admin.apps.length) {
   admin.initializeApp({
