@@ -1,14 +1,13 @@
 {
   "welcome": "Welcome back, {name}!",
-  "findTripButton": "Find a New Trip",
-  "nextAdventureTitle": "Your Next Adventure",
-  "nextAdventureLocation": "Coastal City",
-  "nextAdventureDate": "October 15-22, 2024",
-  "nextAdventureDescription": "You are all set for your trip to the coast. Your guide, Marco, will contact you a week before departure.",
-  "viewTripButton": "View Trip Details",
-  "recommendedGuidesTitle": "Recommended Guides",
-  "recommendedGuidesDescription": "Top-rated guides for your next journey.",
-  "viewProfileButton": "View Profile",
-  "popularDestinationsTitle": "Explore Popular Destinations",
-  "popularDestinationsDescription": "Get inspired for your next travel."
+  "pageTitle": "Traveler Dashboard",
+  "createRequest": {
+    "title": "Plan Your Next Adventure",
+    "description": "Ready to explore? Create a new travel request and connect with the perfect guide.",
+    "cta": "Create New Request"
+  },
+  "myRequests": {
+    "title": "My Travel Requests",
+    "description": "View and manage your current and past travel requests."
+  }
 }

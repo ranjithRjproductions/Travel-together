@@ -1,14 +1,12 @@
 {
   "welcome": "Welcome back, {name}!",
-  "createTourButton": "Create New Tour",
-  "profileTitle": "Your Guide Profile",
-  "editProfileButton": "Edit",
-  "profileDescription": "Passionate local guide in Coastal City.",
-  "rating": "4.8/5",
-  "activityFeedTitle": "Activity Feed",
-  "activityFeedDescription": "Upcoming tours and new requests.",
-  "upcomingToursTitle": "Upcoming Tours",
-  "newBookingsTitle": "New Booking Requests",
-  "acceptButton": "Accept",
-  "declineButton": "Decline"
+  "pageTitle": "Guide Dashboard",
+  "availableRequests": {
+    "title": "Available Requests",
+    "description": "Requests from travelers looking for a guide."
+  },
+  "myRequests": {
+    "title": "My Accepted Requests",
+    "description": "Your upcoming confirmed tours."
+  }
 }

@@ -12,18 +12,19 @@ import {
 import { logout } from '@/lib/actions';
 import { User, LogOut, Settings } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
+import Link from 'next/link';
 
 function LogoutButton() {
-    return (
-        <form action={logout} className="w-full">
-            <button type="submit" className="w-full text-left">
-                <DropdownMenuItem className="cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
-                    <span>Log out</span>
-                </DropdownMenuItem>
-            </button>
-        </form>
-    )
+  return (
+    <form action={logout} className="w-full">
+      <button type="submit" className="w-full text-left">
+        <DropdownMenuItem className="cursor-pointer">
+          <LogOut aria-hidden="true" />
+          <span>Log out</span>
+        </DropdownMenuItem>
+      </button>
+    </form>
+  );
 }
 
 export function UserNav({ user }: { user: UserType }) {
@@ -37,7 +38,10 @@ export function UserNav({ user }: { user: UserType }) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={`Profile picture of ${user.name}`} />
+            <AvatarImage
+              src={`https://avatar.vercel.sh/${user.email}.png`}
+              alt={`Profile picture of ${user.name}`}
+            />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
@@ -53,12 +57,14 @@ export function UserNav({ user }: { user: UserType }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" aria-hidden="true" />
-            <span>Profile</span>
+          <DropdownMenuItem asChild>
+            <Link href="/profile/settings">
+              <User aria-hidden="true" />
+              <span>Profile</span>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
+            <Settings aria-hidden="true" />
             <span>Settings</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>

@@ -1,0 +1,12 @@
+{
+  "pageTitle": "Profile Settings",
+  "formTitle": "Your Profile",
+  "formDescription": "Manage your personal information. Your email and role cannot be changed.",
+  "nameLabel": "Name",
+  "emailLabel": "Email",
+  "roleLabel": "Role",
+  "saveButton": "Save Changes",
+  "saveButtonSubmitting": "Saving...",
+  "successMessage": "Your profile has been updated successfully.",
+  "errorMessage": "Could not update your profile. Please try again."
+}
