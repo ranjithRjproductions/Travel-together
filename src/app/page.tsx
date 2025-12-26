@@ -33,7 +33,7 @@ export default function Home() {
             </Button>
         </div>
       </header>
-      <main>
+      <main id="main-content">
         <section aria-labelledby="hero-heading" className="relative flex min-h-[75vh] items-center justify-center text-center text-white">
           {heroImage && (
             <Image

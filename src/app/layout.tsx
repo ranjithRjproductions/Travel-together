@@ -25,6 +25,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased min-h-screen bg-background text-base">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:m-2 bg-background text-foreground border rounded-md">
+          Skip to main content
+        </a>
         <FirebaseClientProvider>
           {children}
         </FirebaseClientProvider>
