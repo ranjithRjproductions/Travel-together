@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDoc, useFirestore, useUser } from '@/firebase';
@@ -42,6 +42,7 @@ export default function ContactPage() {
     reset,
     watch,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
@@ -97,18 +98,10 @@ export default function ContactPage() {
       
       {isEditMode ? (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="flex justify-end">
-             <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
-           </div>
           <div>
             <Label htmlFor="primaryPhone">Primary Phone Number</Label>
             <Input id="primaryPhone" type="tel" {...register('primaryPhone')} />
             {errors.primaryPhone && <p className="text-sm text-destructive">{errors.primaryPhone.message}</p>}
-          </div>
-          <div>
-            <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
-            <Input id="whatsappNumber" type="tel" {...register('whatsappNumber')} disabled={whatsappSameAsPrimary} />
-            {errors.whatsappNumber && <p className="text-sm text-destructive">{errors.whatsappNumber.message}</p>}
           </div>
           <div className="flex items-center space-x-2">
             <Controller
@@ -126,8 +119,13 @@ export default function ContactPage() {
               Same as primary number
             </Label>
           </div>
+          <div>
+            <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+            <Input id="whatsappNumber" type="tel" {...register('whatsappNumber')} disabled={whatsappSameAsPrimary} />
+            {errors.whatsappNumber && <p className="text-sm text-destructive">{errors.whatsappNumber.message}</p>}
+          </div>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" type="button" onClick={() => { reset(userProfile?.contact); setIsEditMode(false); }}>Cancel</Button>
+            <Button variant="ghost" type="button" onClick={() => { userProfile?.contact && reset(userProfile.contact); setIsEditMode(false); }}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Saving...' : 'Save Contact'}
             </Button>
