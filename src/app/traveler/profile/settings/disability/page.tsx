@@ -19,19 +19,25 @@ import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const disabilitySchema = z.object({
-  mainDisability: z.enum(['visually-impaired', 'hard-of-hearing'], {
-    required_error: 'Please select a disability type.',
-  }),
+  mainDisability: z.enum(['visually-impaired', 'hard-of-hearing', 'none']).default('none'),
   visionSubOption: z.enum(['totally-blind', 'low-vision']).optional(),
   visionPercentage: z.coerce.number().min(1).max(100).optional(),
   hearingPercentage: z.coerce.number().min(1).max(100).optional(),
   requiresSignLanguageGuide: z.boolean().optional(),
   documentUrl: z.string().url().optional(),
   documentName: z.string().optional(),
-  agreedToVoluntaryDisclosure: z.boolean().refine(val => val === true, {
-    message: 'You must agree to the voluntary disclosure before saving.',
-  }),
+  agreedToVoluntaryDisclosure: z.boolean().optional(),
 }).superRefine((data, ctx) => {
+    // If no disability is selected, no further validation is needed
+    if (data.mainDisability === 'none') {
+        return;
+    }
+
+    // If a disability IS selected, agreement is required.
+    if (!data.agreedToVoluntaryDisclosure) {
+         ctx.addIssue({ code: 'custom', message: 'You must agree to the voluntary disclosure to proceed.', path: ['agreedToVoluntaryDisclosure'] });
+    }
+
     if (data.mainDisability === 'visually-impaired') {
         if (!data.visionSubOption) {
             ctx.addIssue({ code: 'custom', message: 'Please specify your vision status.', path: ['visionSubOption'] });
@@ -46,6 +52,7 @@ const disabilitySchema = z.object({
         }
     }
 });
+
 
 type DisabilityFormData = z.infer<typeof disabilitySchema>;
 
@@ -79,8 +86,7 @@ export default function DisabilityPage() {
   } = useForm<DisabilityFormData>({
     resolver: zodResolver(disabilitySchema),
     defaultValues: {
-      visionPercentage: undefined,
-      hearingPercentage: undefined,
+      mainDisability: 'none',
       requiresSignLanguageGuide: false,
       agreedToVoluntaryDisclosure: false,
     },
@@ -148,12 +154,21 @@ export default function DisabilityPage() {
   const onSubmit: SubmitHandler<DisabilityFormData> = async (data) => {
     if (!userDocRef || !userProfile) return;
 
-    if (data.mainDisability && !selectedFile && !userProfile.disability?.documentUrl) {
-         toast({ variant: 'destructive', title: 'Validation Error', description: 'A supporting document is required.' });
-         return;
+    // If user chose not to disclose, save only that and finish.
+    if (data.mainDisability === 'none') {
+        await setDoc(userDocRef, { disability: { mainDisability: 'none' } }, { merge: true });
+        toast({ title: 'Success', description: 'Your accessibility preferences have been saved.' });
+        setIsEditMode(false);
+        router.push('/traveler/dashboard');
+        return;
+    }
+
+    if (!selectedFile && !userProfile.disability?.documentUrl) {
+        toast({ variant: 'destructive', title: 'Validation Error', description: 'A supporting document is required when disclosing a disability.' });
+        return;
     }
     
-    const finalData = { ...data };
+    const finalData: Partial<DisabilityFormData> = { ...data };
 
     try {
         if (selectedFile) {
@@ -164,11 +179,11 @@ export default function DisabilityPage() {
 
         // Sanitize data to prevent saving undefined fields
         if (finalData.mainDisability === 'visually-impaired') {
-            delete (finalData as Partial<DisabilityFormData>).hearingPercentage;
-            delete (finalData as Partial<DisabilityFormData>).requiresSignLanguageGuide;
+            delete finalData.hearingPercentage;
+            delete finalData.requiresSignLanguageGuide;
         } else if (finalData.mainDisability === 'hard-of-hearing') {
-            delete (finalData as Partial<DisabilityFormData>).visionSubOption;
-            delete (finalData as Partial<DisabilityFormData>).visionPercentage;
+            delete finalData.visionSubOption;
+            delete finalData.visionPercentage;
         }
 
         await setDoc(userDocRef, { disability: finalData }, { merge: true });
@@ -193,7 +208,7 @@ export default function DisabilityPage() {
 
   const renderSavedData = () => {
     const disability = userProfile?.disability;
-    if (!disability) {
+    if (!disability || disability.mainDisability === 'none') {
       return (
          <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
             <p>You have not disclosed any accessibility needs.</p>
@@ -254,7 +269,7 @@ export default function DisabilityPage() {
   return (
     <div>
         <CardDescription className="mb-6">
-            This information helps us provide accessible and inclusive support during your journey.
+            Disclosing this information is voluntary but helps us connect you with the right guide and provide better accessibility support during your journey.
         </CardDescription>
 
       {isEditMode ? (
@@ -274,6 +289,10 @@ export default function DisabilityPage() {
                            <RadioGroupItem value="hard-of-hearing" id="hard-of-hearing" />
                            <Label htmlFor="hard-of-hearing" className="font-normal">Hard of Hearing</Label>
                         </div>
+                         <div className="flex items-center space-x-2">
+                           <RadioGroupItem value="none" id="none" />
+                           <Label htmlFor="none" className="font-normal">Do not wish to disclose</Label>
+                        </div>
                     </RadioGroup>
                     )}
                 />
@@ -283,7 +302,7 @@ export default function DisabilityPage() {
           {mainDisability === 'visually-impaired' && (
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
                 <div>
-                    <legend className="text-sm font-medium mb-2">Details</legend>
+                    <legend className="text-sm font-medium mb-2">Details (Required)</legend>
                     <Controller
                         name="visionSubOption"
                         control={control}
@@ -303,7 +322,7 @@ export default function DisabilityPage() {
                      {errors.visionSubOption && <p className="text-sm text-destructive mt-2">{errors.visionSubOption.message}</p>}
                 </div>
                <div>
-                  <Label htmlFor="visionPercentage">Percentage of vision impairment (required)</Label>
+                  <Label htmlFor="visionPercentage">Percentage of vision impairment (Required)</Label>
                   <Input 
                     id="visionPercentage"
                     type="number" 
@@ -320,7 +339,7 @@ export default function DisabilityPage() {
            {mainDisability === 'hard-of-hearing' && (
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
                <div>
-                  <Label htmlFor="hearingPercentage">Percentage of hearing impairment (required)</Label>
+                  <Label htmlFor="hearingPercentage">Percentage of hearing impairment (Required)</Label>
                   <Input 
                     id="hearingPercentage"
                     type="number" 
@@ -338,7 +357,7 @@ export default function DisabilityPage() {
                     <div className="flex items-start space-x-2">
                       <Checkbox
                         id="requiresSignLanguageGuide"
-                        checked={field.value}
+                        checked={!!field.value}
                         onCheckedChange={field.onChange}
                         className="mt-1"
                       />
@@ -351,40 +370,42 @@ export default function DisabilityPage() {
             </fieldset>
           )}
 
-          {mainDisability && (
-              <div className="space-y-2 pt-4 border-t">
-                  <Label htmlFor="document-upload">Supporting Document (PDF/Image, Required)</Label>
-                  <p id="document-upload-description" className="text-sm text-muted-foreground">
-                    Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
-                  </p>
-                  <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" />
-                  {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
-                  {userProfile?.disability?.documentName && !selectedFile && <p className="text-sm text-muted-foreground">Current: {userProfile.disability.documentName}</p>}
+          {mainDisability !== 'none' && (
+              <>
+                <div className="space-y-2 pt-4 border-t">
+                    <Label htmlFor="document-upload">Supporting Document (PDF/Image, Required)</Label>
+                    <p id="document-upload-description" className="text-sm text-muted-foreground">
+                        Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
+                    </p>
+                    <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" />
+                    {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
+                    {userProfile?.disability?.documentName && !selectedFile && <p className="text-sm text-muted-foreground">Current: {userProfile.disability.documentName}</p>}
 
-                  {isUploading && (
-                    <div className="w-full mt-2">
-                        <Progress value={uploadProgress} />
-                        <p className="text-xs text-center text-muted-foreground mt-1">{uploadProgress}%</p>
-                    </div>
-                  )}
-              </div>
+                    {isUploading && (
+                        <div className="w-full mt-2">
+                            <Progress value={uploadProgress} />
+                            <p className="text-xs text-center text-muted-foreground mt-1">{uploadProgress}%</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                    <Controller
+                        name="agreedToVoluntaryDisclosure"
+                        control={control}
+                        render={({ field }) => (
+                        <div className="flex items-start space-x-2">
+                            <Checkbox id="agreement" checked={!!field.value} onCheckedChange={field.onChange} className="mt-1" />
+                            <Label htmlFor="agreement" className="font-normal text-sm">
+                            I voluntarily agree to provide this information to help "Let's Travel Together" offer better accessibility support. I understand this data will be handled securely and used only for this purpose.
+                            </Label>
+                        </div>
+                        )}
+                    />
+                    {errors.agreedToVoluntaryDisclosure && <p className="text-sm text-destructive">{errors.agreedToVoluntaryDisclosure.message}</p>}
+                </div>
+              </>
           )}
-
-          <div className="space-y-4 pt-4 border-t">
-            <Controller
-                name="agreedToVoluntaryDisclosure"
-                control={control}
-                render={({ field }) => (
-                  <div className="flex items-start space-x-2">
-                    <Checkbox id="agreement" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
-                    <Label htmlFor="agreement" className="font-normal text-sm">
-                      I voluntarily agree to provide this information to help "Let's Travel Together" offer better accessibility support. I understand this data will be handled securely and used only for this purpose.
-                    </Label>
-                  </div>
-                )}
-              />
-              {errors.agreedToVoluntaryDisclosure && <p className="text-sm text-destructive">{errors.agreedToVoluntaryDisclosure.message}</p>}
-          </div>
 
           <div className="flex justify-end gap-2">
             {userProfile?.disability && <Button variant="ghost" type="button" onClick={() => { reset(userProfile.disability); setIsEditMode(false); }}>Cancel</Button>}
