@@ -2,17 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import {
   User,
   MapPin,
   Phone,
   Accessibility,
-  ArrowLeft
+  ArrowLeft,
 } from 'lucide-react';
-import { CardHeader, CardTitle } from '@/components/ui/card';
 
 const navigation = [
   { name: 'Profile Information', href: '/profile/settings', icon: User },
@@ -33,7 +31,7 @@ export default function ProfileSettingsLayout({
 
   return (
     <div className="grid md:grid-cols-[250px_1fr] gap-8 items-start">
-      <nav className="flex flex-col gap-2" aria-label="Profile Settings">
+      <nav className="hidden md:flex flex-col gap-2" aria-label="Profile Settings">
         {navigation.map((item) => (
           <Button
             key={item.name}
@@ -48,15 +46,19 @@ export default function ProfileSettingsLayout({
           </Button>
         ))}
       </nav>
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.back()} aria-label="Go back">
-                <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <CardTitle className="text-2xl">{currentPage?.name || 'Profile Settings'}</CardTitle>
-        </CardHeader>
-        <CardContent>{children}</CardContent>
-      </Card>
+      <main>
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-4 border-b">
+              <Button variant="outline" size="icon" onClick={() => router.back()} aria-label="Go back to previous page">
+                  <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <CardTitle className="text-2xl font-bold tracking-tight">
+                <h1>{currentPage?.name || 'Profile Settings'}</h1>
+              </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">{children}</CardContent>
+        </Card>
+      </main>
     </div>
   );
 }

@@ -12,6 +12,7 @@ export type User = {
     state: string;
     postalCode: string;
     country: string;
+    isDefault: boolean;
   };
   contact?: {
     primaryPhone: string;
@@ -19,13 +20,10 @@ export type User = {
     whatsappSameAsPrimary: boolean;
   };
   disability?: {
-    visionImpairment: boolean;
-    lowVision: boolean;
-    blind: boolean;
-    hearingImpairment: boolean;
-    mobilityImpairment: boolean;
-    preferNotToSay: boolean;
-    disabilityIdUrl?: string;
-    agreedToVoluntaryDisclosure: boolean;
+    mainDisability?: 'vision' | 'hearing' | 'none';
+    visionSubOption?: 'blind' | 'low-vision';
+    visionPercentage?: number;
+    hearingAssistance?: boolean;
+    hearingPercentage?: number;
   }
 };

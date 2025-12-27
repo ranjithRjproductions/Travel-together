@@ -6,10 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import {
-  CardDescription,
-} from '@/components/ui/card';
+import { CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const contactSchema = z.object({
-  primaryPhone: z.string().min(1, 'Primary phone is required'),
+  primaryPhone: z.string().min(10, 'Please enter a valid phone number'),
   whatsappSameAsPrimary: z.boolean().default(false),
   whatsappNumber: z.string().optional(),
 }).refine(data => data.whatsappSameAsPrimary || data.whatsappNumber, {
@@ -31,6 +30,7 @@ export default function ContactPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const [isEditMode, setIsEditMode] = useState(false);
 
   const userDocRef = useMemo(() => {
@@ -81,6 +81,7 @@ export default function ContactPage() {
         description: 'Your contact details have been saved.',
       });
       setIsEditMode(false);
+      router.push('/profile/settings/disability');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -99,14 +100,14 @@ export default function ContactPage() {
   return (
     <div>
       <CardDescription className="mb-6">
-        Provide contact information for communication and emergency use.
+        Provide contact information for communication and emergency use. This information will be kept confidential.
       </CardDescription>
       
       {isEditMode ? (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="primaryPhone">Primary Phone Number</Label>
-            <Input id="primaryPhone" type="tel" {...register('primaryPhone')} />
+            <Input id="primaryPhone" type="tel" {...register('primaryPhone')} aria-invalid={errors.primaryPhone ? 'true' : 'false'} />
             {errors.primaryPhone && <p className="text-sm text-destructive">{errors.primaryPhone.message}</p>}
           </div>
           <div className="flex items-center space-x-2">
@@ -118,34 +119,46 @@ export default function ContactPage() {
                   id="whatsappSameAsPrimary"
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  aria-labelledby="whatsapp-label"
                 />
               )}
             />
-            <Label htmlFor="whatsappSameAsPrimary" className="text-sm font-normal">
-              Same as primary number
+            <Label id="whatsapp-label" htmlFor="whatsappSameAsPrimary" className="text-sm font-normal">
+              My WhatsApp number is the same as my primary phone number.
             </Label>
           </div>
-          <div>
-            <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
-            <Input id="whatsappNumber" type="tel" {...register('whatsappNumber')} disabled={whatsappSameAsPrimary} />
-            {errors.whatsappNumber && <p className="text-sm text-destructive">{errors.whatsappNumber.message}</p>}
-          </div>
+          {!whatsappSameAsPrimary && (
+            <div>
+              <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+              <Input id="whatsappNumber" type="tel" {...register('whatsappNumber')} disabled={whatsappSameAsPrimary} aria-invalid={errors.whatsappNumber ? 'true' : 'false'} />
+              {errors.whatsappNumber && <p className="text-sm text-destructive">{errors.whatsappNumber.message}</p>}
+            </div>
+          )}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" type="button" onClick={() => { userProfile?.contact && reset(userProfile.contact); setIsEditMode(false); }}>Cancel</Button>
+            <Button variant="ghost" type="button" onClick={() => { if(userProfile?.contact) { reset(userProfile.contact); setIsEditMode(false); } }}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save Contact'}
+              {isSubmitting ? 'Saving...' : 'Save and Continue'}
             </Button>
           </div>
         </form>
       ) : (
-         <div className="space-y-2 text-sm">
+         <div className="space-y-4 text-sm">
            <div className="flex justify-end">
               <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
             </div>
             {userProfile?.contact ? (
                 <>
-                    <p><span className="font-medium">Primary Phone:</span> {userProfile.contact.primaryPhone}</p>
-                    <p><span className="font-medium">WhatsApp:</span> {userProfile.contact.whatsappNumber}</p>
+                    <div>
+                        <p className="font-medium text-muted-foreground">Primary Phone</p>
+                        <p>{userProfile.contact.primaryPhone}</p>
+                    </div>
+                     <div>
+                        <p className="font-medium text-muted-foreground">WhatsApp Number</p>
+                        <p>{userProfile.contact.whatsappNumber}</p>
+                    </div>
+                    <div className="flex justify-end pt-4">
+                      <Button onClick={() => router.push('/profile/settings/disability')}>Next Step</Button>
+                    </div>
                 </>
             ) : (
                 <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
