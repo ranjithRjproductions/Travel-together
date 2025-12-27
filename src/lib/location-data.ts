@@ -11,7 +11,7 @@ export const tamilNaduCities = [
   "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", 
   "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram", 
   "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai", 
-  "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", d
+  "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
   "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", 
   "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli", 
   "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur", 
