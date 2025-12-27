@@ -20,8 +20,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle, GraduationCap } from 'lucide-react';
 
 const verificationSchema = z.object({
-  governmentIdUrl: z.string().url('Government ID is required.'),
-  proofDocumentUrl: z.string().url('Proof of qualification is required.'),
+  governmentIdUrl: z.string().url().optional(),
+  proofDocumentUrl: z.string().url().optional(),
 });
 
 type VerificationFormData = z.infer<typeof verificationSchema>;
@@ -59,6 +59,10 @@ export default function GuideVerificationPage() {
     formState: { errors, isSubmitting },
   } = useForm<VerificationFormData>({
     resolver: zodResolver(verificationSchema),
+    defaultValues: {
+        governmentIdUrl: undefined,
+        proofDocumentUrl: undefined,
+    }
   });
 
   const formValues = watch();
@@ -120,12 +124,19 @@ export default function GuideVerificationPage() {
   const onSubmit: SubmitHandler<VerificationFormData> = async (data) => {
     if (!guideProfileDocRef) return;
     
-    let { governmentIdUrl, proofDocumentUrl } = data;
+    // Manual validation before submission
+    if (!govIdFile && !formValues.governmentIdUrl) {
+        toast({ variant: 'destructive', title: 'Missing Document', description: 'Government-issued ID is required.' });
+        return;
+    }
+    if (!proofFile && !formValues.proofDocumentUrl) {
+        toast({ variant: 'destructive', title: 'Missing Document', description: 'Proof of qualification is required.' });
+        return;
+    }
+
+    let { governmentIdUrl, proofDocumentUrl } = formValues;
 
     try {
-        if (!govIdFile && !governmentIdUrl) throw new Error("Government ID is required.");
-        if (!proofFile && !proofDocumentUrl) throw new Error("Proof of qualification is required.");
-
       if (govIdFile) {
         setIsUploadingGovId(true);
         governmentIdUrl = await uploadFile(govIdFile, 'govt-id', setGovIdProgress);
@@ -139,7 +150,7 @@ export default function GuideVerificationPage() {
         setIsUploadingProof(false);
       }
       
-      const finalData = { ...data, governmentIdUrl, proofDocumentUrl };
+      const finalData = { governmentIdUrl, proofDocumentUrl };
       
       await setDoc(guideProfileDocRef, { verification: finalData, onboardingState: 'verification-pending' }, { merge: true });
 
@@ -147,6 +158,8 @@ export default function GuideVerificationPage() {
         title: 'Profile Submitted!',
         description: 'Your verification documents have been submitted for review.',
       });
+      // Re-fetch or update local state to show the submitted view
+      setGuideProfile((prev: any) => ({ ...prev, verification: finalData, onboardingState: 'verification-pending' }));
 
     } catch (error: any) {
       console.error('Verification submit error:', error);
