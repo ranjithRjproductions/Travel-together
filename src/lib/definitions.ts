@@ -26,5 +26,6 @@ export type User = {
     hearingNeeds?: string;
     documentUrl?: string;
     documentName?: string;
+    agreedToVoluntaryDisclosure: boolean;
   };
 };

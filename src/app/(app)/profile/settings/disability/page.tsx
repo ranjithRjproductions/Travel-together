@@ -16,8 +16,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 const disabilitySchema = z.object({
   mainDisability: z.enum(['visually-impaired', 'hard-of-hearing'], {
@@ -28,6 +29,9 @@ const disabilitySchema = z.object({
   hearingNeeds: z.string().optional(),
   documentUrl: z.string().url().optional(),
   documentName: z.string().optional(),
+  agreedToVoluntaryDisclosure: z.boolean().refine(val => val === true, {
+    message: 'You must agree to the voluntary disclosure before saving.',
+  }),
 }).superRefine((data, ctx) => {
     if (data.mainDisability === 'visually-impaired') {
         if (!data.visionSubOption) {
@@ -73,6 +77,7 @@ export default function DisabilityPage() {
     defaultValues: {
       visionPercentage: undefined,
       hearingNeeds: '',
+      agreedToVoluntaryDisclosure: false,
     },
   });
 
@@ -136,7 +141,7 @@ export default function DisabilityPage() {
   };
 
   const onSubmit: SubmitHandler<DisabilityFormData> = async (data) => {
-    if (!userDocRef) return;
+    if (!userDocRef || !userProfile) return;
 
     if (data.mainDisability && !selectedFile && !userProfile?.disability?.documentUrl) {
          toast({ variant: 'destructive', title: 'Validation Error', description: 'A supporting document is required.' });
@@ -157,6 +162,9 @@ export default function DisabilityPage() {
         toast({ title: 'Success', description: 'Your accessibility needs have been saved.' });
         setSelectedFile(null);
         setIsEditMode(false);
+        
+        const redirectTo = userProfile.role === 'Guide' ? '/guide/dashboard' : '/traveler/dashboard';
+        router.push(redirectTo);
 
     } catch (error: any) {
         console.error("Save error:", error);
@@ -172,8 +180,6 @@ export default function DisabilityPage() {
   const renderSavedData = () => {
     const disability = userProfile?.disability;
     if (!disability) {
-      // This state should ideally not be reached if isEditMode logic is correct,
-      // but as a fallback, we offer a way to enter edit mode.
       return (
          <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
             <p>You have not disclosed any accessibility needs.</p>
@@ -220,18 +226,12 @@ export default function DisabilityPage() {
                     </a>
                 </div>
             )}
-             <div className="flex justify-end pt-4">
-                <Button onClick={() => toast({ title: 'Profile Complete!', description: "You have completed all steps of your profile setup."})}>Finish Setup</Button>
-            </div>
         </div>
     );
   }
 
   return (
     <div>
-        {!isEditMode && (
-            <CardTitle className="mb-2">Disability Information</CardTitle>
-        )}
         <CardDescription className="mb-6">
             This information helps us provide accessible and inclusive support during your journey.
         </CardDescription>
@@ -309,6 +309,9 @@ export default function DisabilityPage() {
           {mainDisability && (
               <div className="space-y-2 pt-4 border-t">
                   <Label htmlFor="document-upload">Supporting Document (PDF/Image, Required)</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
+                  </p>
                   <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} />
                   {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
                   {userProfile?.disability?.documentName && !selectedFile && <p className="text-sm text-muted-foreground">Current: {userProfile.disability.documentName}</p>}
@@ -322,10 +325,26 @@ export default function DisabilityPage() {
               </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="space-y-4 pt-4 border-t">
+            <Controller
+                name="agreedToVoluntaryDisclosure"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex items-start space-x-2">
+                    <Checkbox id="agreement" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
+                    <Label htmlFor="agreement" className="font-normal text-sm">
+                      I voluntarily agree to provide this information to help "Let's Travel Together" offer better accessibility support. I understand this data will be handled securely and used only for this purpose.
+                    </Label>
+                  </div>
+                )}
+              />
+              {errors.agreedToVoluntaryDisclosure && <p className="text-sm text-destructive">{errors.agreedToVoluntaryDisclosure.message}</p>}
+          </div>
+
+          <div className="flex justify-end gap-2">
             {userProfile?.disability && <Button variant="ghost" type="button" onClick={() => { reset(userProfile.disability); setIsEditMode(false); }}>Cancel</Button>}
             <Button type="submit" disabled={isFormSubmitting}>
-              {isFormSubmitting ? 'Saving...' : 'Save Settings'}
+              {isFormSubmitting ? 'Saving...' : 'Save and Finish'}
             </Button>
           </div>
         </form>
