@@ -1,35 +1,10 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { collection, addDoc, FieldValue } from 'firebase/firestore';
-import { db } from '@/lib/firebase-admin';
-import { getUser } from '@/lib/auth';
-import * as admin from 'firebase-admin';
 
-export default async function CreateRequestPage() {
-    const user = await getUser();
-
-    if (!user) {
-        redirect('/login');
-    }
-
-    try {
-        const newRequestRef = await addDoc(collection(db, 'travelRequests'), {
-            travelerId: user.uid,
-            status: 'draft',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            step1Complete: false,
-            step2Complete: false,
-            step3Complete: false,
-            step4Complete: false,
-        });
-
-        redirect(`/traveler/request/${newRequestRef.id}`);
-
-    } catch (error) {
-        console.error("Failed to create travel request draft:", error);
-        redirect('/traveler/dashboard?error=creation-failed');
-    }
-
-    return null; // This component will not render anything itself
+export default async function CreateRequestRedirectPage() {
+    // This page now solely redirects to the dynamic route handler.
+    // The actual draft creation is handled client-side on the [requestId] page
+    // to avoid race conditions with Firestore client-side hooks.
+    redirect('/traveler/request/new');
 }

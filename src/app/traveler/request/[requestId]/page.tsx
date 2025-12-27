@@ -28,6 +28,7 @@ import { Step3Form, Step3View } from './step3-travel';
 import { Step4Form, Step4View } from './step4-meeting';
 import { Step5Review } from './step5-review';
 import Link from 'next/link';
+import { addDoc, collection } from 'firebase/firestore';
 
 export default function CreateRequestFormPage() {
   const params = useParams();
@@ -37,6 +38,8 @@ export default function CreateRequestFormPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const isNewRequest = requestId === 'new';
+
   const userDocRef = useMemo(() => {
     if (!authUser || !firestore) return null;
     return doc(firestore, 'users', authUser.uid);
@@ -44,9 +47,9 @@ export default function CreateRequestFormPage() {
   const { data: userData } = useDoc<UserData>(userDocRef);
 
   const requestDocRef = useMemo(() => {
-    if (!requestId || !firestore) return null;
+    if (isNewRequest || !firestore || !requestId) return null;
     return doc(firestore, 'travelRequests', requestId);
-  }, [requestId, firestore]);
+  }, [requestId, firestore, isNewRequest]);
 
   const { data: request, isLoading: isRequestLoading, error: requestError } = useDoc<TravelRequest>(requestDocRef);
 
@@ -58,15 +61,42 @@ export default function CreateRequestFormPage() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   
   useEffect(() => {
-    if (isAuthLoading || isRequestLoading) return;
+    if (isAuthLoading) return;
     if (!authUser) {
       router.replace('/login');
       return;
     }
-    if (requestError || !request) {
+  
+    if (isNewRequest && firestore && authUser.uid) {
+      const createDraft = async () => {
+        try {
+          const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), {
+            travelerId: authUser.uid,
+            status: 'draft',
+            createdAt: new Date().toISOString(),
+            step1Complete: false,
+            step2Complete: false,
+            step3Complete: false,
+            step4Complete: false,
+          });
+          router.replace(`/traveler/request/${newRequestRef.id}`);
+        } catch (error) {
+          console.error("Failed to create draft", error);
+          toast({ title: "Error", description: "Could not create a new request draft.", variant: "destructive" });
+          router.replace('/traveler/dashboard');
+        }
+      };
+      createDraft();
+      return; // Stop further execution until redirect happens
+    }
+
+    if (isRequestLoading || !request) return; // Wait for request data to load
+    
+    if (requestError) {
       notFound();
       return;
     }
+
     if (request.travelerId !== authUser.uid) {
         toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
         router.replace('/traveler/dashboard');
@@ -89,7 +119,8 @@ export default function CreateRequestFormPage() {
     } else {
       setCurrentTab('step-1');
     }
-  }, [request, isRequestLoading, authUser, isAuthLoading, requestError, router, toast]);
+  }, [isAuthLoading, isRequestLoading, authUser, request, requestError, router, toast, firestore, isNewRequest]);
+
 
   const handleSave = () => {
     // The useDoc hook will trigger a re-render with the updated request data
@@ -116,7 +147,9 @@ export default function CreateRequestFormPage() {
     }
   };
 
-  if (isAuthLoading || isRequestLoading || !request || !userData) {
+  const isLoading = isAuthLoading || isRequestLoading || isNewRequest;
+
+  if (isLoading) {
     return (
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
             <Skeleton className="h-8 w-48 mb-6" />
@@ -136,6 +169,20 @@ export default function CreateRequestFormPage() {
         </main>
     );
   }
+
+  if (!request || !userData) {
+     return (
+        <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8 text-center">
+            <p>Loading request details...</p>
+        </main>
+     );
+  }
+
+  // Safe boolean checks for tab triggers
+  const step1Complete = Boolean(request?.step1Complete);
+  const step2Complete = Boolean(request?.step2Complete);
+  const step3Complete = Boolean(request?.step3Complete);
+  const step4Complete = Boolean(request?.step4Complete);
   
   return (
     <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
@@ -155,10 +202,10 @@ export default function CreateRequestFormPage() {
             <Tabs value={currentTab} onValueChange={setCurrentTab}>
                 <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="step-1">Step 1</TabsTrigger>
-                    <TabsTrigger value="step-2" disabled={!request.step1Complete}>Step 2</TabsTrigger>
-                    <TabsTrigger value="step-3" disabled={!request.step2Complete}>Step 3</TabsTrigger>
-                    <TabsTrigger value="step-4" disabled={!request.step3Complete}>Step 4</TabsTrigger>
-                    <TabsTrigger value="step-5" disabled={!request.step4Complete}>Review</TabsTrigger>
+                    <TabsTrigger value="step-2" disabled={!step1Complete}>Step 2</TabsTrigger>
+                    <TabsTrigger value="step-3" disabled={!step2Complete}>Step 3</TabsTrigger>
+                    <TabsTrigger value="step-4" disabled={!step3Complete}>Step 4</TabsTrigger>
+                    <TabsTrigger value="step-5" disabled={!step4Complete}>Review</TabsTrigger>
                 </TabsList>
                 <TabsContent value="step-1" className="mt-4">
                     {isEditingStep1 ? (
