@@ -8,6 +8,12 @@ export const indianStates = [
 ];
 
 export const tamilNaduCities = [
-  "Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", 
-  "Tirunelveli", "Erode", "Vellore", "Thoothukudi", "Dindigul"
+  "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", 
+  "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram", 
+  "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai", 
+  "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", d
+  "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", 
+  "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli", 
+  "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur", 
+  "Vellore", "Viluppuram", "Virudhunagar"
 ];

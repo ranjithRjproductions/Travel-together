@@ -19,7 +19,7 @@ import { indianStates, tamilNaduCities } from '@/lib/location-data';
 
 const addressSchema = z.object({
   addressLine1: z.string().min(1, 'Address Line 1 is required'),
-  addressLine2: z.string().optional(),
+  addressLine2: z.string().min(1, 'Address Line 2 is required'),
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
   postalCode: z.string().min(1, 'Postal Code is required'),
@@ -115,8 +115,9 @@ export default function AddressPage() {
             {errors.addressLine1 && <p className="text-sm text-destructive">{errors.addressLine1.message}</p>}
           </div>
           <div>
-            <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
-            <Input id="addressLine2" {...register('addressLine2')} />
+            <Label htmlFor="addressLine2">Address Line 2</Label>
+            <Input id="addressLine2" {...register('addressLine2')} aria-invalid={errors.addressLine2 ? "true" : "false"} />
+            {errors.addressLine2 && <p className="text-sm text-destructive">{errors.addressLine2.message}</p>}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
