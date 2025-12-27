@@ -1,9 +1,10 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, FieldValue } from 'firebase/firestore';
 import { db } from '@/lib/firebase-admin';
 import { getUser } from '@/lib/auth';
+import * as admin from 'firebase-admin';
 
 export default async function CreateRequestPage() {
     const user = await getUser();
@@ -16,7 +17,7 @@ export default async function CreateRequestPage() {
         const newRequestRef = await addDoc(collection(db, 'travelRequests'), {
             travelerId: user.uid,
             status: 'draft',
-            createdAt: serverTimestamp(),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
             step1Complete: false,
             step2Complete: false,
             step3Complete: false,
