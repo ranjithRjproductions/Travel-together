@@ -29,7 +29,7 @@ export default function GuideProfileSettingsLayout({
   const pathname = usePathname();
   const router = useRouter();
   
-  const currentPage = guideNavigation.find(item => item.href === pathname);
+  const currentPage = guideNavigation.find(item => pathname.startsWith(item.href));
 
   return (
     <div className="grid md:grid-cols-[250px_1fr] gap-8 items-start">
@@ -37,7 +37,7 @@ export default function GuideProfileSettingsLayout({
         {guideNavigation.map((item) => (
           <Button
             key={item.name}
-            variant={pathname === item.href ? 'default' : 'ghost'}
+            variant={pathname.startsWith(item.href) ? 'default' : 'ghost'}
             asChild
             className="justify-start"
           >
