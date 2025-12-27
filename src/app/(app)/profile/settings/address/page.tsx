@@ -54,6 +54,10 @@ export default function AddressPage() {
   } = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        postalCode: '',
         country: 'India',
         state: 'Tamil Nadu',
         isDefault: false,
@@ -61,13 +65,17 @@ export default function AddressPage() {
   });
 
   useEffect(() => {
-    if (userProfile?.address) {
-      reset(userProfile.address);
-      setIsEditMode(false); 
-    } else if (userProfile) {
-      setIsEditMode(true); 
+    if (userProfile) {
+        if (userProfile.address) {
+            reset(userProfile.address);
+            setIsEditMode(false);
+        } else {
+            setIsEditMode(true);
+        }
+    } else if (!isUserLoading && !isProfileLoading) {
+        setIsEditMode(true);
     }
-  }, [userProfile, reset]);
+  }, [userProfile, reset, isUserLoading, isProfileLoading]);
 
   const onSubmit: SubmitHandler<AddressFormData> = async (data) => {
     if (!userDocRef) return;
@@ -78,7 +86,6 @@ export default function AddressPage() {
         description: 'Your address has been saved.',
       });
       setIsEditMode(false);
-      router.push('/profile/settings/contact');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -166,16 +173,15 @@ export default function AddressPage() {
               <Label htmlFor="isDefault" className="font-normal">Make this my default address</Label>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" type="button" onClick={() => { if(userProfile?.address) { reset(userProfile.address); setIsEditMode(false); } }}>Cancel</Button>
+            {userProfile?.address && <Button variant="ghost" type="button" onClick={() => { reset(userProfile.address); setIsEditMode(false); }}>Cancel</Button>}
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save and Continue'}
+              {isSubmitting ? 'Saving...' : 'Save Address'}
             </Button>
           </div>
         </form>
       ) : (
         <div className="space-y-4 text-sm">
             <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setIsEditMode(true)}>Add New Address</Button>
                 <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
             </div>
             {userProfile?.address ? (
@@ -192,7 +198,7 @@ export default function AddressPage() {
             ) : (
                 <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
                   <p>You haven't added an address yet.</p>
-                  <Button variant="secondary" className="mt-4" onClick={() => setIsEditMode(true)}>Add Address</Button>
+                  <Button variant="link" className="mt-2" onClick={() => setIsEditMode(true)}>Add an Address</Button>
                 </div>
             )}
         </div>

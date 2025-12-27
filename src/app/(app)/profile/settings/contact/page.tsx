@@ -52,19 +52,28 @@ export default function ContactPage() {
     formState: { errors, isSubmitting },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
+    defaultValues: {
+        primaryPhone: '',
+        whatsappNumber: '',
+        whatsappSameAsPrimary: false,
+    }
   });
   
   const primaryPhone = watch('primaryPhone');
   const whatsappSameAsPrimary = watch('whatsappSameAsPrimary');
 
   useEffect(() => {
-    if (userProfile?.contact) {
-      reset(userProfile.contact);
-      setIsEditMode(false);
-    } else if (userProfile) {
-      setIsEditMode(true);
+    if (userProfile) {
+        if(userProfile.contact) {
+            reset(userProfile.contact);
+            setIsEditMode(false);
+        } else {
+            setIsEditMode(true);
+        }
+    } else if (!isUserLoading && !isProfileLoading) {
+        setIsEditMode(true);
     }
-  }, [userProfile, reset]);
+  }, [userProfile, reset, isUserLoading, isProfileLoading]);
   
   useEffect(() => {
     if (whatsappSameAsPrimary) {
@@ -81,7 +90,6 @@ export default function ContactPage() {
         description: 'Your contact details have been saved.',
       });
       setIsEditMode(false);
-      router.push('/profile/settings/disability');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -135,9 +143,9 @@ export default function ContactPage() {
             </div>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" type="button" onClick={() => { if(userProfile?.contact) { reset(userProfile.contact); setIsEditMode(false); } }}>Cancel</Button>
+            {userProfile?.contact && <Button variant="ghost" type="button" onClick={() => { reset(userProfile.contact); setIsEditMode(false); }}>Cancel</Button>}
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save and Continue'}
+              {isSubmitting ? 'Saving...' : 'Save Contact'}
             </Button>
           </div>
         </form>
@@ -163,7 +171,7 @@ export default function ContactPage() {
             ) : (
                 <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
                   <p>You haven't added contact details yet.</p>
-                  <Button variant="secondary" className="mt-4" onClick={() => setIsEditMode(true)}>Add Contact Details</Button>
+                  <Button variant="link" className="mt-2" onClick={() => setIsEditMode(true)}>Add Contact Details</Button>
                 </div>
             )}
         </div>
