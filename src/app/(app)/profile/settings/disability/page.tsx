@@ -8,13 +8,12 @@ import { useDoc, useFirestore, useUser, useStorage } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
-import { CardDescription, CardTitle } from '@/components/ui/card';
+import { CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,7 +25,7 @@ const disabilitySchema = z.object({
   }),
   visionSubOption: z.enum(['totally-blind', 'low-vision']).optional(),
   visionPercentage: z.coerce.number().min(1).max(100).optional(),
-  hearingNeeds: z.string().optional(),
+  requiresSignLanguageGuide: z.boolean().optional(),
   documentUrl: z.string().url().optional(),
   documentName: z.string().optional(),
   agreedToVoluntaryDisclosure: z.boolean().refine(val => val === true, {
@@ -76,7 +75,7 @@ export default function DisabilityPage() {
     resolver: zodResolver(disabilitySchema),
     defaultValues: {
       visionPercentage: undefined,
-      hearingNeeds: '',
+      requiresSignLanguageGuide: false,
       agreedToVoluntaryDisclosure: false,
     },
   });
@@ -86,7 +85,7 @@ export default function DisabilityPage() {
   const isLoading = isUserLoading || isProfileLoading;
 
   useEffect(() => {
-    if (isProfileLoading) return;
+     if (isProfileLoading) return;
 
     if (userProfile?.disability) {
       reset(userProfile.disability);
@@ -172,7 +171,7 @@ export default function DisabilityPage() {
         setIsUploading(false);
     }
   };
-
+  
   if (isLoading) {
     return <Skeleton className="h-96 w-full" />;
   }
@@ -211,10 +210,10 @@ export default function DisabilityPage() {
                 </>
             )}
 
-             {disability.mainDisability === 'hard-of-hearing' && disability.hearingNeeds && (
+             {disability.mainDisability === 'hard-of-hearing' && (
                 <div>
-                    <p className="font-medium text-muted-foreground">Specific Needs</p>
-                    <p className="whitespace-pre-wrap">{disability.hearingNeeds}</p>
+                    <p className="font-medium text-muted-foreground">Sign Language Support</p>
+                    <p>{disability.requiresSignLanguageGuide ? 'Yes, a guide proficient in sign language is required.' : 'No'}</p>
                 </div>
             )}
             
@@ -298,10 +297,22 @@ export default function DisabilityPage() {
 
            {mainDisability === 'hard-of-hearing' && (
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
-                <Label htmlFor="hearingNeeds">Please describe your hearing needs (optional)</Label>
-                <Textarea 
-                    id="hearingNeeds"
-                    {...control.register('hearingNeeds')}
+              <Controller
+                  name="requiresSignLanguageGuide"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="requiresSignLanguageGuide"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="mt-1"
+                      />
+                      <Label htmlFor="requiresSignLanguageGuide" className="font-normal text-sm">
+                        I require a guide who is proficient in sign language.
+                      </Label>
+                    </div>
+                  )}
                 />
             </fieldset>
           )}
@@ -309,10 +320,10 @@ export default function DisabilityPage() {
           {mainDisability && (
               <div className="space-y-2 pt-4 border-t">
                   <Label htmlFor="document-upload">Supporting Document (PDF/Image, Required)</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <p id="document-upload-description" className="text-sm text-muted-foreground">
                     Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
                   </p>
-                  <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} />
+                  <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" />
                   {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
                   {userProfile?.disability?.documentName && !selectedFile && <p className="text-sm text-muted-foreground">Current: {userProfile.disability.documentName}</p>}
 

@@ -7,7 +7,7 @@ export type User = {
   photoAlt?: string;
   address?: {
     addressLine1: string;
-    addressLine2?: string;
+    addressLine2: string;
     city: string;
     state: string;
     postalCode: string;
@@ -23,7 +23,7 @@ export type User = {
     mainDisability: 'visually-impaired' | 'hard-of-hearing';
     visionSubOption?: 'totally-blind' | 'low-vision';
     visionPercentage?: number;
-    hearingNeeds?: string;
+    requiresSignLanguageGuide?: boolean;
     documentUrl?: string;
     documentName?: string;
     agreedToVoluntaryDisclosure: boolean;
