@@ -30,3 +30,11 @@ export type User = {
     agreedToVoluntaryDisclosure: boolean;
   };
 };
+
+export type GuideProfile = {
+  id: string;
+  bio: string;
+  languages: string[];
+  expertise: string[];
+  verificationIdUrl?: string;
+};

@@ -78,6 +78,38 @@
         "email",
         "role"
       ]
+    },
+    "GuideProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GuideProfile",
+      "type": "object",
+      "description": "Stores detailed, professional information specific to a user in the 'Guide' role.",
+      "properties": {
+        "bio": {
+          "type": "string",
+          "description": "A short professional biography for the guide."
+        },
+        "languages": {
+          "type": "array",
+          "description": "A list of languages the guide speaks.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expertise": {
+          "type": "array",
+          "description": "A list of the guide's areas of expertise (e.g., History, Food Tours, Architecture).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verificationIdUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to a document verifying the guide's credentials."
+        }
+      },
+      "required": ["bio", "languages", "expertise"]
     }
   },
   "auth": {
@@ -95,11 +127,31 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user data, including name, email, and role.  The 'role' field is immutable after signup.",
+          "description": "Stores user data, including name, email, and role. The 'role' field is immutable after signup.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier of the user, matching the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/guideProfile/{guideProfileId}",
+        "definition": {
+          "entityName": "GuideProfile",
+          "schema": {
+            "$ref": "#/backend/entities/GuideProfile"
+          },
+          "description": "Stores guide-specific professional details. This collection only exists for users with the 'Guide' role.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The UID of the user who is a guide."
+            },
+            {
+              "name": "guideProfileId",
+              "description": "A unique ID for the guide's profile document."
             }
           ]
         }
