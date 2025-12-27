@@ -20,8 +20,12 @@ service firebase.storage {
 
     // Guide Address Proofs
     match /guide-address-proofs/{userId}/{fileName} {
-      // Only the user who owns the document can read or write it
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Only the authenticated user who owns the document can write to it.
+      allow write: if request.auth != null && request.auth.uid == userId;
+      // Allow authenticated admins or the user who owns it to read the document.
+      // Note: A function `isAdmin()` would need to be defined in your rules,
+      // similar to how it's done in Firestore rules. For now, we'll just allow owner-read.
+      allow read: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

@@ -260,7 +260,7 @@ export default function GuideAddressPage() {
                 control={control}
                 render={({ field }) => <Checkbox id="agreedToAddressProof" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />}
               />
-              <Label htmlFor="agreedToAddressProof" className="font-normal text-sm">I understand this document is required for verification and will be stored securely.</Label>
+              <Label htmlFor="agreedToAddressProof" className="font-normal text-sm">To give the safest travel experiences to our friends with disabilities, we collect address proof. I understand and share this responsibility.</Label>
           </div>
             {errors.agreedToAddressProof && <p className="text-sm text-destructive">{errors.agreedToAddressProof.message}</p>}
           <div className="flex justify-end gap-2">
