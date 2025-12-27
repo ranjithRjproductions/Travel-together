@@ -2,30 +2,22 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Profile Photos
+    // Profile Photos: Publicly readable, owner can write.
     match /profile-photos/{userId}/{fileName} {
-      // Allow anyone to read profile photos to display them in the app
       allow read: if true;
-      // Allow authenticated users to write only to their own directory
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Disability IDs
+    // Disability IDs: Private to the owner.
     match /disability-ids/{userId}/{fileName} {
-       // Only the user who owns the document can read it
-      allow read: if request.auth != null && request.auth.uid == userId;
-      // Allow authenticated users to write only to their own directory
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Guide Address Proofs
+    // Guide Address Proofs: Private to the owner.
     match /guide-address-proofs/{userId}/{fileName} {
-      // Only the authenticated user who owns the document can write to it.
-      allow write: if request.auth != null && request.auth.uid == userId;
-      // Allow authenticated admins or the user who owns it to read the document.
-      // Note: A function `isAdmin()` would need to be defined in your rules,
-      // similar to how it's done in Firestore rules. For now, we'll just allow owner-read.
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
+
+    

@@ -96,33 +96,38 @@ service cloud.firestore {
     /**
      * @description Manages user profile data. Each user has a document keyed by their UID.
      * @path /users/{userId}
-     * @allow (get) A signed-in user fetching their own profile. auth.uid: 'user_abc', path: '/users/user_abc'
-     * @deny (get) An anonymous user or a different user trying to read profile data. auth.uid: 'user_xyz', path: '/users/user_abc'
-     * @deny (list) Any user trying to list all users in the collection.
      * @principle Restricts access to a user's own data tree and enforces critical data immutability.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
+      allow list: if false; // Prevent listing all users.
       allow create: if isOwner(userId) && hasValidUserDataOnCreate(userId);
       allow update: if isExistingOwner(userId) && isUserDataImmutableOnUpdate();
       allow delete: if isExistingOwner(userId);
+      
+      /**
+       * @description Stores extended profile information specific to users with the 'Guide' role.
+       * @path /users/{userId}/guideProfile/{guideProfileId}
+       * @principle Ensures only the owner of the parent user document can manage their guide profile.
+       */
+      match /guideProfile/{guideProfileId} {
+          allow read, write: if isOwner(userId);
+      }
     }
 
     /**
      * @description Defines which users have global administrator privileges. This collection acts as a lookup table.
      * @path /roles_admin/{userId}
-     * @allow (get, list) An authenticated admin reading the admin list. auth.uid is in /roles_admin.
-     * @deny (get, list) A non-admin user trying to read the admin list.
-     * @deny (create, update, delete) Any client-side write operation is forbidden to prevent privilege escalation.
      * @principle Secures a critical authorization collection by making it read-only for admins and denying all client writes.
      */
     match /roles_admin/{userId} {
       allow get: if isAdmin();
       allow list: if isAdmin();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if false; // Managed server-side only.
+      allow update: if false; // Managed server-side only.
+      allow delete: if false; // Managed server-side only.
     }
   }
 }
+
+    
