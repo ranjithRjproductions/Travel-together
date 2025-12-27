@@ -60,16 +60,38 @@
           "type": "object",
           "description": "Voluntary disability disclosure for accessibility purposes.",
           "properties": {
-            "visionImpairment": { "type": "boolean" },
-            "lowVision": { "type": "boolean" },
-            "blind": { "type": "boolean" },
-            "hearingImpairment": { "type": "boolean" },
-            "mobilityImpairment": { "type": "boolean" },
-            "preferNotToSay": { "type": "boolean" },
-            "disabilityIdUrl": { "type": "string", "format": "uri" },
-            "agreedToVoluntaryDisclosure": { "type": "boolean" }
+            "mainDisability": {
+              "type": "string",
+              "enum": ["visually-impaired", "hard-of-hearing"]
+            },
+            "visionSubOption": {
+              "type": "string",
+              "enum": ["totally-blind", "low-vision"]
+            },
+            "visionPercentage": {
+              "type": "number"
+            },
+            "hearingPercentage": {
+              "type": "number"
+            },
+            "requiresSignLanguageGuide": {
+              "type": "boolean"
+            },
+            "documentUrl": {
+              "type": "string",
+              "format": "uri"
+            },
+            "documentName": {
+              "type": "string"
+            },
+            "agreedToVoluntaryDisclosure": {
+              "type": "boolean"
+            }
           },
-          "required": ["agreedToVoluntaryDisclosure"]
+          "required": [
+            "mainDisability",
+            "agreedToVoluntaryDisclosure"
+          ]
         }
       },
       "required": [
@@ -85,31 +107,70 @@
       "type": "object",
       "description": "Stores detailed, professional information specific to a user in the 'Guide' role.",
       "properties": {
-        "bio": {
-          "type": "string",
-          "description": "A short professional biography for the guide."
+        "address": {
+          "type": "object",
+          "description": "The guide's primary operating address.",
+          "properties": {
+            "addressLine1": { "type": "string" },
+            "addressLine2": { "type": "string" },
+            "city": { "type": "string" },
+            "district": { "type": "string" },
+            "state": { "type": "string" },
+            "country": { "type": "string" },
+            "isDefault": { "type": "boolean" }
+          },
+          "required": ["addressLine1", "city", "district", "state", "country"]
         },
-        "languages": {
-          "type": "array",
-          "description": "A list of languages the guide speaks.",
-          "items": {
-            "type": "string"
+        "contact": {
+          "type": "object",
+          "description": "The guide's contact information.",
+          "properties": {
+            "primaryPhone": { "type": "string" },
+            "whatsappNumber": { "type": "string" },
+            "whatsappSameAsPrimary": { "type": "boolean" }
+          },
+          "required": ["primaryPhone"]
+        },
+        "disabilityExpertise": {
+          "type": "object",
+          "description": "Details the guide's experience with supporting travelers with disabilities.",
+          "properties": {
+            "experienceType": { "type": "string", "enum": ["visually-impaired", "hearing-impaired"] },
+            "visionSupport": {
+              "type": "object",
+              "properties": {
+                "specialization": { "type": "string", "enum": ["totally-blind", "low-vision"] },
+                "description": { "type": "string" }
+              }
+            },
+            "hearingSupport": {
+              "type": "object",
+              "properties": {
+                "knowsSignLanguage": { "type": "boolean" },
+                "description": { "type": "string" }
+              }
+            },
+            "isTrained": { "type": "boolean" },
+            "agreedToDisclaimer": { "type": "boolean" }
+          },
+          "required": ["experienceType", "isTrained"]
+        },
+        "verification": {
+          "type": "object",
+          "description": "URLs to uploaded verification documents.",
+          "properties": {
+            "governmentIdUrl": { "type": "string", "format": "uri" },
+            "proofDocumentUrl": { "type": "string", "format": "uri" }
           }
         },
-        "expertise": {
-          "type": "array",
-          "description": "A list of the guide's areas of expertise (e.g., History, Food Tours, Architecture).",
-          "items": {
-            "type": "string"
-          }
-        },
-        "verificationIdUrl": {
+        "onboardingState": {
           "type": "string",
-          "format": "uri",
-          "description": "URL to a document verifying the guide's credentials."
+          "description": "Tracks the completion status of the guide's profile.",
+          "enum": ["started", "profile-complete", "verification-pending", "active"],
+          "default": "started"
         }
       },
-      "required": ["bio", "languages", "expertise"]
+      "required": ["address", "contact", "disabilityExpertise", "onboardingState"]
     }
   },
   "auth": {
