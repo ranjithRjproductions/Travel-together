@@ -1,4 +1,4 @@
-import AppLayout from '@/app/(app)/layout';
+import AppLayout from '@/components/app-layout';
 import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
