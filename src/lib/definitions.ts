@@ -20,10 +20,11 @@ export type User = {
     whatsappSameAsPrimary: boolean;
   };
   disability?: {
-    mainDisability?: 'vision' | 'hearing' | 'none';
-    visionSubOption?: 'blind' | 'low-vision';
+    mainDisability: 'visually-impaired' | 'hard-of-hearing';
+    visionSubOption?: 'totally-blind' | 'low-vision';
     visionPercentage?: number;
-    hearingAssistance?: boolean;
-    hearingPercentage?: number;
-  }
+    hearingNeeds?: string;
+    documentUrl?: string;
+    documentName?: string;
+  };
 };
