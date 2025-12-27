@@ -42,16 +42,16 @@ const expertiseSchema = z.object({
     readingLanguages: z.array(z.string()).optional(),
     writingLanguages: z.array(z.string()).optional(),
     willingToUseVehicle: z.enum(['yes', 'no'], { required_error: 'Please select an option.' }),
-    driversLicenseUrl: z.string().url().optional(),
+    driversLicenseUrl: z.string().url().optional(), // Make this optional in the schema for initial validation
+    agreeToAwareness: z.boolean().refine(val => val === true, {
+        message: 'You must acknowledge your awareness.',
+    }),
     agreeToTraining: z.boolean().refine(val => val === true, {
         message: 'You must agree to the training and interview.',
     }),
 }).superRefine((data, ctx) => {
     if (data.hasDisabilityExperience === 'yes' && !data.experienceType) {
         ctx.addIssue({ code: 'custom', message: 'Please select the type of disability experience.', path: ['experienceType'] });
-    }
-    if (data.willingToUseVehicle === 'yes' && !data.driversLicenseUrl) {
-        ctx.addIssue({ code: 'custom', message: 'Driver\'s license is required if you are willing to use your vehicle.', path: ['driversLicenseUrl'] });
     }
 });
 
@@ -93,6 +93,7 @@ export default function GuideExpertisePage() {
             localExpertise: [],
             readingLanguages: [],
             writingLanguages: [],
+            agreeToAwareness: false,
             agreeToTraining: false,
         }
     });
@@ -154,7 +155,6 @@ export default function GuideExpertisePage() {
                 (error) => { setIsUploading(false); reject(error); },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    setValue('driversLicenseUrl', downloadURL, { shouldValidate: true });
                     setIsUploading(false);
                     resolve(downloadURL);
                 }
@@ -197,7 +197,7 @@ export default function GuideExpertisePage() {
     return (
         <div>
             <CardDescription className="mb-6">
-                This section has important questions. Kindly answer them slowly to help us find the perfect match for you.
+                This section has important questions. Kindly answer them slowly for getting a perfect match.
             </CardDescription>
 
             {isEditMode ? (
@@ -275,7 +275,7 @@ export default function GuideExpertisePage() {
                                             onCheckedChange={(checked) => {
                                                 return checked
                                                     ? field.onChange([...(field.value || []), lang])
-                                                    : fieldonChange(field.value?.filter(v => v !== lang));
+                                                    : field.onChange(field.value?.filter(v => v !== lang));
                                             }}
                                         />
                                         <Label htmlFor={`write-${lang}`} className="font-normal text-sm">{lang}</Label>
@@ -302,20 +302,26 @@ export default function GuideExpertisePage() {
                             <Label htmlFor="license-upload">Upload Driver's License Copy (PDF/Image)</Label>
                             <Input id="license-upload" type="file" accept="image/*,application/pdf" onChange={handleLicenseFileChange} disabled={formIsSubmitting}/>
                              {licenseFile && <p className="text-sm text-muted-foreground">Selected: {licenseFile.name}</p>}
+                             {!licenseFile && currentExpertise?.driversLicenseUrl && <a href={currentExpertise.driversLicenseUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">View Current License</a>}
                             {isUploading && <div className="w-full mt-2"><Progress value={uploadProgress} /><p className="text-xs text-center text-muted-foreground mt-1">{uploadProgress}%</p></div>}
                             {errors.driversLicenseUrl && <p className="text-sm text-destructive mt-2">{errors.driversLicenseUrl.message}</p>}
                         </fieldset>
                     )}
 
                     {/* Training Agreement */}
-                     <fieldset className="pt-4 border-t">
+                     <fieldset className="pt-4 border-t space-y-4">
+                         <Controller name="agreeToAwareness" control={control} render={({ field }) => (
+                            <div className="flex items-start space-x-3">
+                                <Checkbox id="agreeToAwareness" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
+                                <Label htmlFor="agreeToAwareness" className="font-normal">I must be aware of more things before guiding friends with disabilities and assisting their needs.</Label>
+                            </div>
+                        )} />
+                        {errors.agreeToAwareness && <p className="text-sm text-destructive mt-2">{errors.agreeToAwareness.message}</p>}
+                        
                          <Controller name="agreeToTraining" control={control} render={({ field }) => (
                             <div className="flex items-start space-x-3">
                                 <Checkbox id="agreeToTraining" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
-                                <div>
-                                    <Label htmlFor="agreeToTraining" className="font-normal">I must be aware of more things before guiding friends with disabilities and assisting their needs.</Label>
-                                    <p className="text-sm text-muted-foreground">I agree to take online training and am ready to attend an interview.</p>
-                                </div>
+                                 <Label htmlFor="agreeToTraining" className="font-normal">I agree to take online training and am ready to attend an interview.</Label>
                             </div>
                         )} />
                         {errors.agreeToTraining && <p className="text-sm text-destructive mt-2">{errors.agreeToTraining.message}</p>}
@@ -346,3 +352,5 @@ export default function GuideExpertisePage() {
         </div>
     );
 }
+
+    
