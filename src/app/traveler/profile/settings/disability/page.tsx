@@ -17,6 +17,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Disability Disclosure | Let's Travel Together",
+};
 
 const disabilitySchema = z.object({
   mainDisability: z.enum(['visually-impaired', 'hard-of-hearing'], {
@@ -153,16 +158,16 @@ export default function DisabilityPage() {
          return;
     }
     
-    let uploadedFileUrl = userProfile?.disability?.documentUrl;
+    const finalData: DisabilityFormData = { ...data };
 
     try {
         if (selectedFile) {
-            uploadedFileUrl = await uploadDocument(selectedFile);
-            data.documentUrl = uploadedFileUrl;
-            data.documentName = selectedFile.name;
+            const uploadedFileUrl = await uploadDocument(selectedFile);
+            finalData.documentUrl = uploadedFileUrl;
+            finalData.documentName = selectedFile.name;
         }
 
-        await setDoc(userDocRef, { disability: data }, { merge: true });
+        await setDoc(userDocRef, { disability: finalData }, { merge: true });
 
         toast({ title: 'Success', description: 'Your accessibility needs have been saved.' });
         setSelectedFile(null);
