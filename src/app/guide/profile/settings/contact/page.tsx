@@ -14,6 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Contact Details | Let\'s Travel Together',
+};
 
 const contactSchema = z.object({
   primaryPhone: z.string().min(10, 'Please enter a valid phone number'),

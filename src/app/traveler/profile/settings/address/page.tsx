@@ -16,6 +16,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { indianStates, tamilNaduCities } from '@/lib/location-data';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Address Settings | Let\'s Travel Together',
+};
 
 const addressSchema = z.object({
   addressLine1: z.string().min(1, 'Address Line 1 is required'),
