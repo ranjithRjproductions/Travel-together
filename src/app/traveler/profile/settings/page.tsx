@@ -281,7 +281,7 @@ return (
                 <p>{userProfile.role}</p>
               </div>
               <div className="flex justify-end pt-4">
-                  <Button onClick={() => router.push('/profile/settings/address')}>Next Step</Button>
+                  <Button onClick={() => router.push('/traveler/profile/settings/address')}>Next Step</Button>
               </div>
           </div>
         )}

@@ -13,10 +13,10 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Profile Information', href: '/profile/settings', icon: User },
-  { name: 'My Address', href: '/profile/settings/address', icon: MapPin },
-  { name: 'Contact Details', href: '/profile/settings/contact', icon: Phone },
-  { name: 'Disability Disclosure', href: '/profile/settings/disability', icon: Accessibility },
+  { name: 'Profile Information', href: '/traveler/profile/settings', icon: User },
+  { name: 'My Address', href: '/traveler/profile/settings/address', icon: MapPin },
+  { name: 'Contact Details', href: '/traveler/profile/settings/contact', icon: Phone },
+  { name: 'Disability Disclosure', href: '/traveler/profile/settings/disability', icon: Accessibility },
 ];
 
 export default function ProfileSettingsLayout({

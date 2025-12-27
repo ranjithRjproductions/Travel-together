@@ -165,7 +165,7 @@ export default function ContactPage() {
                         <p>{userProfile.contact.whatsappNumber}</p>
                     </div>
                     <div className="flex justify-end pt-4">
-                      <Button onClick={() => router.push('/profile/settings/disability')}>Next Step</Button>
+                      <Button onClick={() => router.push('/traveler/profile/settings/disability')}>Next Step</Button>
                     </div>
                 </>
             ) : (

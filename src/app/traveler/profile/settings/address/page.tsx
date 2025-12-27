@@ -193,7 +193,7 @@ export default function AddressPage() {
                     <p>{userProfile.address.country}</p>
                     {userProfile.address.isDefault && <p className="font-medium text-primary pt-2">This is your default address.</p>}
                     <div className="flex justify-end pt-4">
-                      <Button onClick={() => router.push('/profile/settings/contact')}>Next Step</Button>
+                      <Button onClick={() => router.push('/traveler/profile/settings/contact')}>Next Step</Button>
                     </div>
                 </>
             ) : (

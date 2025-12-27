@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { logout } from '@/lib/actions';
-import { User, LogOut, Settings } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
@@ -40,6 +40,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
     .toUpperCase();
     
   const photoAltText = user.photoAlt || `Profile picture of ${user.name}`;
+  const profileUrl = user.role === 'Guide' ? '/guide/profile/settings' : '/traveler/profile/settings';
 
   return (
     <DropdownMenu>
@@ -66,14 +67,10 @@ export function UserNav({ user }: { user?: UserType | null }) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/profile/settings">
+            <Link href={profileUrl}>
               <User aria-hidden="true" />
               <span>Profile</span>
             </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Settings aria-hidden="true" />
-            <span>Settings</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
