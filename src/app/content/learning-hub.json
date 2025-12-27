@@ -1,0 +1,22 @@
+{
+  "pageTitle": "Learning Hub",
+  "title": "Welcome to the Guide Learning Hub",
+  "description": "Complete the modules and assessment below to become a verified guide. Clearing the test is required to schedule your final interview.",
+  "trainingModules": {
+    "title": "Training Modules",
+    "description": "Essential training materials to prepare you for assisting travelers with disabilities.",
+    "placeholder": "Training content and videos will be available here soon."
+  },
+  "assessment": {
+    "title": "Assessment Test",
+    "description": "Test your knowledge based on the training modules. You must pass this test to proceed.",
+    "placeholder": "The assessment test will become available after you review the training modules.",
+    "cta": "Start Test"
+  },
+  "interview": {
+    "title": "Schedule Interview",
+    "description": "Once you pass the assessment, you can schedule your final interview with our team.",
+    "placeholder": "Interview scheduling will be enabled after you successfully pass the assessment.",
+    "cta": "Schedule Interview"
+  }
+}
