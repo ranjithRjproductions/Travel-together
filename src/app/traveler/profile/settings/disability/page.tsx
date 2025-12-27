@@ -153,13 +153,22 @@ export default function DisabilityPage() {
          return;
     }
     
-    let finalData = { ...data };
+    let finalData: Partial<DisabilityFormData> = { ...data };
 
     try {
         if (selectedFile) {
             const uploadedFileUrl = await uploadDocument(selectedFile);
             finalData.documentUrl = uploadedFileUrl;
             finalData.documentName = selectedFile.name;
+        }
+
+        // Sanitize data to prevent saving undefined fields
+        if (finalData.mainDisability === 'visually-impaired') {
+            delete finalData.hearingPercentage;
+            delete finalData.requiresSignLanguageGuide;
+        } else if (finalData.mainDisability === 'hard-of-hearing') {
+            delete finalData.visionSubOption;
+            delete finalData.visionPercentage;
         }
 
         await setDoc(userDocRef, { disability: finalData }, { merge: true });
