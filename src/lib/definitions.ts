@@ -20,15 +20,16 @@ export type User = {
     whatsappSameAsPrimary: boolean;
   };
   disability?: {
-    mainDisability: 'visually-impaired' | 'hard-of-hearing';
+    mainDisability: 'visually-impaired' | 'hard-of-hearing' | 'none';
     visionSubOption?: 'totally-blind' | 'low-vision';
     visionPercentage?: number;
     hearingPercentage?: number;
     requiresSignLanguageGuide?: boolean;
     documentUrl?: string;
     documentName?: string;
-    agreedToVoluntaryDisclosure: boolean;
+    agreedToVoluntaryDisclosure?: boolean;
   };
+  gender?: 'Male' | 'Female';
 };
 
 export type GuideProfile = {
@@ -37,4 +38,51 @@ export type GuideProfile = {
   languages: string[];
   expertise: string[];
   verificationIdUrl?: string;
+};
+
+export type TravelRequest = {
+  id: string;
+  travelerId: string;
+  guideId?: string;
+  status: 'draft' | 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  createdAt: string; // ISO string
+  
+  purposeData?: {
+    purpose?: 'education' | 'hospital' | 'shopping';
+    subPurposeData?: any; 
+  };
+  
+  requestedDate?: string; // ISO string 'yyyy-MM-dd'
+  startTime?: string; // 'HH:mm'
+  endTime?: string; // 'HH:mm'
+
+  travelMediumData?: {
+    travelMedium?: 'car' | 'bus' | 'train' | 'flight';
+    isTicketPrebooked?: 'yes' | 'no';
+    vehicleInfo?: {
+      busName?: string;
+      busNumber?: string;
+      trainName?: string;
+      trainNumber?: string;
+      flightNumber?: string;
+    };
+    time?: string; // 'HH:mm'
+  };
+
+  pickupData?: {
+    pickupType?: 'destination' | 'hotel' | 'bus_stand' | 'railway_station' | 'airport';
+    hotelDetails?: {
+      name?: string;
+      roomNumber?: string;
+    };
+    stationName?: string;
+    pickupTime?: string; // 'HH:mm'
+  };
+  
+  estimatedCost?: number;
+  
+  step1Complete: boolean;
+  step2Complete: boolean;
+  step3Complete: boolean;
+  step4Complete: boolean;
 };

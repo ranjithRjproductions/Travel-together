@@ -10,6 +10,7 @@ import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import content from '@/app/content/traveler-dashboard.json';
 import { PlusCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function TravelerDashboard() {
   const user = await getUser();
@@ -34,8 +35,10 @@ export default async function TravelerDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button>
-              <PlusCircle aria-hidden="true" /> {content.createRequest.cta}
+            <Button asChild>
+              <Link href="/traveler/request/create">
+                <PlusCircle aria-hidden="true" /> {content.createRequest.cta}
+              </Link>
             </Button>
           </CardContent>
         </Card>
