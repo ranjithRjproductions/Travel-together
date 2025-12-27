@@ -23,6 +23,7 @@ export type User = {
     mainDisability: 'visually-impaired' | 'hard-of-hearing';
     visionSubOption?: 'totally-blind' | 'low-vision';
     visionPercentage?: number;
+    hearingPercentage?: number;
     requiresSignLanguageGuide?: boolean;
     documentUrl?: string;
     documentName?: string;

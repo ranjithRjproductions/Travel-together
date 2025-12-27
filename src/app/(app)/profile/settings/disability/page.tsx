@@ -25,6 +25,7 @@ const disabilitySchema = z.object({
   }),
   visionSubOption: z.enum(['totally-blind', 'low-vision']).optional(),
   visionPercentage: z.coerce.number().min(1).max(100).optional(),
+  hearingPercentage: z.coerce.number().min(1).max(100).optional(),
   requiresSignLanguageGuide: z.boolean().optional(),
   documentUrl: z.string().url().optional(),
   documentName: z.string().optional(),
@@ -36,8 +37,13 @@ const disabilitySchema = z.object({
         if (!data.visionSubOption) {
             ctx.addIssue({ code: 'custom', message: 'Please specify your vision status.', path: ['visionSubOption'] });
         }
-        if (data.visionPercentage === undefined) {
+        if (!data.visionPercentage) {
             ctx.addIssue({ code: 'custom', message: 'Percentage of impairment is required.', path: ['visionPercentage'] });
+        }
+    }
+    if (data.mainDisability === 'hard-of-hearing') {
+        if (!data.hearingPercentage) {
+            ctx.addIssue({ code: 'custom', message: 'Percentage of impairment is required.', path: ['hearingPercentage'] });
         }
     }
 });
@@ -75,6 +81,7 @@ export default function DisabilityPage() {
     resolver: zodResolver(disabilitySchema),
     defaultValues: {
       visionPercentage: undefined,
+      hearingPercentage: undefined,
       requiresSignLanguageGuide: false,
       agreedToVoluntaryDisclosure: false,
     },
@@ -211,10 +218,16 @@ export default function DisabilityPage() {
             )}
 
              {disability.mainDisability === 'hard-of-hearing' && (
-                <div>
-                    <p className="font-medium text-muted-foreground">Sign Language Support</p>
-                    <p>{disability.requiresSignLanguageGuide ? 'Yes, a guide proficient in sign language is required.' : 'No'}</p>
-                </div>
+                <>
+                  <div>
+                      <p className="font-medium text-muted-foreground">Percentage of Impairment</p>
+                      <p>{disability.hearingPercentage}%</p>
+                  </div>
+                  <div>
+                      <p className="font-medium text-muted-foreground">Sign Language Support</p>
+                      <p>{disability.requiresSignLanguageGuide ? 'Yes, a guide proficient in sign language is required.' : 'No'}</p>
+                  </div>
+                </>
             )}
             
             {disability.documentUrl && disability.documentName && (
@@ -297,6 +310,18 @@ export default function DisabilityPage() {
 
            {mainDisability === 'hard-of-hearing' && (
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
+               <div>
+                  <Label htmlFor="hearingPercentage">Percentage of hearing impairment (required)</Label>
+                  <Input 
+                    id="hearingPercentage"
+                    type="number" 
+                    {...control.register('hearingPercentage')} 
+                    min="1" 
+                    max="100"
+                    aria-invalid={!!errors.hearingPercentage}
+                  />
+                  {errors.hearingPercentage && <p className="text-sm text-destructive">{errors.hearingPercentage.message}</p>}
+               </div>
               <Controller
                   name="requiresSignLanguageGuide"
                   control={control}
