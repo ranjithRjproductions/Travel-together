@@ -17,11 +17,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: "Disability Disclosure | Let's Travel Together",
-};
 
 const disabilitySchema = z.object({
   mainDisability: z.enum(['visually-impaired', 'hard-of-hearing'], {
@@ -158,7 +153,7 @@ export default function DisabilityPage() {
          return;
     }
     
-    const finalData: DisabilityFormData = { ...data };
+    let finalData = { ...data };
 
     try {
         if (selectedFile) {
