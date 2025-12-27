@@ -148,12 +148,12 @@ export default function DisabilityPage() {
   const onSubmit: SubmitHandler<DisabilityFormData> = async (data) => {
     if (!userDocRef || !userProfile) return;
 
-    if (data.mainDisability && !selectedFile && !userProfile?.disability?.documentUrl) {
+    if (data.mainDisability && !selectedFile && !userProfile.disability?.documentUrl) {
          toast({ variant: 'destructive', title: 'Validation Error', description: 'A supporting document is required.' });
          return;
     }
     
-    let finalData: Partial<DisabilityFormData> = { ...data };
+    const finalData = { ...data };
 
     try {
         if (selectedFile) {
@@ -164,11 +164,11 @@ export default function DisabilityPage() {
 
         // Sanitize data to prevent saving undefined fields
         if (finalData.mainDisability === 'visually-impaired') {
-            delete finalData.hearingPercentage;
-            delete finalData.requiresSignLanguageGuide;
+            delete (finalData as Partial<DisabilityFormData>).hearingPercentage;
+            delete (finalData as Partial<DisabilityFormData>).requiresSignLanguageGuide;
         } else if (finalData.mainDisability === 'hard-of-hearing') {
-            delete finalData.visionSubOption;
-            delete finalData.visionPercentage;
+            delete (finalData as Partial<DisabilityFormData>).visionSubOption;
+            delete (finalData as Partial<DisabilityFormData>).visionPercentage;
         }
 
         await setDoc(userDocRef, { disability: finalData }, { merge: true });
@@ -204,8 +204,9 @@ export default function DisabilityPage() {
 
     return (
         <div className="space-y-4 text-sm">
-             <div className="flex justify-end">
+             <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
+                <Button onClick={() => router.push('/traveler/dashboard')}>Finish</Button>
             </div>
             <div>
                 <p className="font-medium text-muted-foreground">Disability Type</p>
