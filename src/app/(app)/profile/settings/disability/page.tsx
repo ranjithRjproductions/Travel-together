@@ -69,22 +69,20 @@ export default function DisabilityPage() {
   const mainDisability = watch('mainDisability');
 
   useEffect(() => {
-    if (userProfile) {
-        if(userProfile.disability) {
-            const profileData = {
-                ...userProfile.disability,
-                visionPercentage: userProfile.disability.visionPercentage || undefined,
-                hearingPercentage: userProfile.disability.hearingPercentage || undefined,
-            }
-            reset(profileData);
-            setIsEditMode(false);
-        } else {
-            setIsEditMode(true);
-        }
-    } else if (!isUserLoading && !isProfileLoading) {
-        setIsEditMode(true);
+    if (isProfileLoading) return; // Wait until data is loaded
+
+    if (userProfile && userProfile.disability) {
+      const profileData = {
+        ...userProfile.disability,
+        visionPercentage: userProfile.disability.visionPercentage || undefined,
+        hearingPercentage: userProfile.disability.hearingPercentage || undefined,
+      };
+      reset(profileData);
+      setIsEditMode(false); // Data exists, go to display mode
+    } else {
+      setIsEditMode(true); // No data, go to edit mode
     }
-  }, [userProfile, reset, isUserLoading, isProfileLoading]);
+  }, [userProfile, reset, isProfileLoading]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
