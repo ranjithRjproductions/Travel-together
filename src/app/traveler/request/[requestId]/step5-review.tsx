@@ -12,7 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { User, MapPin, Bus, Train, Plane, Car, Clock, Building, University, ShoppingCart, Star, CalendarIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { User, MapPin, Bus, Train, Plane, Car, Clock, Building, University, ShoppingCart, Star, CalendarIcon, Hospital } from 'lucide-react';
 import { format } from 'date-fns';
 
 const InfoRow = ({ label, value, icon: Icon, hide = false }: { label: string, value?: React.ReactNode, icon?: React.ElementType, hide?: boolean }) => {
