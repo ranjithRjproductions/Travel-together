@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle, Upload } from 'lucide-react';
+import { CheckCircle, GraduationCap } from 'lucide-react';
 
 const verificationSchema = z.object({
   governmentIdUrl: z.string().url('Government ID is required.'),
@@ -123,6 +123,9 @@ export default function GuideVerificationPage() {
     let { governmentIdUrl, proofDocumentUrl } = data;
 
     try {
+        if (!govIdFile && !governmentIdUrl) throw new Error("Government ID is required.");
+        if (!proofFile && !proofDocumentUrl) throw new Error("Proof of qualification is required.");
+
       if (govIdFile) {
         setIsUploadingGovId(true);
         governmentIdUrl = await uploadFile(govIdFile, 'govt-id', setGovIdProgress);
@@ -142,14 +145,12 @@ export default function GuideVerificationPage() {
 
       toast({
         title: 'Profile Submitted!',
-        description: 'Your verification documents have been submitted. You will be notified once your profile is reviewed.',
+        description: 'Your verification documents have been submitted for review.',
       });
 
-      router.push('/guide/dashboard');
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Verification submit error:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit documents.' });
+      toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to submit documents.' });
       setIsUploadingGovId(false);
       setIsUploadingProof(false);
     }
@@ -157,7 +158,7 @@ export default function GuideVerificationPage() {
   
   if (isLoading) return <Skeleton className="h-96 w-full" />;
 
-  const isComplete = guideProfile?.onboardingState === 'verification-pending' || guideProfile?.onboardingState === 'active';
+  const isSubmitted = guideProfile?.onboardingState === 'verification-pending' || guideProfile?.onboardingState === 'active';
 
   return (
     <div>
@@ -165,12 +166,18 @@ export default function GuideVerificationPage() {
         Please upload your government-issued ID and a document proving your qualification or training in disability assistance to complete your profile.
       </CardDescription>
 
-      {isComplete ? (
+      {isSubmitted ? (
         <Alert variant="default" className="bg-primary/10 border-primary/20">
           <CheckCircle className="h-4 w-4" />
           <AlertTitle>Profile Under Review</AlertTitle>
           <AlertDescription>
             Your profile and documents have been submitted for verification. We will notify you once the review process is complete. Thank you for your patience.
+             <div className="mt-4">
+                <Button onClick={() => router.push('/guide/learning-hub')}>
+                    <GraduationCap className="mr-2" />
+                    Go to Learning Hub
+                </Button>
+            </div>
           </AlertDescription>
         </Alert>
       ) : (

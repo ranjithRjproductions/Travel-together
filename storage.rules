@@ -17,6 +17,11 @@ service firebase.storage {
     match /guide-address-proofs/{userId}/{fileName} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+    
+    // Guide Driver's License: Private to the owner
+    match /guide-licenses/{userId}/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
 
     // Guide Verification Docs: Private to the owner.
     match /guide-verification-docs/{userId}/{path=**}/{fileName} {

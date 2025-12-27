@@ -4,7 +4,7 @@ import { useDoc, useFirestore, useUser, useStorage } from '@/firebase';
 import { useMemo, useState, useEffect, ChangeEvent } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,10 +16,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 // import { generateAltText } from '@/ai/flows/generate-alt-text-flow';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
+  gender: z.enum(['Male', 'Female'], { required_error: 'Please select a gender.'}),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -79,11 +81,12 @@ export default function GuideProfileSettingsPage() {
   const {
     register,
     handleSubmit,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: '' }
+    defaultValues: { name: '', gender: undefined }
   });
 
   useEffect(() => {
@@ -92,7 +95,7 @@ export default function GuideProfileSettingsPage() {
         router.push('/traveler/dashboard');
         return;
       }
-      reset({ name: userProfile.name || '' });
+      reset({ name: userProfile.name || '', gender: userProfile.gender || undefined });
       setPhotoPreview(userProfile.photoURL || null);
     }
   }, [userProfile, reset, router]);
@@ -177,6 +180,7 @@ export default function GuideProfileSettingsPage() {
       
       await setDoc(userDocRef, { 
         name: data.name, 
+        gender: data.gender,
         photoURL,
         photoAlt: altText
       }, { merge: true });
@@ -245,6 +249,21 @@ export default function GuideProfileSettingsPage() {
             </p>
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
+
+          <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Gender</legend>
+              <Controller
+                  name="gender"
+                  control={control}
+                  render={({ field }) => (
+                      <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4">
+                          <div className="flex items-center space-x-2"><RadioGroupItem value="Male" id="gender-male" /><Label htmlFor="gender-male" className="font-normal">Male</Label></div>
+                          <div className="flex items-center space-x-2"><RadioGroupItem value="Female" id="gender-female" /><Label htmlFor="gender-female" className="font-normal">Female</Label></div>
+                      </RadioGroup>
+                  )}
+              />
+              {errors.gender && <p className="text-sm text-destructive mt-2">{errors.gender.message}</p>}
+          </fieldset>
 
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>

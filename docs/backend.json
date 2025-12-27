@@ -19,6 +19,11 @@
           "description": "The user's email address.",
           "format": "email"
         },
+        "gender": {
+          "type": "string",
+          "description": "The user's gender.",
+          "enum": ["Male", "Female"]
+        },
         "role": {
           "type": "string",
           "description": "The user's role (e.g., Traveler, Guide). This determines their access and permissions.",
@@ -135,27 +140,28 @@
         },
         "disabilityExpertise": {
           "type": "object",
-          "description": "Details the guide's experience with supporting travelers with disabilities.",
+          "description": "Details the guide's experience and skills.",
           "properties": {
+            "hasDisabilityExperience": { "type": "string", "enum": ["yes", "no"] },
             "experienceType": { "type": "string", "enum": ["visually-impaired", "hearing-impaired"] },
             "visionSupport": {
               "type": "object",
               "properties": {
-                "specialization": { "type": "string", "enum": ["totally-blind", "low-vision"] },
-                "description": { "type": "string" }
+                "specialization": { "type": "string", "enum": ["totally-blind", "low-vision"] }
               }
             },
             "hearingSupport": {
               "type": "object",
-              "properties": {
-                "knowsSignLanguage": { "type": "boolean" },
-                "description": { "type": "string" }
-              }
+              "properties": { "knowsSignLanguage": { "type": "boolean" } }
             },
-            "isTrained": { "type": "boolean" },
-            "agreedToDisclaimer": { "type": "boolean" }
+            "localExpertise": { "type": "array", "items": { "type": "string" } },
+            "readingLanguages": { "type": "array", "items": { "type": "string" } },
+            "writingLanguages": { "type": "array", "items": { "type": "string" } },
+            "willingToUseVehicle": { "type": "string", "enum": ["yes", "no"] },
+            "driversLicenseUrl": { "type": "string", "format": "uri" },
+            "agreeToTraining": { "type": "boolean" }
           },
-          "required": ["experienceType", "isTrained"]
+          "required": ["hasDisabilityExperience", "localExpertise", "willingToUseVehicle", "agreeToTraining"]
         },
         "verification": {
           "type": "object",
