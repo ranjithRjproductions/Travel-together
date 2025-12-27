@@ -18,11 +18,6 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle, GraduationCap } from 'lucide-react';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Verification | Let\'s Travel Together',
-};
 
 const verificationSchema = z.object({
   governmentIdUrl: z.string().url().optional(),

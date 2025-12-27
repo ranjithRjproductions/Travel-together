@@ -17,11 +17,6 @@ import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { generateAltText } from '@/ai/flows/generate-alt-text-flow';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Profile Information | Let\'s Travel Together',
-};
 
 const profileSchema = z.object({
 name: z.string().min(2, 'Name must be at least 2 characters.'),

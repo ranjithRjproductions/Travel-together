@@ -18,11 +18,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Disability Expertise | Let\'s Travel Together',
-};
 
 const expertiseAreas = [
     { id: 'education', label: 'Education Support (familiar with local educational places)' },
