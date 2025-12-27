@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 const guideNavigation = [
-  { name: 'Profile Information', href: '/guide/profile/settings', icon: User },
+  { name: 'Profile Information', href: '/guide/profile/settings', icon: User, exact: true },
   { name: 'Address Details', href: '/guide/profile/settings/address', icon: MapPin },
   { name: 'Contact Details', href: '/guide/profile/settings/contact', icon: Phone },
   { name: 'Disability Expertise', href: '/guide/profile/settings/expertise', icon: Accessibility },
@@ -29,24 +29,32 @@ export default function GuideProfileSettingsLayout({
   const pathname = usePathname();
   const router = useRouter();
   
-  const currentPage = guideNavigation.find(item => pathname.startsWith(item.href));
+  // Find the best match for the current page.
+  // This logic prioritizes more specific paths over less specific ones.
+  const currentPage = guideNavigation
+    .slice() // Create a copy to avoid mutating the original array
+    .sort((a, b) => b.href.length - a.href.length) // Sort by href length, descending
+    .find(item => pathname.startsWith(item.href));
 
   return (
     <div className="grid md:grid-cols-[250px_1fr] gap-8 items-start">
       <nav className="hidden md:flex flex-col gap-2" aria-label="Guide Profile Settings">
-        {guideNavigation.map((item) => (
-          <Button
-            key={item.name}
-            variant={pathname.startsWith(item.href) ? 'default' : 'ghost'}
-            asChild
-            className="justify-start"
-          >
-            <Link href={item.href}>
-              <item.icon className="mr-2 h-4 w-4" />
-              {item.name}
-            </Link>
-          </Button>
-        ))}
+        {guideNavigation.map((item) => {
+          const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+          return (
+            <Button
+              key={item.name}
+              variant={isActive ? 'default' : 'ghost'}
+              asChild
+              className="justify-start"
+            >
+              <Link href={item.href}>
+                <item.icon className="mr-2 h-4 w-4" />
+                {item.name}
+              </Link>
+            </Button>
+          );
+        })}
       </nav>
       <main>
         <Card>
