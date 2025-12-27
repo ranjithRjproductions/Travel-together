@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const disabilitySchema = z.object({
   mainDisability: z.enum(['visually-impaired', 'hard-of-hearing'], {
@@ -45,6 +46,7 @@ export default function DisabilityPage() {
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
+  const router = useRouter();
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -76,6 +78,7 @@ export default function DisabilityPage() {
 
   const mainDisability = watch('mainDisability');
   const isFormSubmitting = isSubmitting || isUploading;
+  const isLoading = isUserLoading || isProfileLoading;
 
   useEffect(() => {
     if (isProfileLoading) return;
@@ -169,6 +172,8 @@ export default function DisabilityPage() {
   const renderSavedData = () => {
     const disability = userProfile?.disability;
     if (!disability) {
+      // This state should ideally not be reached if isEditMode logic is correct,
+      // but as a fallback, we offer a way to enter edit mode.
       return (
          <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
             <p>You have not disclosed any accessibility needs.</p>
@@ -178,7 +183,7 @@ export default function DisabilityPage() {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 text-sm">
              <div className="flex justify-end">
                 <Button variant="outline" onClick={() => setIsEditMode(true)}>Edit</Button>
             </div>
