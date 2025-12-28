@@ -148,9 +148,14 @@ export function Step3Form({ request, onSave }: { request: TravelRequest; onSave:
                     name="isTicketPrebooked"
                     render={({ field }) => (
                       <FormItem className="space-y-3">
-                        <FormLabel>Is your ticket pre-booked?</FormLabel>
+                        <FormLabel id="ticket-prebooked-label">Is your ticket pre-booked?</FormLabel>
                         <FormControl>
-                          <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex gap-4"
+                            aria-labelledby="ticket-prebooked-label"
+                          >
                             <FormItem className="flex items-center space-x-2 space-y-0">
                               <FormControl>
                                 <RadioGroupItem value="yes" id="ticket-yes" />
