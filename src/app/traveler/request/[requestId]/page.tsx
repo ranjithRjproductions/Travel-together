@@ -152,13 +152,26 @@ export default function CreateRequestFormPage() {
     // The useDoc hook will trigger a re-render with the updated request data
   };
 
-  const handleDiscardDraft = () => {
+  const handleDiscardDraft = async () => {
     if (!requestDocRef) return;
+    
+    // Immediately close the alert dialog
     setIsAlertOpen(false);
-    deleteDoc(requestDocRef).catch(error => {
-       console.error("Failed to delete draft:", error);
-    });
+
+    // Navigate away first. This will unmount the component and the useDoc hook,
+    // preventing the permission error from the listener trying to read a deleted doc.
     router.push('/traveler/dashboard');
+
+    // Perform the deletion in the background.
+    try {
+        await deleteDoc(requestDocRef);
+        // A toast on the dashboard will confirm the deletion.
+    } catch (error) {
+       console.error("Failed to delete draft:", error);
+       // If deletion fails, the user is already on the dashboard, so no jarring UX.
+       // We can show a toast here if we want to inform them of the failure.
+       toast({ title: "Error", description: "Could not delete draft. Please try again.", variant: 'destructive'});
+    }
   };
 
   const isLoading = isAuthLoading || isRequestLoading || isNew || !request || !hasLoadedOnce;
