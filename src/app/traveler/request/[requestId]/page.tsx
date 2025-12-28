@@ -87,15 +87,26 @@ export default function CreateRequestFormPage() {
         }
       };
       createDraft();
-      return; // Stop further execution until redirect happens
-    }
-
-    if (isRequestLoading || !request) return; // Wait for request data to load
-    
-    if (requestError) {
-      notFound();
       return;
     }
+
+    if (isRequestLoading) return; // Wait for request data to load
+
+    if (!isNewRequest && request === null && !isRequestLoading) {
+      // This means the document was deleted.
+      toast({ title: "Draft Discarded", description: "Your travel request draft has been deleted." });
+      router.push('/traveler/dashboard');
+      return;
+    }
+    
+    if (requestError) {
+      // This will now properly catch permission errors on load, if any.
+      toast({ title: "Error", description: "Could not load the request.", variant: "destructive" });
+      router.replace('/traveler/dashboard');
+      return;
+    }
+    
+    if (!request) return; // Guard against request being null before further processing
 
     if (request.travelerId !== authUser.uid) {
         toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
@@ -119,47 +130,45 @@ export default function CreateRequestFormPage() {
     } else {
       setCurrentTab('step-1');
     }
-  }, [isAuthLoading, isRequestLoading, authUser, request, requestError, router, toast, firestore, isNewRequest]);
+  }, [isAuthLoading, isRequestLoading, authUser, request, requestError, router, toast, isNewRequest, firestore, requestId]);
 
 
   const handleSave = () => {
     // The useDoc hook will trigger a re-render with the updated request data
   };
 
-  const handleDiscardDraft = async () => {
+  const handleDiscardDraft = () => {
     if (!requestDocRef) return;
-    try {
-        await deleteDoc(requestDocRef);
-        toast({
-            title: "Draft Discarded",
-            description: "Your travel request draft has been deleted.",
-        });
-        router.push('/traveler/dashboard');
-    } catch (error) {
-        console.error("Failed to delete draft:", error);
+    // Don't await. Navigate away immediately. The useEffect cleanup will handle the rest.
+    deleteDoc(requestDocRef).catch(error => {
+       console.error("Failed to delete draft:", error);
         toast({
             title: "Error",
             description: "Could not discard the draft. Please try again.",
             variant: "destructive",
         });
-    } finally {
-        setIsAlertOpen(false);
-    }
+    });
+    // Optimistically close the dialog and let the useEffect handle navigation on data change.
+    setIsAlertOpen(false);
   };
 
-  const isLoading = isAuthLoading || isRequestLoading || isNewRequest;
+  const isLoading = isAuthLoading || isRequestLoading || isNewRequest || !request;
 
   if (isLoading) {
     return (
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
-            <Skeleton className="h-8 w-48 mb-6" />
+            <div className="flex justify-between items-center mb-6">
+                <Skeleton className="h-10 w-40" />
+                <Skeleton className="h-8 w-32" />
+            </div>
             <Skeleton className="h-12 w-1/2 mb-8" />
              <Card className="max-w-2xl mx-auto">
                 <CardHeader>
                     <Skeleton className="h-8 w-1/3" />
                     <Skeleton className="h-4 w-2/3" />
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 pt-6">
+                    <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                     <div className="flex justify-end">
                         <Skeleton className="h-10 w-32" />
@@ -170,10 +179,10 @@ export default function CreateRequestFormPage() {
     );
   }
 
-  if (!request || !userData) {
+  if (!userData) {
      return (
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8 text-center">
-            <p>Loading request details...</p>
+            <p>Loading user details...</p>
         </main>
      );
   }
