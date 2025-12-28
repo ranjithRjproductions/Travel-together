@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { notFound, useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -37,22 +37,22 @@ export default function CreateRequestFormPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
-  const isNewRequest = requestId === 'new';
+  const requestDocRef = useMemo(() => {
+    if (!firestore || !requestId) return null;
+    return doc(firestore, 'travelRequests', requestId);
+  }, [requestId, firestore]);
+
+  const { data: request, isLoading: isRequestLoading, error: requestError } = useDoc<TravelRequest>(requestDocRef);
 
   const userDocRef = useMemo(() => {
     if (!authUser || !firestore) return null;
     return doc(firestore, 'users', authUser.uid);
   }, [authUser, firestore]);
   const { data: userData } = useDoc<UserData>(userDocRef);
-
-  const requestDocRef = useMemo(() => {
-    if (isNewRequest || !firestore || !requestId) return null;
-    return doc(firestore, 'travelRequests', requestId);
-  }, [requestId, firestore, isNewRequest]);
-
-  const { data: request, isLoading: isRequestLoading, error: requestError } = useDoc<TravelRequest>(requestDocRef);
-
+  
   const [currentTab, setCurrentTab] = useState('step-1');
   const [isEditingStep1, setIsEditingStep1] = useState(false);
   const [isEditingStep2, setIsEditingStep2] = useState(false);
@@ -61,52 +61,29 @@ export default function CreateRequestFormPage() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   
   useEffect(() => {
-    if (isAuthLoading) return;
+    if (isAuthLoading || isRequestLoading) return;
+
     if (!authUser) {
       router.replace('/login');
       return;
     }
-  
-    if (isNewRequest && firestore && authUser.uid) {
-      const createDraft = async () => {
-        try {
-          const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), {
-            travelerId: authUser.uid,
-            status: 'draft',
-            createdAt: new Date().toISOString(),
-            step1Complete: false,
-            step2Complete: false,
-            step3Complete: false,
-            step4Complete: false,
-          });
-          router.replace(`/traveler/request/${newRequestRef.id}`);
-        } catch (error) {
-          console.error("Failed to create draft", error);
-          toast({ title: "Error", description: "Could not create a new request draft.", variant: "destructive" });
-          router.replace('/traveler/dashboard');
-        }
-      };
-      createDraft();
+    
+    if (requestError) {
+      toast({ title: "Error", description: "Could not load the request.", variant: "destructive" });
+      router.replace('/traveler/dashboard');
       return;
     }
 
-    if (isRequestLoading) return; // Wait for request data to load
-
-    if (!isNewRequest && request === null && !isRequestLoading) {
-      // This means the document was deleted.
+    // This handles the case where the doc is deleted by another action
+    if (hasLoadedOnce && !request) {
       toast({ title: "Draft Discarded", description: "Your travel request draft has been deleted." });
       router.push('/traveler/dashboard');
       return;
     }
     
-    if (requestError) {
-      // This will now properly catch permission errors on load, if any.
-      toast({ title: "Error", description: "Could not load the request.", variant: "destructive" });
-      router.replace('/traveler/dashboard');
-      return;
-    }
-    
     if (!request) return; // Guard against request being null before further processing
+    
+    setHasLoadedOnce(true); // Mark that we've successfully received data (or lack thereof) at least once.
 
     if (request.travelerId !== authUser.uid) {
         toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
@@ -130,7 +107,7 @@ export default function CreateRequestFormPage() {
     } else {
       setCurrentTab('step-1');
     }
-  }, [isAuthLoading, isRequestLoading, authUser, request, requestError, router, toast, isNewRequest, firestore, requestId]);
+  }, [isAuthLoading, isRequestLoading, authUser, request, requestError, router, toast, hasLoadedOnce]);
 
 
   const handleSave = () => {
@@ -139,20 +116,15 @@ export default function CreateRequestFormPage() {
 
   const handleDiscardDraft = () => {
     if (!requestDocRef) return;
+    setIsAlertOpen(false); // Close dialog immediately
     // Don't await. Navigate away immediately. The useEffect cleanup will handle the rest.
     deleteDoc(requestDocRef).catch(error => {
        console.error("Failed to delete draft:", error);
-        toast({
-            title: "Error",
-            description: "Could not discard the draft. Please try again.",
-            variant: "destructive",
-        });
     });
-    // Optimistically close the dialog and let the useEffect handle navigation on data change.
-    setIsAlertOpen(false);
+    router.push('/traveler/dashboard');
   };
 
-  const isLoading = isAuthLoading || isRequestLoading || isNewRequest || !request;
+  const isLoading = isAuthLoading || isRequestLoading || !request || !hasLoadedOnce;
 
   if (isLoading) {
     return (
@@ -178,7 +150,7 @@ export default function CreateRequestFormPage() {
         </main>
     );
   }
-
+  
   if (!userData) {
      return (
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8 text-center">
