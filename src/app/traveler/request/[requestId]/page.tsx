@@ -43,7 +43,7 @@ export default function CreateRequestFormPage() {
 
   // IMPORTANT: Only create a doc ref if the requestId is not 'new'
   const requestDocRef = useMemo(() => {
-    if (!firestore || isNew) return null;
+    if (!firestore || isNew || !requestId) return null;
     return doc(firestore, 'travelRequests', requestId);
   }, [requestId, firestore, isNew]);
 
@@ -155,27 +155,24 @@ export default function CreateRequestFormPage() {
   const handleDiscardDraft = async () => {
     if (!requestDocRef) return;
     
-    // Immediately close the alert dialog
-    setIsAlertOpen(false);
-
-    // Navigate away first. This will unmount the component and the useDoc hook,
-    // preventing the permission error from the listener trying to read a deleted doc.
+    // 1. Navigate away FIRST to unmount the component and its listeners.
     router.push('/traveler/dashboard');
 
-    // Perform the deletion in the background.
-    try {
+    // 2. Perform the deletion in the background after a short delay.
+    // This gives React time to unmount the component before the delete happens.
+    setTimeout(async () => {
+      try {
         await deleteDoc(requestDocRef);
-        // A toast on the dashboard will confirm the deletion.
-    } catch (error) {
-       console.error("Failed to delete draft:", error);
-       // If deletion fails, the user is already on the dashboard, so no jarring UX.
-       // We can show a toast here if we want to inform them of the failure.
-       toast({ title: "Error", description: "Could not delete draft. Please try again.", variant: 'destructive'});
-    }
+        // The toast confirmation will now appear on the dashboard.
+      } catch (error) {
+        console.error("Failed to delete draft:", error);
+        toast({ title: "Error", description: "Could not delete draft. Please try again.", variant: 'destructive'});
+      }
+    }, 50);
   };
 
-  const isLoading = isAuthLoading || isRequestLoading || isNew || !request || !hasLoadedOnce;
-
+  const isLoading = isAuthLoading || isRequestLoading || isNew || !hasLoadedOnce;
+  
   if (isLoading) {
     return (
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
@@ -201,6 +198,14 @@ export default function CreateRequestFormPage() {
     );
   }
   
+  if (!request) {
+     return (
+        <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8 text-center">
+            <p>Loading request...</p>
+        </main>
+     );
+  }
+
   if (!userData) {
      return (
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8 text-center">
