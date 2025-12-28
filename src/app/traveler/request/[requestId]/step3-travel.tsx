@@ -152,11 +152,15 @@ export function Step3Form({ request, onSave }: { request: TravelRequest; onSave:
                         <FormControl>
                           <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
                             <FormItem className="flex items-center space-x-2 space-y-0">
-                              <FormControl><RadioGroupItem value="yes" id="ticket-yes" /></FormControl>
+                              <FormControl>
+                                <RadioGroupItem value="yes" id="ticket-yes" />
+                              </FormControl>
                               <FormLabel htmlFor="ticket-yes" className="font-normal">Yes</FormLabel>
                             </FormItem>
                             <FormItem className="flex items-center space-x-2 space-y-0">
-                              <FormControl><RadioGroupItem value="no" id="ticket-no" /></FormControl>
+                              <FormControl>
+                                <RadioGroupItem value="no" id="ticket-no" />
+                              </FormControl>
                               <FormLabel htmlFor="ticket-no" className="font-normal">No</FormLabel>
                             </FormItem>
                           </RadioGroup>
