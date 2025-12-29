@@ -52,7 +52,10 @@ export function Step1View({ request, onEdit }: { request: TravelRequest, onEdit:
             <div className="space-y-1 text-sm">
                  <p><span className="font-semibold">Shopping Type:</span> {subPurposeData.shopType === 'particular' ? 'A particular shop' : 'General shopping in an area'}</p>
                 {subPurposeData.shopType === 'particular' ? (
-                     <p><span className="font-semibold">Address:</span> {subPurposeData.shopAddress?.street}, {subPurposeData.shopAddress?.district}</p>
+                    <>
+                        <p><span className="font-semibold">Shop Name:</span> {subPurposeData.shopName}</p>
+                        <p><span className="font-semibold">Address:</span> {subPurposeData.shopAddress?.street}, {subPurposeData.shopAddress?.district}, {subPurposeData.shopAddress?.pincode}</p>
+                    </>
                 ) : (
                      <p><span className="font-semibold">Area:</span> {subPurposeData.shoppingArea?.area}, {subPurposeData.shoppingArea?.district}</p>
                 )}
@@ -93,8 +96,10 @@ export function Step1Form({ request, onSave }: { request: TravelRequest, onSave:
         hospitalAddress: { street: '', district: '', pincode: '' },
         bookingDetails: { isAppointmentPrebooked: undefined, startTime: '', endTime: '', visitingTime: '' },
         shopType: undefined,
+        shopName: '',
         shopAddress: { street: '', district: '', pincode: '' },
-        shoppingArea: { area: '', district: '' }
+        shoppingArea: { area: '', district: '' },
+        agreeNotToCarry: false,
       },
     },
     mode: 'onChange',
@@ -129,8 +134,12 @@ export function Step1Form({ request, onSave }: { request: TravelRequest, onSave:
             break;
         case 'shopping':
              const shopType = values.subPurposeData.shopType;
-            cleanPurposeData.subPurposeData = { shopType };
+            cleanPurposeData.subPurposeData = { 
+                shopType,
+                agreeNotToCarry: values.subPurposeData.agreeNotToCarry
+            };
             if (shopType === 'particular') {
+                cleanPurposeData.subPurposeData.shopName = values.subPurposeData.shopName;
                 cleanPurposeData.subPurposeData.shopAddress = values.subPurposeData.shopAddress;
             } else if (shopType === 'area') {
                 cleanPurposeData.subPurposeData.shoppingArea = values.subPurposeData.shoppingArea;
@@ -179,7 +188,42 @@ export function Step1Form({ request, onSave }: { request: TravelRequest, onSave:
                 </div>
             );
         case 'hospital': return ( <div className="space-y-4 pt-4 border-t"><FormField control={form.control} name="subPurposeData.hospitalName" render={({ field }) => (<FormItem><FormLabel>Hospital Name</FormLabel><FormControl><Input placeholder="e.g., Apollo Hospital" {...field} /></FormControl><FormMessage /></FormItem>)} /><FormField control={form.control} name="subPurposeData.hospitalAddress.street" render={({ field }) => (<FormItem><FormLabel>Hospital Street Address</FormLabel><FormControl><Input placeholder="456 Health Ave" {...field} /></FormControl><FormMessage /></FormItem>)} /><FormField control={form.control} name="subPurposeData.hospitalAddress.district" render={({ field }) => (<FormItem><FormLabel>Hospital District</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a district" /></SelectTrigger></FormControl><SelectContent>{tamilNaduCities.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} /><FormField control={form.control} name="subPurposeData.hospitalAddress.pincode" render={({ field }) => (<FormItem><FormLabel>Hospital Pincode</FormLabel><FormControl><Input placeholder="600002" {...field} /></FormControl><FormMessage /></FormItem>)} /><FormField control={form.control} name="subPurposeData.bookingDetails.isAppointmentPrebooked" render={({ field }) => (<FormItem className="space-y-3 rounded-md border p-4"><FormLabel id="prebooked-label">Is your appointment pre-booked?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4" aria-labelledby="prebooked-label"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="yes" id="prebooked-yes" /></FormControl><FormLabel htmlFor="prebooked-yes" className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="no" id="prebooked-no" /></FormControl><FormLabel htmlFor="prebooked-no" className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage /></FormItem>)}/>{watchHospitalPrebooked === 'yes' && (<div className="grid grid-cols-2 gap-4"><FormField control={form.control} name="subPurposeData.bookingDetails.startTime" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} /><FormField control={form.control} name="subPurposeData.bookingDetails.endTime" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} /></div>)}{watchHospitalPrebooked === 'no' && (<FormField control={form.control} name="subPurposeData.bookingDetails.visitingTime" render={({ field }) => (<FormItem><FormLabel>Preferred Visiting Time</FormLabel><FormControl><Input placeholder="e.g., Morning, around 10 AM" {...field} /></FormControl><FormMessage /></FormItem>)} />)}</div> );
-        case 'shopping': return ( <div className="space-y-4 pt-4 border-t"><FormField control={form.control} name="subPurposeData.shopType" render={({ field }) => (<FormItem><FormLabel>What are you shopping for?</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a shopping type..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="particular">A particular shop</SelectItem><SelectItem value="area">General shopping in an area</SelectItem></SelectContent></Select><FormMessage /></FormItem>)}/>{watchShopType === 'particular' && (<div className="space-y-4 pt-2"><h4 className="font-medium">Shop Address</h4><FormField control={form.control} name="subPurposeData.shopAddress.street" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="789 Market Rd" {...field} /></FormControl><FormMessage /></FormItem>)} /><FormField control={form.control} name="subPurposeData.shopAddress.district" render={({ field }) => (<FormItem><FormLabel>District</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a district" /></SelectTrigger></FormControl><SelectContent>{tamilNaduCities.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} /></div>)}{watchShopType === 'area' && (<div className="space-y-4 pt-2"><h4 className="font-medium">Shopping Area</h4><FormField control={form.control} name="subPurposeData.shoppingArea.area" render={({ field }) => (<FormItem><FormLabel>Area Name</FormLabel><FormControl><Input placeholder="e.g., T. Nagar" {...field} /></FormControl><FormMessage /></FormItem>)} /><FormField control={form.control} name="subPurposeData.shoppingArea.district" render={({ field }) => (<FormItem><FormLabel>District</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a district" /></SelectTrigger></FormControl><SelectContent>{tamilNaduCities.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} /></div>)}</div> );
+        case 'shopping': return (
+            <div className="space-y-4 pt-4 border-t">
+                <FormField control={form.control} name="subPurposeData.shopType" render={({ field }) => (<FormItem><FormLabel>What are you shopping for?</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a shopping type..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="particular">A particular shop</SelectItem><SelectItem value="area">General shopping in an area</SelectItem></SelectContent></Select><FormMessage /></FormItem>)}/>
+                {watchShopType === 'particular' && (
+                    <div className="space-y-4 pt-2">
+                        <h4 className="font-medium">Shop Details</h4>
+                        <FormField control={form.control} name="subPurposeData.shopName" render={({ field }) => (<FormItem><FormLabel>Shop Name</FormLabel><FormControl><Input placeholder="e.g., Style Plus" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="subPurposeData.shopAddress.street" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="789 Market Rd" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="subPurposeData.shopAddress.district" render={({ field }) => (<FormItem><FormLabel>District</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a district" /></SelectTrigger></FormControl><SelectContent>{tamilNaduCities.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="subPurposeData.shopAddress.pincode" render={({ field }) => (<FormItem><FormLabel>Pincode</FormLabel><FormControl><Input placeholder="600017" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                )}
+                {watchShopType === 'area' && (
+                    <div className="space-y-4 pt-2">
+                        <h4 className="font-medium">Shopping Area</h4>
+                        <FormField control={form.control} name="subPurposeData.shoppingArea.area" render={({ field }) => (<FormItem><FormLabel>Area Name</FormLabel><FormControl><Input placeholder="e.g., T. Nagar" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="subPurposeData.shoppingArea.district" render={({ field }) => (<FormItem><FormLabel>District</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a district" /></SelectTrigger></FormControl><SelectContent>{tamilNaduCities.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                    </div>
+                )}
+                 {watchShopType && (
+                    <div className="pt-4 border-t">
+                        <FormField control={form.control} name="subPurposeData.agreeNotToCarry" render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                    <Checkbox id="agreeNotToCarry" checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                    <FormLabel htmlFor="agreeNotToCarry">I will not ask the guide to carry my things.</FormLabel>
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+                )}
+            </div>
+        );
         default: return null;
     }
   }

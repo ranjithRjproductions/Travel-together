@@ -32,15 +32,17 @@ export const step1Schema = z.object({
 
     // Shopping
     shopType: z.enum(['particular', 'area']).optional(),
+    shopName: z.string().optional(), // Added for particular shop
     shopAddress: z.object({
       street: z.string().optional(),
       district: z.string().optional(),
-      pincode: z.string().optional(),
+      pincode: z.string().optional(), // Added pincode for particular shop
     }).optional(),
     shoppingArea: z.object({
       area: z.string().optional(),
       district: z.string().optional(),
     }).optional(),
+    agreeNotToCarry: z.boolean().optional(),
   }),
 }).superRefine((data, ctx) => {
     const { purpose, subPurposeData } = data;
@@ -73,12 +75,21 @@ export const step1Schema = z.object({
     } else if (purpose === 'shopping') {
         if (!subPurposeData.shopType) ctx.addIssue({ code: 'custom', message: 'Please select a shopping type.', path: ['subPurposeData.shopType'] });
         if (subPurposeData.shopType === 'particular') {
+            if (!subPurposeData.shopName) ctx.addIssue({ code: 'custom', message: 'Shop name is required.', path: ['subPurposeData.shopName'] });
             if (!subPurposeData.shopAddress?.street) ctx.addIssue({ code: 'custom', message: 'Street address is required.', path: ['subPurposeData.shopAddress.street'] });
             if (!subPurposeData.shopAddress?.district) ctx.addIssue({ code: 'custom', message: 'District is required.', path: ['subPurposeData.shopAddress.district'] });
+            if (!subPurposeData.shopAddress?.pincode) ctx.addIssue({ code: 'custom', message: 'Pincode is required.', path: ['subPurposeData.shopAddress.pincode'] });
         }
         if (subPurposeData.shopType === 'area') {
             if (!subPurposeData.shoppingArea?.area) ctx.addIssue({ code: 'custom', message: 'Area name is required.', path: ['subPurposeData.shoppingArea.area'] });
             if (!subPurposeData.shoppingArea?.district) ctx.addIssue({ code: 'custom', message: 'District is required.', path: ['subPurposeData.shoppingArea.district'] });
+        }
+        if (!subPurposeData.agreeNotToCarry) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'You must agree that you will not ask the guide to carry your things.',
+            path: ['subPurposeData.agreeNotToCarry'],
+          });
         }
     }
 });

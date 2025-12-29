@@ -9,10 +9,9 @@ import { submitTravelRequest } from '@/lib/actions';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { User, MapPin, Bus, Train, Plane, Car, Clock, Building, University, ShoppingCart, Star, CalendarIcon, Hospital } from 'lucide-react';
+import { User, MapPin, Bus, Train, Plane, Car, Clock, Building, University, ShoppingCart, Star, CalendarIcon, Hospital, CheckCircle, PackageOpen } from 'lucide-react';
 import { format } from 'date-fns';
 
 const InfoRow = ({ label, value, icon: Icon, hide = false }: { label: string, value?: React.ReactNode, icon?: React.ElementType, hide?: boolean }) => {
@@ -60,7 +59,18 @@ const ServiceDetailsReview = ({ purposeData }: { purposeData: TravelRequest['pur
          subDetails = (
             <>
                 <InfoRow label="Shopping Type" value={subPurposeData.shopType === 'particular' ? 'A particular shop' : 'General shopping in an area'} />
-                <InfoRow label="Location" value={subPurposeData.shopType === 'particular' ? `${subPurposeData.shopAddress?.street}, ${subPurposeData.shopAddress?.district}` : `${subPurposeData.shoppingArea?.area}, ${subPurposeData.shoppingArea?.district}`} />
+                <InfoRow 
+                  label="Location" 
+                  value={subPurposeData.shopType === 'particular' 
+                    ? `${subPurposeData.shopName}, ${subPurposeData.shopAddress?.street}, ${subPurposeData.shopAddress?.district}, ${subPurposeData.shopAddress?.pincode}` 
+                    : `${subPurposeData.shoppingArea?.area}, ${subPurposeData.shoppingArea?.district}`} 
+                />
+                 <InfoRow 
+                    label="Agreement" 
+                    value="User agreed not to ask the guide to carry things." 
+                    icon={CheckCircle}
+                    hide={!subPurposeData.agreeNotToCarry}
+                />
             </>
         );
     }
@@ -129,7 +139,6 @@ const getStatusBadge = (status: TravelRequest['status']) => {
 export function Step5Review({ request, userData }: { request: TravelRequest, userData: UserData }) {
     const router = useRouter();
     const { toast } = useToast();
-    const [isConfirmed, setIsConfirmed] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const calculateCostForDisplay = () => {
@@ -157,7 +166,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
         }
 
 
-        if (!serviceStartTimeStr || !serviceEndTimeStr || !requestedDate) return 0;
+        if (!serviceStartTimeStr || !serviceEndTimeStr || !requestedDate) return { cost: 0, details: ''};
         
         const baseDate = parseISO(requestedDate);
         const start = new Date(baseDate);
@@ -168,24 +177,29 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
         const [endHours, endMinutes] = serviceEndTimeStr.split(':').map(Number);
         end.setHours(endHours, endMinutes, 0, 0);
 
-        if (end <= start) return 0;
+        if (end <= start) return { cost: 0, details: ''};
 
         const durationInMinutes = differenceInMinutes(end, start);
-        if (durationInMinutes <= 0) return 0;
+        if (durationInMinutes <= 0) return { cost: 0, details: ''};
         
         const durationInHours = durationInMinutes / 60;
+        let cost = 0;
 
         if (durationInHours <= 3) {
-            return durationInHours * 150;
+            cost = durationInHours * 150;
         } else {
             const baseCost = 3 * 150;
             const additionalHours = durationInHours - 3;
             const additionalCost = additionalHours * 100;
-            return baseCost + additionalCost;
+            cost = baseCost + additionalCost;
         }
+
+        const details = `Calculated from ${serviceStartTimeStr} to ${serviceEndTimeStr} at ₹150/hr for first 3 hours and ₹100/hr thereafter.`;
+
+        return { cost, details };
     };
     
-    const estimatedCost = request.estimatedCost ?? calculateCostForDisplay();
+    const { cost: estimatedCost, details: costDetails } = request.estimatedCost ? { cost: request.estimatedCost, details: '' } : calculateCostForDisplay();
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
@@ -255,7 +269,9 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                 <section className="text-center">
                     <p className="text-muted-foreground">Estimated Cost</p>
                     <p className="text-3xl font-bold">₹{estimatedCost.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">Rate: ₹150/hr for first 3 hours, then ₹100/hr.</p>
+                    <p className="text-xs text-muted-foreground px-4">
+                      {costDetails}
+                    </p>
                 </section>
 
                 {request.status !== 'draft' && (
@@ -268,19 +284,19 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
 
                  {request.status === 'draft' && (
                     <div className="pt-4 space-y-4">
-                        <div className="flex items-start space-x-2">
-                            <Checkbox id="confirmation" checked={isConfirmed} onCheckedChange={(checked) => setIsConfirmed(checked as boolean)} />
-                            <label htmlFor="confirmation" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                            I have reviewed all the details and confirm they are correct.
-                            </label>
+                        <div className="flex items-start space-x-2 p-4 bg-secondary/50 rounded-lg">
+                            <PackageOpen className="h-5 w-5 text-muted-foreground mt-1" />
+                            <p className="text-sm text-muted-foreground">
+                            By submitting, you confirm all details are correct. The estimated cost is for the guide's time and does not include other expenses like tickets or fuel.
+                            </p>
                         </div>
                         <Button 
                             size="lg" 
                             className="w-full" 
-                            disabled={!isConfirmed || isSubmitting}
+                            disabled={isSubmitting}
                             onClick={handleSubmit}
                         >
-                            {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                            {isSubmitting ? 'Submitting...' : 'Confirm & Submit Request'}
                         </Button>
                     </div>
                  )}
