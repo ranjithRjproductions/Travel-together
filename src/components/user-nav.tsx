@@ -14,6 +14,7 @@ import { User, LogOut, List } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
+import { useState } from 'react';
 
 function LogoutButton() {
   return (
@@ -29,6 +30,8 @@ function LogoutButton() {
 }
 
 export function UserNav({ user }: { user?: UserType | null }) {
+  const [open, setOpen] = useState(false);
+
   if (!user) {
     return <Skeleton className="h-10 w-10 rounded-full" />;
   }
@@ -44,9 +47,14 @@ export function UserNav({ user }: { user?: UserType | null }) {
   const requestsUrl = user.role === 'Traveler' ? '/traveler/my-requests' : '/guide/requests';
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+        <Button 
+          variant="ghost" 
+          className="relative h-10 w-10 rounded-full"
+          aria-haspopup="true"
+          aria-expanded={open}
+        >
           <Avatar className="h-10 w-10">
             <AvatarImage
               src={user.photoURL}
