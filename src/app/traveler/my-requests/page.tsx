@@ -14,7 +14,7 @@ import {
   useUser,
   useMemoFirebase,
   FirestorePermissionError,
-  errorEmitter
+  errorEmitter,
 } from '@/firebase';
 import {
   collection,
@@ -24,7 +24,7 @@ import {
   doc,
 } from 'firebase/firestore';
 import { redirect } from 'next/navigation';
-import { Edit, MoreHorizontal, Trash2, View } from 'lucide-react';
+import { ArrowLeft, Edit, MoreHorizontal, Trash2, View } from 'lucide-react';
 import Link from 'next/link';
 import { type TravelRequest } from '@/lib/definitions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -278,6 +278,12 @@ export default function MyRequestsPage() {
       <AriaLive message={ariaLiveMessage} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="font-headline text-3xl font-bold">My Travel Requests</h1>
+         <Button variant="outline" asChild>
+          <Link href="/traveler/dashboard">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </Button>
       </div>
 
       <Card>
