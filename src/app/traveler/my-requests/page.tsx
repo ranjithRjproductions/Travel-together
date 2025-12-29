@@ -329,7 +329,7 @@ export default function MyRequestsPage() {
       </Card>
       
       <AlertDialog open={!!requestToDelete} onOpenChange={(open) => !open && setRequestToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-50">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete this draft?</AlertDialogTitle>
             <AlertDialogDescription>
