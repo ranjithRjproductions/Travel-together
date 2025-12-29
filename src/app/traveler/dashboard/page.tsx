@@ -32,6 +32,7 @@ export default function TravelerDashboard() {
 
   if (!user) {
     redirect('/login');
+    return null; // Ensure nothing else renders during redirect
   }
 
   return (
