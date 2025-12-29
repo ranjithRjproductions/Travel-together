@@ -30,7 +30,7 @@ import Link from 'next/link';
 import { type TravelRequest } from '@/lib/definitions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -66,7 +66,7 @@ function RequestList({
   onDelete,
 }: {
   requests: TravelRequest[];
-  listType: 'draft' | 'upcoming' | 'past';
+  listType: 'draft' | 'upcoming';
   emptyMessage: string;
   onDelete: (id: string) => void;
 }) {
@@ -97,6 +97,31 @@ function RequestList({
     // If all else fails, provide a generic fallback
     return 'a while ago';
   };
+  
+   const getRequestDetails = (request: TravelRequest): { title: string, subtitle: string } => {
+      const { purposeData } = request;
+      if (!purposeData?.purpose) return { title: 'Untitled Request', subtitle: 'No details provided' };
+      
+      switch (purposeData.purpose) {
+        case 'education':
+          return {
+            title: `Education: ${purposeData.subPurposeData?.subPurpose === 'scribe' ? 'Scribe for Exam' : 'Admission Support'}`,
+            subtitle: `${purposeData.subPurposeData?.collegeName || 'Institute'}`,
+          };
+        case 'hospital':
+           return {
+            title: 'Hospital Visit',
+            subtitle: `${purposeData.subPurposeData?.hospitalName || 'Hospital'}`,
+          };
+        case 'shopping':
+          return {
+            title: 'Shopping Assistance',
+            subtitle: `In ${purposeData.subPurposeData?.shoppingArea?.area || purposeData.subPurposeData?.shopAddress?.district || 'area'}`,
+          };
+        default:
+          return { title: 'General Request', subtitle: 'Details not available'};
+      }
+  };
 
   const getStatusVariant = (
     status: TravelRequest['status']
@@ -114,73 +139,65 @@ function RequestList({
         return 'secondary';
     }
   };
-  
-  const getRequestDetails = (request: TravelRequest): string => {
-      const { purposeData } = request;
-      if (!purposeData?.purpose) return 'Untitled Request';
-      
-      switch (purposeData.purpose) {
-        case 'education':
-          return `Education at ${purposeData.subPurposeData?.collegeName || 'institute'}`;
-        case 'hospital':
-          return `Visit to ${purposeData.subPurposeData?.hospitalName || 'hospital'}`;
-        case 'shopping':
-          return `Shopping in ${purposeData.subPurposeData?.shoppingArea?.area || purposeData.subPurposeData?.shopAddress?.district || 'area'}`;
-        default:
-          return 'General Request';
-      }
-  };
 
   return (
     <div className="space-y-4">
-      {requests.map((request) => (
-        <Card key={request.id}>
-          <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-            <div className="flex-grow">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold capitalize">
-                  {getRequestDetails(request)}
-                </h3>
-                 <Badge variant={getStatusVariant(request.status)}>
-                  {request.status}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Created {formatCreationDate(request.createdAt)}
-              </p>
-            </div>
+      {requests.map((request) => {
+          const { title, subtitle } = getRequestDetails(request);
+          return (
+            <Card key={request.id}>
+              <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div className="flex-grow">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold capitalize">
+                        {listType === 'draft' ? 'Draft Request' : title}
+                    </h3>
+                    {listType === 'upcoming' && (
+                        <Badge variant={getStatusVariant(request.status)}>
+                            {request.status === 'pending' ? 'Waiting for Approval' : <span className="capitalize">{request.status}</span>}
+                        </Badge>
+                    )}
+                  </div>
+                   <p className="text-sm text-muted-foreground">
+                    {listType === 'draft' ? 
+                      `Created ${formatCreationDate(request.createdAt)}` :
+                      `${subtitle} on ${request.requestedDate ? format(new Date(request.requestedDate), 'MMM d, yyyy') : 'date not set'}`
+                    }
+                  </p>
+                </div>
 
-            {listType === 'draft' ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">More options</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href={`/traveler/request/${request.id}`} className="cursor-pointer">
-                      <Edit className="mr-2 h-4 w-4" />
-                      Continue
+                {listType === 'draft' ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">More options</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link href={`/traveler/request/${request.id}`} className="cursor-pointer">
+                          <Edit className="mr-2 h-4 w-4" />
+                          Continue
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDelete(request.id)} className="text-destructive cursor-pointer">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Button asChild>
+                    <Link href={`/traveler/request/${request.id}`}>
+                       <View className="mr-2 h-4 w-4" /> View Request
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onDelete(request.id)} className="text-destructive cursor-pointer">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button asChild>
-                <Link href={`/traveler/request/${request.id}`}>
-                   <View className="mr-2 h-4 w-4" /> View
-                </Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          );
+      })}
     </div>
   );
 }
@@ -246,11 +263,7 @@ export default function MyRequestsPage() {
   const draftRequests = requests?.filter((r) => r.status === 'draft') || [];
   const upcomingRequests =
     requests?.filter(
-      (r) => r.status !== 'draft' && r.status !== 'completed' && r.status !== 'cancelled'
-    ) || [];
-  const pastRequests =
-    requests?.filter(
-      (r) => r.status === 'completed' || r.status === 'cancelled'
+      (r) => r.status === 'pending' || r.status === 'confirmed'
     ) || [];
 
   return (
@@ -263,10 +276,9 @@ export default function MyRequestsPage() {
       <Card>
         <CardContent className="p-6">
           <Tabs defaultValue="drafts">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="drafts">Drafts ({draftRequests.length})</TabsTrigger>
               <TabsTrigger value="upcoming">Upcoming ({upcomingRequests.length})</TabsTrigger>
-              <TabsTrigger value="past">Past ({pastRequests.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="drafts" className="mt-4">
               {isRequestsLoading ? (
@@ -288,18 +300,6 @@ export default function MyRequestsPage() {
                   requests={upcomingRequests}
                   listType="upcoming"
                   emptyMessage="You have no upcoming requests."
-                  onDelete={handleDeleteRequest}
-                />
-              )}
-            </TabsContent>
-            <TabsContent value="past" className="mt-4">
-              {isRequestsLoading ? (
-                <RequestListSkeleton />
-              ) : (
-                <RequestList
-                  requests={pastRequests}
-                  listType="past"
-                  emptyMessage="You have no past requests."
                   onDelete={handleDeleteRequest}
                 />
               )}
