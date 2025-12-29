@@ -344,29 +344,31 @@ export default function DisabilityPage() {
                      {errors.visionSubOption && <p className="text-sm text-destructive mt-2">{errors.visionSubOption.message}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="visionPercentage">Percentage of vision impairment</Label>
-                  <Controller
-                    name="visionPercentage"
-                    control={control}
-                    render={({ field }) => (
-                      <div className="flex items-center gap-4 pt-2">
-                        <Slider
-                          ref={visionSliderRef}
-                          id="visionPercentage"
-                          aria-label="Percentage of vision impairment"
-                          min={40}
-                          max={100}
-                          step={5}
-                          value={[field.value || 40]}
-                          onValueChange={(value) => field.onChange(value[0])}
-                          className="flex-1"
-                          aria-invalid={!!errors.visionPercentage}
-                          aria-describedby="vision-percentage-error"
-                        />
-                        <span className="font-medium text-sm w-12 text-center">{visionPercentage || 40}%</span>
-                      </div>
-                    )}
-                  />
+                  <Label>
+                    Percentage of vision impairment
+                    <Controller
+                      name="visionPercentage"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="flex items-center gap-4 pt-2">
+                          <Slider
+                            ref={visionSliderRef}
+                            id="visionPercentage"
+                            aria-label="Percentage of vision impairment"
+                            min={40}
+                            max={100}
+                            step={5}
+                            value={[field.value || 40]}
+                            onValueChange={(value) => field.onChange(value[0])}
+                            className="flex-1"
+                            aria-invalid={!!errors.visionPercentage}
+                            aria-describedby="vision-percentage-error"
+                          />
+                          <span className="font-medium text-sm w-12 text-center">{visionPercentage || 40}%</span>
+                        </div>
+                      )}
+                    />
+                  </Label>
                   {errors.visionPercentage && <p id="vision-percentage-error" className="text-sm text-destructive">{errors.visionPercentage.message}</p>}
                 </div>
             </fieldset>
@@ -375,29 +377,31 @@ export default function DisabilityPage() {
            {mainDisability === 'hard-of-hearing' && (
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
                <div>
-                  <Label htmlFor="hearingPercentage">Percentage of hearing impairment</Label>
-                   <Controller
-                    name="hearingPercentage"
-                    control={control}
-                    render={({ field }) => (
-                      <div className="flex items-center gap-4 pt-2">
-                        <Slider
-                          ref={hearingSliderRef}
-                          id="hearingPercentage"
-                          aria-label="Percentage of hearing impairment"
-                          min={40}
-                          max={100}
-                          step={5}
-                          value={[field.value || 40]}
-                          onValueChange={(value) => field.onChange(value[0])}
-                          className="flex-1"
-                          aria-invalid={!!errors.hearingPercentage}
-                           aria-describedby="hearing-percentage-error"
-                        />
-                        <span className="font-medium text-sm w-12 text-center">{hearingPercentage || 40}%</span>
-                      </div>
-                    )}
-                  />
+                  <Label>
+                    Percentage of hearing impairment
+                    <Controller
+                      name="hearingPercentage"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="flex items-center gap-4 pt-2">
+                          <Slider
+                            ref={hearingSliderRef}
+                            id="hearingPercentage"
+                            aria-label="Percentage of hearing impairment"
+                            min={40}
+                            max={100}
+                            step={5}
+                            value={[field.value || 40]}
+                            onValueChange={(value) => field.onChange(value[0])}
+                            className="flex-1"
+                            aria-invalid={!!errors.hearingPercentage}
+                            aria-describedby="hearing-percentage-error"
+                          />
+                          <span className="font-medium text-sm w-12 text-center">{hearingPercentage || 40}%</span>
+                        </div>
+                      )}
+                    />
+                  </Label>
                   {errors.hearingPercentage && <p id="hearing-percentage-error" className="text-sm text-destructive">{errors.hearingPercentage.message}</p>}
                </div>
               <Controller
@@ -423,7 +427,7 @@ export default function DisabilityPage() {
           {mainDisability && (
               <>
                 <div className="space-y-2 pt-4 border-t">
-                    <Label htmlFor="document-upload">Supporting Document (PDF/Image)</Label>
+                    <Label htmlFor="document-upload-visible">Supporting Document (PDF/Image)</Label>
                     <p id="document-upload-description" className="text-sm text-muted-foreground">
                         Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
                     </p>
