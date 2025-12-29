@@ -38,16 +38,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { AriaLive } from '@/components/ui/aria-live';
 
@@ -199,7 +189,6 @@ export default function MyRequestsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   const [ariaLiveMessage, setAriaLiveMessage] = useState('');
 
   const requestsQuery = useMemoFirebase(() => {
@@ -226,12 +215,11 @@ export default function MyRequestsPage() {
     redirect('/login');
   }
 
-  const handleDeleteRequest = () => {
-    if (!requestToDelete || !firestore) return;
+  const handleDeleteRequest = (requestId: string) => {
+    if (!requestId || !firestore) return;
 
-    const docRef = doc(firestore, 'travelRequests', requestToDelete);
+    const docRef = doc(firestore, 'travelRequests', requestId);
     
-    // Non-blocking delete with error handling
     deleteDoc(docRef)
       .then(() => {
         toast({
@@ -241,25 +229,17 @@ export default function MyRequestsPage() {
         setAriaLiveMessage('Draft successfully deleted.');
       })
       .catch((serverError) => {
-        // Create a rich, contextual error for debugging
         const permissionError = new FirestorePermissionError({
           path: docRef.path,
           operation: 'delete',
         });
-        // Emit the error for the global error listener to catch
         errorEmitter.emit('permission-error', permissionError);
-
-        // Also show a toast to the user
         toast({
           variant: 'destructive',
           title: 'Error',
           description: 'Could not delete the draft. Please try again.',
         });
         setAriaLiveMessage('Error: Could not delete draft.');
-      })
-      .finally(() => {
-        // Always close the dialog
-        setRequestToDelete(null);
       });
   };
 
@@ -296,7 +276,7 @@ export default function MyRequestsPage() {
                   requests={draftRequests}
                   listType="draft"
                   emptyMessage="You have no draft requests."
-                  onDelete={setRequestToDelete}
+                  onDelete={handleDeleteRequest}
                 />
               )}
             </TabsContent>
@@ -308,7 +288,7 @@ export default function MyRequestsPage() {
                   requests={upcomingRequests}
                   listType="upcoming"
                   emptyMessage="You have no upcoming requests."
-                  onDelete={setRequestToDelete}
+                  onDelete={handleDeleteRequest}
                 />
               )}
             </TabsContent>
@@ -320,30 +300,13 @@ export default function MyRequestsPage() {
                   requests={pastRequests}
                   listType="past"
                   emptyMessage="You have no past requests."
-                  onDelete={setRequestToDelete}
+                  onDelete={handleDeleteRequest}
                 />
               )}
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
-      
-      <AlertDialog open={!!requestToDelete} onOpenChange={(open) => !open && setRequestToDelete(null)}>
-        <AlertDialogContent className="z-50">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this draft?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this travel request draft.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteRequest} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
