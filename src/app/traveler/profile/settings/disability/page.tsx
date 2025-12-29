@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -271,6 +272,8 @@ export default function DisabilityPage() {
     );
   }
 
+  const hasExistingFile = userProfile?.disability?.documentName && !selectedFile;
+
   return (
     <div>
         <CardDescription className="mb-6">
@@ -303,7 +306,7 @@ export default function DisabilityPage() {
           {mainDisability === 'visually-impaired' && (
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
                 <div>
-                    <legend className="text-sm font-medium mb-2">Details (Required)</legend>
+                    <legend className="text-sm font-medium mb-2">Details</legend>
                     <Controller
                         name="visionSubOption"
                         control={control}
@@ -403,13 +406,36 @@ export default function DisabilityPage() {
                     <Label htmlFor="document-upload">Supporting Document (PDF/Image)</Label>
                     <p id="document-upload-description" className="text-sm text-muted-foreground">
                         Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
-                        {userProfile?.disability?.documentName && !selectedFile && (
-                          <span className="block mt-1">Current: <span className="font-medium">{userProfile.disability.documentName}</span></span>
-                        )}
                     </p>
-                    <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" />
-                    {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
                     
+                    {hasExistingFile ? (
+                        <div className="flex items-center gap-4 p-2 border rounded-md">
+                           <a 
+                             href={userProfile.disability?.documentUrl} 
+                             target="_blank" 
+                             rel="noopener noreferrer" 
+                             className="text-sm font-medium text-primary underline flex-grow"
+                             aria-describedby="document-upload-description"
+                           >
+                              {userProfile.disability?.documentName}
+                            </a>
+                           <Button 
+                             type="button" 
+                             variant="outline" 
+                             size="sm" 
+                             onClick={() => document.getElementById('document-upload')?.click()}
+                             disabled={isFormSubmitting}
+                           >
+                             Replace
+                           </Button>
+                           <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} className="sr-only" />
+                        </div>
+                    ) : (
+                       <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" />
+                    )}
+                    
+                    {selectedFile && <p className="text-sm text-muted-foreground mt-1">New file selected: {selectedFile.name}</p>}
+
                     {isUploading && (
                         <div className="w-full mt-2">
                             <Progress value={uploadProgress} />
