@@ -92,8 +92,8 @@ export function SignupForm() {
       <form onSubmit={handleClientSignup} aria-labelledby="signup-title">
         <Card>
           <CardHeader>
-            <CardTitle>
-                <h1 id="signup-title" className="font-headline text-2xl">{content.title}</h1>
+            <CardTitle as="h1" id="signup-title" className="font-headline text-2xl">
+                {content.title}
             </CardTitle>
             <CardDescription>
               {content.description}
