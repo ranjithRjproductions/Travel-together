@@ -47,6 +47,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { AriaLive } from '@/components/ui/aria-live';
 
 function RequestListSkeleton() {
   return (
@@ -89,15 +90,19 @@ function RequestList({
     if (!createdAt) {
       return 'just now';
     }
+    // Check if it's a Firestore Timestamp and convert it
     if (typeof createdAt.toDate === 'function') {
       return formatDistanceToNow(createdAt.toDate(), { addSuffix: true });
     }
+    // Fallback for string dates, though Firestore Timestamps are preferred
     try {
       const date = new Date(createdAt);
       if (!isNaN(date.getTime())) {
         return formatDistanceToNow(date, { addSuffix: true });
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) { /* ignore invalid date strings */ }
+
+    // If all else fails, provide a generic fallback
     return 'a while ago';
   };
 
@@ -193,6 +198,7 @@ export default function MyRequestsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
+  const [ariaLiveMessage, setAriaLiveMessage] = useState('');
 
   const requestsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -226,12 +232,14 @@ export default function MyRequestsPage() {
         title: 'Draft Deleted',
         description: 'Your travel request draft has been successfully deleted.',
       });
+      setAriaLiveMessage('Draft successfully deleted.');
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'Could not delete the draft. Please try again.',
       });
+      setAriaLiveMessage('Error: Could not delete draft.');
     } finally {
       setRequestToDelete(null);
     }
@@ -249,6 +257,7 @@ export default function MyRequestsPage() {
 
   return (
     <div className="grid gap-6 md:gap-8">
+      <AriaLive message={ariaLiveMessage} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="font-headline text-3xl font-bold">My Travel Requests</h1>
       </div>
