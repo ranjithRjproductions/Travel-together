@@ -331,6 +331,7 @@ export default function DisabilityPage() {
                       <div className="flex items-center gap-4 pt-2">
                         <Slider
                           id="visionPercentage"
+                          aria-label="Percentage of vision impairment"
                           min={40}
                           max={100}
                           step={5}
@@ -360,6 +361,7 @@ export default function DisabilityPage() {
                       <div className="flex items-center gap-4 pt-2">
                         <Slider
                           id="hearingPercentage"
+                          aria-label="Percentage of hearing impairment"
                           min={40}
                           max={100}
                           step={5}
@@ -401,11 +403,13 @@ export default function DisabilityPage() {
                     <Label htmlFor="document-upload">Supporting Document (PDF/Image, Required)</Label>
                     <p id="document-upload-description" className="text-sm text-muted-foreground">
                         Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
+                        {userProfile?.disability?.documentName && !selectedFile && (
+                          <span className="block mt-1">Current: <span className="font-medium">{userProfile.disability.documentName}</span></span>
+                        )}
                     </p>
                     <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" />
                     {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
-                    {userProfile?.disability?.documentName && !selectedFile && <p className="text-sm text-muted-foreground">Current: {userProfile.disability.documentName}</p>}
-
+                    
                     {isUploading && (
                         <div className="w-full mt-2">
                             <Progress value={uploadProgress} />
