@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -8,18 +9,28 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/firebase';
+import { useUser, useDoc, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import content from '@/app/content/traveler-dashboard.json';
 import { PlusCircle, List } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { type User as UserProfile } from '@/lib/definitions';
 
 export default function TravelerDashboard() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
 
-  // Wait for auth to resolve
+  const userDocRef = useMemo(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  // Wait for auth to resolve first
   if (isUserLoading) {
     return (
       <div className="grid gap-6 md:gap-8">
@@ -41,9 +52,11 @@ export default function TravelerDashboard() {
   return (
     <div className="grid gap-6 md:gap-8">
       <h1 className="font-headline text-3xl font-bold">
-        {user.name
-          ? content.welcome.replace('{name}', user.name.split(' ')[0])
-          : 'Welcome back!'}
+        {isProfileLoading ? (
+           <Skeleton className="h-10 w-64" />
+        ) : (
+          <span>Welcome back, {userProfile?.name?.split(' ')[0]}!</span>
+        )}
       </h1>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -65,8 +78,8 @@ export default function TravelerDashboard() {
 
         <Card className="flex flex-col">
           <CardHeader>
-            <CardTitle>{content.myRequests.title}</CardTitle>
-            <CardDescription>{content.myRequests.description}</CardDescription>
+             <CardTitle>{content.myRequests.title}</CardTitle>
+             <CardDescription>{content.myRequests.description}</CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
             <Button asChild size="lg" className="w-full" variant="secondary">
