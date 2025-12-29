@@ -62,8 +62,8 @@ export default function GuideProfileSettingsLayout({
               <Button variant="outline" size="icon" onClick={() => router.back()} aria-label="Go back to previous page">
                   <ArrowLeft className="h-4 w-4" />
               </Button>
-              <CardTitle className="text-2xl font-bold tracking-tight">
-                <h1>{currentPage?.name || 'Guide Profile'}</h1>
+              <CardTitle as="h1" className="text-2xl font-bold tracking-tight">
+                {currentPage?.name || 'Guide Profile'}
               </CardTitle>
           </CardHeader>
           <CardContent className="pt-6">{children}</CardContent>
