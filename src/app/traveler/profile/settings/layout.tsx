@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,7 +25,6 @@ export default function ProfileSettingsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   
   const currentPage = navigation.find(item => item.href === pathname);
 
@@ -45,13 +44,16 @@ export default function ProfileSettingsLayout({
             </Link>
           </Button>
         ))}
+         <Button variant="outline" asChild className="justify-start mt-4">
+            <Link href="/traveler/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+            </Link>
+        </Button>
       </nav>
       <main>
         <Card>
           <CardHeader className="flex flex-row items-center gap-4 border-b">
-              <Button variant="outline" size="icon" onClick={() => router.back()} aria-label="Go back to previous page">
-                  <ArrowLeft className="h-4 w-4" />
-              </Button>
               <CardTitle as="h1" className="text-2xl font-bold tracking-tight">
                 {currentPage?.name || 'Profile Settings'}
               </CardTitle>
