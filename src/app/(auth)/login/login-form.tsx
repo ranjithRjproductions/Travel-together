@@ -74,8 +74,8 @@ export function LoginForm() {
     <form onSubmit={handleClientLogin} aria-labelledby="login-title">
       <Card>
         <CardHeader>
-          <CardTitle>
-            <h1 id="login-title" className="font-headline text-2xl">{content.title}</h1>
+          <CardTitle as="h1" id="login-title" className="font-headline text-2xl">
+            {content.title}
           </CardTitle>
           <CardDescription>
             {content.description}
