@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -69,6 +69,10 @@ export default function DisabilityPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const visionSliderRef = useRef<HTMLButtonElement>(null);
+  const hearingSliderRef = useRef<HTMLButtonElement>(null);
+
   const userDocRef = useMemo(() => {
     if (user && firestore) {
       return doc(firestore, 'users', user.uid);
@@ -84,6 +88,7 @@ export default function DisabilityPage() {
     reset,
     watch,
     setValue,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<DisabilityFormData>({
     resolver: zodResolver(disabilitySchema),
@@ -160,6 +165,18 @@ export default function DisabilityPage() {
   const onSubmit: SubmitHandler<DisabilityFormData> = async (data) => {
     if (!userDocRef || !userProfile) return;
 
+    // Manually trigger refine validations and focus on error
+    if (data.mainDisability === 'visually-impaired' && !data.visionPercentage) {
+        setError('visionPercentage', { type: 'manual', message: 'Percentage of impairment is required.' });
+        visionSliderRef.current?.focus();
+        return;
+    }
+     if (data.mainDisability === 'hard-of-hearing' && !data.hearingPercentage) {
+        setError('hearingPercentage', { type: 'manual', message: 'Percentage of impairment is required.' });
+        hearingSliderRef.current?.focus();
+        return;
+    }
+
     // If user chose not to disclose, save only that and finish.
     if (!data.mainDisability) {
         await setDoc(userDocRef, { disability: { mainDisability: undefined } }, { merge: true });
@@ -171,6 +188,7 @@ export default function DisabilityPage() {
 
     if (!selectedFile && !userProfile.disability?.documentUrl) {
         toast({ variant: 'destructive', title: 'Validation Error', description: 'A supporting document is required when disclosing a disability.' });
+        fileInputRef.current?.focus();
         return;
     }
     
@@ -272,7 +290,7 @@ export default function DisabilityPage() {
     );
   }
 
-  const hasExistingFile = userProfile?.disability?.documentName && !selectedFile;
+  const hasExistingFile = !!userProfile?.disability?.documentName && !selectedFile;
 
   return (
     <div>
@@ -333,6 +351,7 @@ export default function DisabilityPage() {
                     render={({ field }) => (
                       <div className="flex items-center gap-4 pt-2">
                         <Slider
+                          ref={visionSliderRef}
                           id="visionPercentage"
                           aria-label="Percentage of vision impairment"
                           min={40}
@@ -363,6 +382,7 @@ export default function DisabilityPage() {
                     render={({ field }) => (
                       <div className="flex items-center gap-4 pt-2">
                         <Slider
+                          ref={hearingSliderRef}
                           id="hearingPercentage"
                           aria-label="Percentage of hearing impairment"
                           min={40}
@@ -423,17 +443,18 @@ export default function DisabilityPage() {
                              type="button" 
                              variant="outline" 
                              size="sm" 
-                             onClick={() => document.getElementById('document-upload')?.click()}
+                             onClick={() => fileInputRef.current?.click()}
                              disabled={isFormSubmitting}
                            >
                              Replace
                            </Button>
-                           <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} className="sr-only" />
                         </div>
                     ) : (
-                       <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" />
+                       <Input id="document-upload-visible" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" ref={fileInputRef}/>
                     )}
                     
+                    <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} className="sr-only" ref={fileInputRef} />
+
                     {selectedFile && <p className="text-sm text-muted-foreground mt-1">New file selected: {selectedFile.name}</p>}
 
                     {isUploading && (
