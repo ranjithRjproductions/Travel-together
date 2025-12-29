@@ -139,6 +139,14 @@ function RequestList({
     }
   };
 
+  const statusText: Record<TravelRequest['status'], string> = {
+    draft: 'Draft',
+    pending: 'Waiting for Approval',
+    confirmed: 'Guide Assigned',
+    completed: 'Completed',
+    cancelled: 'Cancelled'
+  }
+
   return (
     <div className="space-y-4">
       {requests.map((request) => {
@@ -153,7 +161,8 @@ function RequestList({
                     </h3>
                     {listType === 'upcoming' && (
                         <Badge variant={getStatusVariant(request.status)}>
-                            {request.status === 'pending' ? 'Waiting for Approval' : <span className="capitalize">{request.status}</span>}
+                            <span className="sr-only">Status: </span>
+                            {statusText[request.status]}
                         </Badge>
                     )}
                   </div>
@@ -168,9 +177,8 @@ function RequestList({
                 {listType === 'draft' ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`More options for draft created ${formatCreationDate(request.createdAt)}`}>
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">More options</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">

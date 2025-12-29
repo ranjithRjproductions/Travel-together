@@ -43,7 +43,7 @@ export default function TravelerDashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="flex flex-col">
           <CardHeader>
-            <CardTitle>{content.createRequest.title}</CardTitle>
+            <CardTitle as="h2">{content.createRequest.title}</CardTitle>
             <CardDescription>
               {content.createRequest.description}
             </CardDescription>
@@ -59,7 +59,7 @@ export default function TravelerDashboard() {
 
         <Card className="flex flex-col">
           <CardHeader>
-            <CardTitle>{content.myRequests.title}</CardTitle>
+            <CardTitle as="h2">{content.myRequests.title}</CardTitle>
             <CardDescription>{content.myRequests.description}</CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-end">
