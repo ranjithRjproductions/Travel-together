@@ -14,6 +14,8 @@ import {
   useFirestore,
   useUser,
   useMemoFirebase,
+  FirestorePermissionError,
+  errorEmitter
 } from '@/firebase';
 import {
   collection,
@@ -224,25 +226,41 @@ export default function MyRequestsPage() {
     redirect('/login');
   }
 
-  const handleDeleteRequest = async () => {
+  const handleDeleteRequest = () => {
     if (!requestToDelete || !firestore) return;
-    try {
-      await deleteDoc(doc(firestore, 'travelRequests', requestToDelete));
-      toast({
-        title: 'Draft Deleted',
-        description: 'Your travel request draft has been successfully deleted.',
+
+    const docRef = doc(firestore, 'travelRequests', requestToDelete);
+    
+    // Non-blocking delete with error handling
+    deleteDoc(docRef)
+      .then(() => {
+        toast({
+          title: 'Draft Deleted',
+          description: 'Your travel request draft has been successfully deleted.',
+        });
+        setAriaLiveMessage('Draft successfully deleted.');
+      })
+      .catch((serverError) => {
+        // Create a rich, contextual error for debugging
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        });
+        // Emit the error for the global error listener to catch
+        errorEmitter.emit('permission-error', permissionError);
+
+        // Also show a toast to the user
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not delete the draft. Please try again.',
+        });
+        setAriaLiveMessage('Error: Could not delete draft.');
+      })
+      .finally(() => {
+        // Always close the dialog
+        setRequestToDelete(null);
       });
-      setAriaLiveMessage('Draft successfully deleted.');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not delete the draft. Please try again.',
-      });
-      setAriaLiveMessage('Error: Could not delete draft.');
-    } finally {
-      setRequestToDelete(null);
-    }
   };
 
   const draftRequests = requests?.filter((r) => r.status === 'draft') || [];
@@ -267,8 +285,8 @@ export default function MyRequestsPage() {
           <Tabs defaultValue="drafts">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="drafts">Drafts ({draftRequests.length})</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-              <TabsTrigger value="past">Past</TabsTrigger>
+              <TabsTrigger value="upcoming">Upcoming ({upcomingRequests.length})</TabsTrigger>
+              <TabsTrigger value="past">Past ({pastRequests.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="drafts" className="mt-4">
               {isRequestsLoading ? (
