@@ -116,6 +116,16 @@ const TravelDetailsReview = ({ request }: { request: TravelRequest }) => {
     );
 };
 
+const getStatusBadge = (status: TravelRequest['status']) => {
+    switch (status) {
+        case 'pending': return <Badge variant="secondary">Waiting for Approval</Badge>;
+        case 'confirmed': return <Badge variant="default">Guide Assigned</Badge>;
+        case 'completed': return <Badge variant="outline">Completed</Badge>;
+        case 'cancelled': return <Badge variant="destructive">Cancelled</Badge>;
+        default: return <Badge variant="secondary">{status}</Badge>;
+    }
+}
+
 
 export function Step5Review({ request, userData }: { request: TravelRequest, userData: UserData }) {
     const router = useRouter();
@@ -177,7 +187,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
         }
     };
     
-    const estimatedCost = calculateCost();
+    const estimatedCost = request.estimatedCost ?? calculateCost();
 
     const handleSubmit = async () => {
         if (!firestore) return;
@@ -192,7 +202,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                 title: "Request Submitted!",
                 description: "Your request has been sent to available guides.",
             });
-            router.replace('/traveler/dashboard');
+            router.replace('/traveler/my-requests');
         } catch (error) {
             console.error("Failed to submit request:", error);
             toast({
@@ -204,26 +214,17 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
             setIsSubmitting(false);
         }
     }
-    
-    if (request.status !== 'draft') {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Request Already Submitted</CardTitle>
-                    <CardDescription>This request has already been submitted and is currently <Badge>{request.status}</Badge>.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={() => router.push('/traveler/dashboard')}>Back to Dashboard</Button>
-                </CardContent>
-            </Card>
-        )
-    }
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Step 5: Review & Submit</CardTitle>
-                <CardDescription>Please review all the details below before submitting your request.</CardDescription>
+                <CardTitle>{request.status === 'draft' ? 'Step 5: Review & Submit' : 'Request Summary'}</CardTitle>
+                <CardDescription>
+                    {request.status === 'draft' 
+                        ? 'Please review all the details below before submitting your request.'
+                        : 'This is a summary of your submitted request.'
+                    }
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 
@@ -264,22 +265,32 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                     <p className="text-xs text-muted-foreground">Rate: ₹150/hr for first 3 hours, then ₹100/hr.</p>
                 </section>
 
-                 <div className="pt-4 space-y-4">
-                    <div className="flex items-start space-x-2">
-                        <Checkbox id="confirmation" checked={isConfirmed} onCheckedChange={(checked) => setIsConfirmed(checked as boolean)} />
-                        <label htmlFor="confirmation" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        I have reviewed all the details and confirm they are correct.
-                        </label>
+                {request.status !== 'draft' && (
+                    <div className="pt-4 text-center">
+                        <h3 className="text-lg font-semibold">Status</h3>
+                        {getStatusBadge(request.status)}
                     </div>
-                    <Button 
-                        size="lg" 
-                        className="w-full" 
-                        disabled={!isConfirmed || isSubmitting}
-                        onClick={handleSubmit}
-                    >
-                        {isSubmitting ? 'Submitting...' : 'Submit Request'}
-                    </Button>
-                </div>
+                )}
+
+
+                 {request.status === 'draft' && (
+                    <div className="pt-4 space-y-4">
+                        <div className="flex items-start space-x-2">
+                            <Checkbox id="confirmation" checked={isConfirmed} onCheckedChange={(checked) => setIsConfirmed(checked as boolean)} />
+                            <label htmlFor="confirmation" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            I have reviewed all the details and confirm they are correct.
+                            </label>
+                        </div>
+                        <Button 
+                            size="lg" 
+                            className="w-full" 
+                            disabled={!isConfirmed || isSubmitting}
+                            onClick={handleSubmit}
+                        >
+                            {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                        </Button>
+                    </div>
+                 )}
             </CardContent>
         </Card>
     );

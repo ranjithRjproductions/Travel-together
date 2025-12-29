@@ -8,7 +8,6 @@ import { doc, deleteDoc, addDoc, collection, serverTimestamp } from 'firebase/fi
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -28,6 +27,7 @@ import { Step3Form, Step3View } from './step3-travel';
 import { Step4Form, Step4View } from './step4-meeting';
 import { Step5Review } from './step5-review';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function CreateRequestFormPage() {
   const params = useParams();
@@ -60,7 +60,6 @@ export default function CreateRequestFormPage() {
   const [isEditingStep2, setIsEditingStep2] = useState(false);
   const [isEditingStep3, setIsEditingStep3] = useState(false);
   const [isEditingStep4, setIsEditingStep4] = useState(false);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   // Effect to handle creation of a new request
   useEffect(() => {
@@ -114,7 +113,6 @@ export default function CreateRequestFormPage() {
     }
 
     if (hasLoadedOnce && !request) {
-      toast({ title: "Draft Discarded", description: "Your travel request draft has been deleted." });
       router.push('/traveler/dashboard');
       return;
     }
@@ -128,6 +126,10 @@ export default function CreateRequestFormPage() {
         router.replace('/traveler/dashboard');
         return;
     }
+
+    // If not a draft, we don't need to determine editing states.
+    if (request.status !== 'draft') return;
+
 
     setIsEditingStep1(!request.step1Complete);
     setIsEditingStep2(!request.step2Complete && !!request.step1Complete);
@@ -152,25 +154,6 @@ export default function CreateRequestFormPage() {
     // The useDoc hook will trigger a re-render with the updated request data
   };
 
-  const handleDiscardDraft = async () => {
-    if (!requestDocRef) return;
-    
-    // 1. Navigate away FIRST to unmount the component and its listeners.
-    router.push('/traveler/dashboard');
-
-    // 2. Perform the deletion in the background after a short delay.
-    // This gives React time to unmount the component before the delete happens.
-    setTimeout(async () => {
-      try {
-        await deleteDoc(requestDocRef);
-        // The toast confirmation will now appear on the dashboard.
-      } catch (error) {
-        console.error("Failed to delete draft:", error);
-        toast({ title: "Error", description: "Could not delete draft. Please try again.", variant: 'destructive'});
-      }
-    }, 50);
-  };
-
   const isLoading = isAuthLoading || isRequestLoading || isNew || !hasLoadedOnce;
   
   if (isLoading) {
@@ -178,7 +161,6 @@ export default function CreateRequestFormPage() {
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
             <div className="flex justify-between items-center mb-6">
                 <Skeleton className="h-10 w-40" />
-                <Skeleton className="h-8 w-32" />
             </div>
             <Skeleton className="h-12 w-1/2 mb-8" />
              <Card className="max-w-2xl mx-auto">
@@ -198,20 +180,30 @@ export default function CreateRequestFormPage() {
     );
   }
   
-  if (!request) {
+  if (!request || !userData) {
      return (
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8 text-center">
-            <p>Loading request...</p>
+            <p>Loading details...</p>
         </main>
      );
   }
 
-  if (!userData) {
-     return (
-        <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8 text-center">
-            <p>Loading user details...</p>
-        </main>
-     );
+  // If the request has been submitted, show the read-only summary view
+  if (request.status !== 'draft') {
+    return (
+      <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
+         <h1 className="font-headline text-3xl md:text-4xl font-bold mb-8">Request Details</h1>
+         <div className="max-w-2xl mx-auto">
+          <Step5Review request={request} userData={userData} />
+           <div className="flex justify-end mt-6">
+              <Button onClick={() => router.push('/traveler/my-requests')}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to My Requests
+              </Button>
+            </div>
+         </div>
+      </main>
+    )
   }
 
   // Safe boolean checks for tab triggers
@@ -224,14 +216,8 @@ export default function CreateRequestFormPage() {
     <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
         <div className="flex justify-between items-center mb-6">
             <Button variant="outline" asChild>
-                <Link href="/traveler/dashboard">Back to Dashboard</Link>
+                <Link href="/traveler/my-requests">Back to My Requests</Link>
             </Button>
-            {request.status === 'draft' && (
-                <Button variant="destructive" size="sm" onClick={() => setIsAlertOpen(true)}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Discard Draft
-                </Button>
-            )}
         </div>
         <h1 className="font-headline text-3xl md:text-4xl font-bold mb-8">New Travel Request</h1>
         <div className="max-w-2xl mx-auto">
@@ -282,21 +268,6 @@ export default function CreateRequestFormPage() {
                 </TabsContent>
             </Tabs>
         </div>
-
-        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure you want to discard this draft?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your current travel request draft.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDiscardDraft}>Discard</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
     </main>
   );
 }
