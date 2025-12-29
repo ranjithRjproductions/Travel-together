@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import type { Metadata } from 'next';
 import {
   Card,
   CardContent,
@@ -40,13 +39,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { AriaLive } from '@/components/ui/aria-live';
-import homeContent from '@/app/content/home.json';
-
-const siteName = homeContent.meta.title.split('–')[0].trim();
-
-export const metadata: Metadata = {
-  title: `My Travel Requests | ${siteName}`,
-};
 
 function RequestListSkeleton() {
   return (
