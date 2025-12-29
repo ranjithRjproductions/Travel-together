@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { redirect } from 'next/navigation';
 import content from '@/app/content/traveler-dashboard.json';
 import { PlusCircle, Edit, View } from 'lucide-react';
@@ -46,6 +46,23 @@ function RequestList({ requests, isDraft }: { requests: TravelRequest[], isDraft
         );
     }
     
+    // Helper function to safely format the date
+    const formatCreationDate = (createdAt: any) => {
+        if (!createdAt) {
+            return 'just now';
+        }
+        // Firestore timestamps have a toDate() method
+        if (typeof createdAt.toDate === 'function') {
+            return formatDistanceToNow(createdAt.toDate(), { addSuffix: true });
+        }
+        // Handle ISO strings or other date formats
+        const date = new Date(createdAt);
+        if (!isNaN(date.getTime())) {
+            return formatDistanceToNow(date, { addSuffix: true });
+        }
+        return 'a while ago';
+    };
+    
     return (
         <div className="space-y-4">
             {requests.map((request) => (
@@ -56,7 +73,7 @@ function RequestList({ requests, isDraft }: { requests: TravelRequest[], isDraft
                                 {request.purposeData?.purpose || 'Untitled Request'}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                                Created {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                                Created {formatCreationDate(request.createdAt)}
                             </p>
                         </div>
                         <Button asChild>
@@ -111,7 +128,7 @@ export default function TravelerDashboard() {
           {content.welcome.replace('{name}', (user.name || '').split(' ')[0])}
         </h1>
         <Button asChild size="lg">
-          <Link href="/traveler/request/new">
+          <Link href="/traveler/request/create">
             <PlusCircle aria-hidden="true" /> {content.createRequest.cta}
           </Link>
         </Button>
