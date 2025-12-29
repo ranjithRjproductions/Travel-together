@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { Metadata } from 'next';
 import {
   Card,
   CardContent,
@@ -39,6 +40,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { AriaLive } from '@/components/ui/aria-live';
+import homeContent from '@/app/content/home.json';
+
+const siteName = homeContent.meta.title.split('–')[0].trim();
+
+export const metadata: Metadata = {
+  title: `My Travel Requests | ${siteName}`,
+};
 
 function RequestListSkeleton() {
   return (
@@ -149,7 +157,7 @@ function RequestList({
 
   return (
     <div className="space-y-4">
-      {requests.map((request) => {
+      {requests.map((request, index) => {
           const { title, subtitle } = getRequestDetails(request);
           return (
             <Card key={request.id}>
@@ -157,7 +165,7 @@ function RequestList({
                 <div className="flex-grow">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold capitalize">
-                        {listType === 'draft' ? 'Draft Request' : title}
+                        {listType === 'draft' ? `Draft ${index + 1} of ${requests.length}` : title}
                     </h3>
                     {listType === 'upcoming' && (
                         <Badge variant={getStatusVariant(request.status)}>
@@ -282,7 +290,7 @@ export default function MyRequestsPage() {
 
       <Card>
         <CardContent className="p-6">
-          <Tabs defaultValue="drafts">
+          <Tabs defaultValue="upcoming">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="drafts">Drafts ({draftRequests.length})</TabsTrigger>
               <TabsTrigger value="upcoming">Upcoming ({upcomingRequests.length})</TabsTrigger>
