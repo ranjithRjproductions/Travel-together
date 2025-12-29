@@ -21,8 +21,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 const disabilitySchema = z.object({
   mainDisability: z.enum(['visually-impaired', 'hard-of-hearing']).optional(),
   visionSubOption: z.enum(['totally-blind', 'low-vision']).optional(),
-  visionPercentage: z.coerce.number().min(1).max(100).optional(),
-  hearingPercentage: z.coerce.number().min(1).max(100).optional(),
+  visionPercentage: z.coerce.number().min(40, 'Impairment must be at least 40% to avail benefits.').max(100).optional(),
+  hearingPercentage: z.coerce.number().min(40, 'Impairment must be at least 40% to avail benefits.').max(100).optional(),
   requiresSignLanguageGuide: z.boolean().optional(),
   documentUrl: z.string().url().optional(),
   documentName: z.string().optional(),
@@ -324,7 +324,7 @@ export default function DisabilityPage() {
                     type="text"
                     inputMode="numeric"
                     {...control.register('visionPercentage')} 
-                    min="1" 
+                    min="40" 
                     max="100"
                     aria-invalid={!!errors.visionPercentage}
                   />
@@ -342,7 +342,7 @@ export default function DisabilityPage() {
                     type="text"
                     inputMode="numeric"
                     {...control.register('hearingPercentage')} 
-                    min="1" 
+                    min="40" 
                     max="100"
                     aria-invalid={!!errors.hearingPercentage}
                   />
