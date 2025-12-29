@@ -37,7 +37,11 @@ export default function TravelerDashboard() {
   return (
     <div className="grid gap-6 md:gap-8">
       <h1 className="font-headline text-3xl font-bold">
-        {content.welcome.replace('{name}', user?.name?.split(' ')[0] || 'Traveler')}
+        {user.name ? (
+          content.welcome.replace('{name}', user.name.split(' ')[0])
+        ) : (
+          <Skeleton className="h-10 w-64" />
+        )}
       </h1>
 
       <div className="grid gap-6 md:grid-cols-2">
