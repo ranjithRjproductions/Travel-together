@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -212,6 +213,7 @@ function RequestList({
 export default function MyRequestsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const { toast } = useToast();
   const [ariaLiveMessage, setAriaLiveMessage] = useState('');
 
@@ -278,11 +280,9 @@ export default function MyRequestsPage() {
       <AriaLive message={ariaLiveMessage} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="font-headline text-3xl font-bold">My Travel Requests</h1>
-         <Button variant="outline" asChild>
-          <Link href="/traveler/dashboard">
+         <Button variant="outline" onClick={() => router.push('/traveler/dashboard')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
-          </Link>
         </Button>
       </div>
 
