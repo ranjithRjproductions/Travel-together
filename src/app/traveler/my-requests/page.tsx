@@ -1,10 +1,10 @@
 
 'use client';
 
+import { useState } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -15,15 +15,38 @@ import {
   useUser,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, query, where, Timestamp } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  deleteDoc,
+  doc,
+} from 'firebase/firestore';
 import { redirect } from 'next/navigation';
-import { PlusCircle, Edit, View } from 'lucide-react';
+import { Edit, MoreHorizontal, Trash2, View } from 'lucide-react';
 import Link from 'next/link';
 import { type TravelRequest } from '@/lib/definitions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 function RequestListSkeleton() {
   return (
@@ -47,10 +70,12 @@ function RequestList({
   requests,
   isDraft,
   emptyMessage,
+  onDelete,
 }: {
   requests: TravelRequest[];
   isDraft: boolean;
   emptyMessage: string;
+  onDelete: (id: string) => void;
 }) {
   if (requests.length === 0) {
     return (
@@ -60,20 +85,19 @@ function RequestList({
     );
   }
 
-  // Helper function to safely format the date
   const formatCreationDate = (createdAt: any) => {
     if (!createdAt) {
       return 'just now';
     }
-    // Firestore timestamps have a toDate() method
     if (typeof createdAt.toDate === 'function') {
       return formatDistanceToNow(createdAt.toDate(), { addSuffix: true });
     }
-    // Handle ISO strings or other date formats
-    const date = new Date(createdAt);
-    if (!isNaN(date.getTime())) {
-      return formatDistanceToNow(date, { addSuffix: true });
-    }
+    try {
+      const date = new Date(createdAt);
+      if (!isNaN(date.getTime())) {
+        return formatDistanceToNow(date, { addSuffix: true });
+      }
+    } catch (e) { /* ignore */ }
     return 'a while ago';
   };
 
@@ -94,6 +118,22 @@ function RequestList({
     }
   };
 
+  const getRequestDetails = (request: TravelRequest): string => {
+      const { purposeData } = request;
+      if (!purposeData?.purpose) return 'No details available';
+      
+      switch (purposeData.purpose) {
+        case 'education':
+          return `Education support at ${purposeData.subPurposeData?.collegeName || 'a college'}`;
+        case 'hospital':
+          return `Hospital visit to ${purposeData.subPurposeData?.hospitalName || 'a hospital'}`;
+        case 'shopping':
+          return `Shopping assistance in ${purposeData.subPurposeData?.shoppingArea?.area || purposeData.subPurposeData?.shopAddress?.district || 'an area'}`;
+        default:
+          return 'General request';
+      }
+  };
+
   return (
     <div className="space-y-4">
       {requests.map((request) => (
@@ -109,15 +149,38 @@ function RequestList({
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Created {formatCreationDate(request.createdAt)}
+                {isDraft ? getRequestDetails(request) : `Created ${formatCreationDate(request.createdAt)}`}
               </p>
             </div>
-            <Button asChild>
-              <Link href={`/traveler/request/${request.id}`}>
-                {isDraft ? <Edit /> : <View />}
-                {isDraft ? 'Continue' : 'View'}
-              </Link>
-            </Button>
+
+            {isDraft ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">More options</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/traveler/request/${request.id}`} className="cursor-pointer">
+                      <Edit className="mr-2 h-4 w-4" />
+                      Continue
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onDelete(request.id)} className="text-destructive cursor-pointer">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild>
+                <Link href={`/traveler/request/${request.id}`}>
+                   <View className="mr-2 h-4 w-4" /> View
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       ))}
@@ -128,6 +191,8 @@ function RequestList({
 export default function MyRequestsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
 
   const requestsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -153,6 +218,25 @@ export default function MyRequestsPage() {
     redirect('/login');
   }
 
+  const handleDeleteRequest = async () => {
+    if (!requestToDelete || !firestore) return;
+    try {
+      await deleteDoc(doc(firestore, 'travelRequests', requestToDelete));
+      toast({
+        title: 'Draft Deleted',
+        description: 'Your travel request draft has been successfully deleted.',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not delete the draft. Please try again.',
+      });
+    } finally {
+      setRequestToDelete(null);
+    }
+  };
+
   const draftRequests = requests?.filter((r) => r.status === 'draft') || [];
   const upcomingRequests =
     requests?.filter(
@@ -167,11 +251,6 @@ export default function MyRequestsPage() {
     <div className="grid gap-6 md:gap-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="font-headline text-3xl font-bold">My Travel Requests</h1>
-        <Button asChild size="lg">
-          <Link href="/traveler/request/create">
-            <PlusCircle aria-hidden="true" /> Create a New Request
-          </Link>
-        </Button>
       </div>
 
       <Card>
@@ -190,6 +269,7 @@ export default function MyRequestsPage() {
                   requests={draftRequests}
                   isDraft={true}
                   emptyMessage="You have no draft requests."
+                  onDelete={setRequestToDelete}
                 />
               )}
             </TabsContent>
@@ -201,6 +281,7 @@ export default function MyRequestsPage() {
                   requests={upcomingRequests}
                   isDraft={false}
                   emptyMessage="You have no upcoming requests."
+                  onDelete={setRequestToDelete}
                 />
               )}
             </TabsContent>
@@ -212,12 +293,30 @@ export default function MyRequestsPage() {
                   requests={pastRequests}
                   isDraft={false}
                   emptyMessage="You have no past requests."
+                  onDelete={setRequestToDelete}
                 />
               )}
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+      
+      <AlertDialog open={!!requestToDelete} onOpenChange={(open) => !open && setRequestToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this travel request draft.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRequest} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
