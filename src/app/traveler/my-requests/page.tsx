@@ -69,12 +69,12 @@ function RequestListSkeleton() {
 
 function RequestList({
   requests,
-  isDraft,
+  listType,
   emptyMessage,
   onDelete,
 }: {
   requests: TravelRequest[];
-  isDraft: boolean;
+  listType: 'draft' | 'upcoming' | 'past';
   emptyMessage: string;
   onDelete: (id: string) => void;
 }) {
@@ -122,20 +122,20 @@ function RequestList({
         return 'secondary';
     }
   };
-
+  
   const getRequestDetails = (request: TravelRequest): string => {
       const { purposeData } = request;
-      if (!purposeData?.purpose) return 'No details available';
+      if (!purposeData?.purpose) return 'Untitled Request';
       
       switch (purposeData.purpose) {
         case 'education':
-          return `Education support at ${purposeData.subPurposeData?.collegeName || 'a college'}`;
+          return `Education at ${purposeData.subPurposeData?.collegeName || 'institute'}`;
         case 'hospital':
-          return `Hospital visit to ${purposeData.subPurposeData?.hospitalName || 'a hospital'}`;
+          return `Visit to ${purposeData.subPurposeData?.hospitalName || 'hospital'}`;
         case 'shopping':
-          return `Shopping assistance in ${purposeData.subPurposeData?.shoppingArea?.area || purposeData.subPurposeData?.shopAddress?.district || 'an area'}`;
+          return `Shopping in ${purposeData.subPurposeData?.shoppingArea?.area || purposeData.subPurposeData?.shopAddress?.district || 'area'}`;
         default:
-          return 'General request';
+          return 'General Request';
       }
   };
 
@@ -147,18 +147,18 @@ function RequestList({
             <div className="flex-grow">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold capitalize">
-                  {request.purposeData?.purpose || 'Untitled Request'}
+                  {getRequestDetails(request)}
                 </h3>
-                <Badge variant={getStatusVariant(request.status)}>
+                 <Badge variant={getStatusVariant(request.status)}>
                   {request.status}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                {isDraft ? getRequestDetails(request) : `Created ${formatCreationDate(request.createdAt)}`}
+                Created {formatCreationDate(request.createdAt)}
               </p>
             </div>
 
-            {isDraft ? (
+            {listType === 'draft' ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -266,7 +266,7 @@ export default function MyRequestsPage() {
         <CardContent className="p-6">
           <Tabs defaultValue="drafts">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="drafts">Drafts</TabsTrigger>
+              <TabsTrigger value="drafts">Drafts ({draftRequests.length})</TabsTrigger>
               <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
               <TabsTrigger value="past">Past</TabsTrigger>
             </TabsList>
@@ -276,7 +276,7 @@ export default function MyRequestsPage() {
               ) : (
                 <RequestList
                   requests={draftRequests}
-                  isDraft={true}
+                  listType="draft"
                   emptyMessage="You have no draft requests."
                   onDelete={setRequestToDelete}
                 />
@@ -288,7 +288,7 @@ export default function MyRequestsPage() {
               ) : (
                 <RequestList
                   requests={upcomingRequests}
-                  isDraft={false}
+                  listType="upcoming"
                   emptyMessage="You have no upcoming requests."
                   onDelete={setRequestToDelete}
                 />
@@ -300,7 +300,7 @@ export default function MyRequestsPage() {
               ) : (
                 <RequestList
                   requests={pastRequests}
-                  isDraft={false}
+                  listType="past"
                   emptyMessage="You have no past requests."
                   onDelete={setRequestToDelete}
                 />
