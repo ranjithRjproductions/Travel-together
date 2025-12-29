@@ -326,7 +326,7 @@ export default function DisabilityPage() {
                     {...control.register('visionPercentage')} 
                     min="40" 
                     max="100"
-                    aria-invalid={!!errors.visionPercentage}
+                    aria-invalid={errors.visionPercentage ? "true" : "false"}
                   />
                   {errors.visionPercentage && <p className="text-sm text-destructive">{errors.visionPercentage.message}</p>}
                </div>
@@ -344,7 +344,7 @@ export default function DisabilityPage() {
                     {...control.register('hearingPercentage')} 
                     min="40" 
                     max="100"
-                    aria-invalid={!!errors.hearingPercentage}
+                    aria-invalid={errors.hearingPercentage ? "true" : "false"}
                   />
                   {errors.hearingPercentage && <p className="text-sm text-destructive">{errors.hearingPercentage.message}</p>}
                </div>
@@ -418,3 +418,5 @@ export default function DisabilityPage() {
     </div>
   );
 }
+
+    
