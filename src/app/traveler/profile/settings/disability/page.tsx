@@ -19,6 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
+import { Upload } from 'lucide-react';
 
 const disabilitySchema = z.object({
   mainDisability: z.enum(['visually-impaired', 'hard-of-hearing']).optional(),
@@ -290,7 +291,8 @@ export default function DisabilityPage() {
     );
   }
 
-  const hasExistingFile = !!userProfile?.disability?.documentName && !selectedFile;
+  const hasExistingFile = !!userProfile?.disability?.documentName;
+  const displayFileName = selectedFile?.name || userProfile?.disability?.documentName;
 
   return (
     <div>
@@ -344,8 +346,7 @@ export default function DisabilityPage() {
                      {errors.visionSubOption && <p className="text-sm text-destructive mt-2">{errors.visionSubOption.message}</p>}
                 </div>
                 <div>
-                  <Label>
-                    Percentage of vision impairment
+                  <Label id="vision-percentage-label">Percentage of vision impairment</Label>
                     <Controller
                       name="visionPercentage"
                       control={control}
@@ -354,7 +355,7 @@ export default function DisabilityPage() {
                           <Slider
                             ref={visionSliderRef}
                             id="visionPercentage"
-                            aria-label="Percentage of vision impairment"
+                            aria-labelledby="vision-percentage-label"
                             min={40}
                             max={100}
                             step={5}
@@ -368,7 +369,6 @@ export default function DisabilityPage() {
                         </div>
                       )}
                     />
-                  </Label>
                   {errors.visionPercentage && <p id="vision-percentage-error" className="text-sm text-destructive">{errors.visionPercentage.message}</p>}
                 </div>
             </fieldset>
@@ -377,8 +377,7 @@ export default function DisabilityPage() {
            {mainDisability === 'hard-of-hearing' && (
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
                <div>
-                  <Label>
-                    Percentage of hearing impairment
+                  <Label id="hearing-percentage-label">Percentage of hearing impairment</Label>
                     <Controller
                       name="hearingPercentage"
                       control={control}
@@ -387,7 +386,7 @@ export default function DisabilityPage() {
                           <Slider
                             ref={hearingSliderRef}
                             id="hearingPercentage"
-                            aria-label="Percentage of hearing impairment"
+                            aria-labelledby="hearing-percentage-label"
                             min={40}
                             max={100}
                             step={5}
@@ -401,7 +400,6 @@ export default function DisabilityPage() {
                         </div>
                       )}
                     />
-                  </Label>
                   {errors.hearingPercentage && <p id="hearing-percentage-error" className="text-sm text-destructive">{errors.hearingPercentage.message}</p>}
                </div>
               <Controller
@@ -427,39 +425,17 @@ export default function DisabilityPage() {
           {mainDisability && (
               <>
                 <div className="space-y-2 pt-4 border-t">
-                    <Label htmlFor="document-upload-visible">Supporting Document (PDF/Image)</Label>
+                    <Label>Supporting Document (PDF/Image)</Label>
                     <p id="document-upload-description" className="text-sm text-muted-foreground">
                         Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
                     </p>
                     
-                    {hasExistingFile ? (
-                        <div className="flex items-center gap-4 p-2 border rounded-md">
-                           <a 
-                             href={userProfile.disability?.documentUrl} 
-                             target="_blank" 
-                             rel="noopener noreferrer" 
-                             className="text-sm font-medium text-primary underline flex-grow"
-                             aria-describedby="document-upload-description"
-                           >
-                              {userProfile.disability?.documentName}
-                            </a>
-                           <Button 
-                             type="button" 
-                             variant="outline" 
-                             size="sm" 
-                             onClick={() => fileInputRef.current?.click()}
-                             disabled={isFormSubmitting}
-                           >
-                             Replace
-                           </Button>
-                        </div>
-                    ) : (
-                       <Input id="document-upload-visible" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} aria-describedby="document-upload-description" ref={fileInputRef}/>
-                    )}
-                    
-                    <Input id="document-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} disabled={isFormSubmitting} className="sr-only" ref={fileInputRef} />
+                    <Input id="document-upload-hidden" type="file" accept="image/*,application/pdf" onChange={handleFileChange} className="sr-only" ref={fileInputRef} aria-describedby="document-upload-description" />
 
-                    {selectedFile && <p className="text-sm text-muted-foreground mt-1">New file selected: {selectedFile.name}</p>}
+                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isFormSubmitting} className="w-full">
+                       <Upload className="mr-2 h-4 w-4" />
+                       {displayFileName ? `Replace: ${displayFileName}` : 'Upload Document'}
+                    </Button>
 
                     {isUploading && (
                         <div className="w-full mt-2">
