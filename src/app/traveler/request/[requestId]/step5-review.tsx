@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { differenceInMinutes, parseISO } from 'date-fns';
-import { doc, updateDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { type TravelRequest, type User as UserData } from '@/lib/definitions';
+import { submitTravelRequest } from '@/lib/actions';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -130,11 +129,10 @@ const getStatusBadge = (status: TravelRequest['status']) => {
 export function Step5Review({ request, userData }: { request: TravelRequest, userData: UserData }) {
     const router = useRouter();
     const { toast } = useToast();
-    const firestore = useFirestore();
     const [isConfirmed, setIsConfirmed] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const calculateCost = () => {
+    const calculateCostForDisplay = () => {
         const { purposeData, pickupData, startTime, endTime, requestedDate } = request;
 
         let serviceStartTimeStr: string | undefined, serviceEndTimeStr: string | undefined;
@@ -187,32 +185,27 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
         }
     };
     
-    const estimatedCost = request.estimatedCost ?? calculateCost();
+    const estimatedCost = request.estimatedCost ?? calculateCostForDisplay();
 
     const handleSubmit = async () => {
-        if (!firestore) return;
-        const requestDocRef = doc(firestore, 'travelRequests', request.id);
         setIsSubmitting(true);
-        try {
-            await updateDoc(requestDocRef, {
-                status: 'pending',
-                estimatedCost: estimatedCost,
-            });
+        const result = await submitTravelRequest(request.id);
+
+        if (result.success) {
             toast({
                 title: "Request Submitted!",
                 description: "Your request has been sent to available guides.",
             });
-            router.replace('/traveler/my-requests');
-        } catch (error) {
-            console.error("Failed to submit request:", error);
+            router.push('/traveler/my-requests');
+            router.refresh(); // Refresh the page to get the latest status
+        } else {
             toast({
                 title: "Submission Failed",
-                description: "Could not submit your request. Please try again.",
+                description: result.message,
                 variant: 'destructive',
             });
-        } finally {
-            setIsSubmitting(false);
         }
+        setIsSubmitting(false);
     }
 
     return (

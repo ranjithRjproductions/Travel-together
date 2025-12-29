@@ -3,8 +3,9 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import type { User } from './definitions';
+import type { User, TravelRequest } from './definitions';
 import { auth as adminAuth, db } from '@/lib/firebase-admin';
+import { differenceInMinutes, parseISO } from 'date-fns';
 
 export async function login(idToken: string) {
   'use server';
@@ -141,4 +142,92 @@ export async function logout() {
   }
 
   redirect('/');
+}
+
+const calculateCostOnServer = (request: TravelRequest): number => {
+    const { purposeData, pickupData, startTime, endTime, requestedDate } = request;
+
+    let serviceStartTimeStr: string | undefined, serviceEndTimeStr: string | undefined;
+    
+    const isPrebookedHospital = purposeData?.purpose === 'hospital' &&
+                              purposeData.subPurposeData?.bookingDetails?.isAppointmentPrebooked === 'yes';
+
+    if (pickupData?.pickupType === 'destination') {
+        if (isPrebookedHospital) {
+            serviceStartTimeStr = purposeData.subPurposeData.bookingDetails.startTime;
+        } else {
+            serviceStartTimeStr = startTime;
+        }
+    } else {
+        serviceStartTimeStr = pickupData?.pickupTime;
+    }
+    
+    if (isPrebookedHospital) {
+        serviceEndTimeStr = purposeData.subPurposeData.bookingDetails.endTime;
+    } else {
+        serviceEndTimeStr = endTime;
+    }
+
+    if (!serviceStartTimeStr || !serviceEndTimeStr || !requestedDate) return 0;
+    
+    const baseDate = parseISO(requestedDate);
+    const start = new Date(baseDate);
+    const [startHours, startMinutes] = serviceStartTimeStr.split(':').map(Number);
+    start.setHours(startHours, startMinutes, 0, 0);
+
+    const end = new Date(baseDate);
+    const [endHours, endMinutes] = serviceEndTimeStr.split(':').map(Number);
+    end.setHours(endHours, endMinutes, 0, 0);
+
+    if (end <= start) return 0;
+
+    const durationInMinutes = differenceInMinutes(end, start);
+    if (durationInMinutes <= 0) return 0;
+    
+    const durationInHours = durationInMinutes / 60;
+
+    if (durationInHours <= 3) {
+        return durationInHours * 150;
+    } else {
+        const baseCost = 3 * 150;
+        const additionalHours = durationInHours - 3;
+        const additionalCost = additionalHours * 100;
+        return baseCost + additionalCost;
+    }
+};
+
+
+export async function submitTravelRequest(requestId: string): Promise<{ success: boolean, message: string }> {
+  try {
+    const sessionCookie = cookies().get('session')?.value;
+    if (!sessionCookie) {
+      throw new Error('Not authenticated.');
+    }
+    const decodedToken = await adminAuth.verifySessionCookie(sessionCookie);
+
+    const requestDocRef = db.collection('travelRequests').doc(requestId);
+    const requestDoc = await requestDocRef.get();
+
+    if (!requestDoc.exists) {
+      throw new Error('Request not found.');
+    }
+
+    const request = requestDoc.data() as TravelRequest;
+
+    if (request.travelerId !== decodedToken.uid) {
+      throw new Error('Permission denied.');
+    }
+    
+    const estimatedCost = calculateCostOnServer(request);
+
+    await requestDocRef.update({
+      status: 'pending',
+      estimatedCost: estimatedCost,
+    });
+
+    return { success: true, message: 'Request submitted successfully.' };
+  } catch (error: any) {
+    console.error('Failed to submit request:', error);
+    return { success: false, message: error.message || 'Could not submit your request.' };
+  }
 }
