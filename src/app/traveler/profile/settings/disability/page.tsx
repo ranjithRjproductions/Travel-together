@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const disabilitySchema = z.object({
-  mainDisability: z.enum(['visually-impaired', 'hard-of-hearing', 'none']).default('none'),
+  mainDisability: z.enum(['visually-impaired', 'hard-of-hearing']).optional(),
   visionSubOption: z.enum(['totally-blind', 'low-vision']).optional(),
   visionPercentage: z.coerce.number().min(1).max(100).optional(),
   hearingPercentage: z.coerce.number().min(1).max(100).optional(),
@@ -29,7 +29,7 @@ const disabilitySchema = z.object({
   agreedToVoluntaryDisclosure: z.boolean().optional(),
 }).superRefine((data, ctx) => {
     // If no disability is selected, no further validation is needed
-    if (data.mainDisability === 'none') {
+    if (!data.mainDisability) {
         return;
     }
 
@@ -86,7 +86,7 @@ export default function DisabilityPage() {
   } = useForm<DisabilityFormData>({
     resolver: zodResolver(disabilitySchema),
     defaultValues: {
-      mainDisability: 'none',
+      mainDisability: undefined,
       requiresSignLanguageGuide: false,
       agreedToVoluntaryDisclosure: false,
     },
@@ -155,7 +155,7 @@ export default function DisabilityPage() {
     if (!userDocRef || !userProfile) return;
 
     // If user chose not to disclose, save only that and finish.
-    if (data.mainDisability === 'none') {
+    if (!data.mainDisability) {
         await setDoc(userDocRef, { disability: { mainDisability: 'none' } }, { merge: true });
         toast({ title: 'Success', description: 'Your accessibility preferences have been saved.' });
         setIsEditMode(false);
@@ -208,7 +208,7 @@ export default function DisabilityPage() {
 
   const renderSavedData = () => {
     const disability = userProfile?.disability;
-    if (!disability || disability.mainDisability === 'none') {
+    if (!disability || disability.mainDisability === 'none' || !disability.mainDisability) {
       return (
          <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
             <p>You have not disclosed any accessibility needs.</p>
@@ -289,10 +289,6 @@ export default function DisabilityPage() {
                            <RadioGroupItem value="hard-of-hearing" id="hard-of-hearing" />
                            <Label htmlFor="hard-of-hearing" className="font-normal">Hard of Hearing</Label>
                         </div>
-                         <div className="flex items-center space-x-2">
-                           <RadioGroupItem value="none" id="none" />
-                           <Label htmlFor="none" className="font-normal">Do not wish to disclose</Label>
-                        </div>
                     </RadioGroup>
                     )}
                 />
@@ -325,7 +321,8 @@ export default function DisabilityPage() {
                   <Label htmlFor="visionPercentage">Percentage of vision impairment (Required)</Label>
                   <Input 
                     id="visionPercentage"
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
                     {...control.register('visionPercentage')} 
                     min="1" 
                     max="100"
@@ -342,7 +339,8 @@ export default function DisabilityPage() {
                   <Label htmlFor="hearingPercentage">Percentage of hearing impairment (Required)</Label>
                   <Input 
                     id="hearingPercentage"
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
                     {...control.register('hearingPercentage')} 
                     min="1" 
                     max="100"
@@ -370,7 +368,7 @@ export default function DisabilityPage() {
             </fieldset>
           )}
 
-          {mainDisability !== 'none' && (
+          {mainDisability && (
               <>
                 <div className="space-y-2 pt-4 border-t">
                     <Label htmlFor="document-upload">Supporting Document (PDF/Image, Required)</Label>
@@ -395,7 +393,7 @@ export default function DisabilityPage() {
                         control={control}
                         render={({ field }) => (
                         <div className="flex items-start space-x-2">
-                            <Checkbox id="agreement" checked={!!field.value} onCheckedChange={field.onChange} className="mt-1" />
+                            <Checkbox id="agreement" checked={!!field.value} onCheckedChange={field.onChange} className="mt-1" aria-required="true" />
                             <Label htmlFor="agreement" className="font-normal text-sm">
                             I voluntarily agree to provide this information to help "Let's Travel Together" offer better accessibility support. I understand this data will be handled securely and used only for this purpose.
                             </Label>
