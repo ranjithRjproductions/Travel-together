@@ -17,12 +17,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 
 const disabilitySchema = z.object({
   mainDisability: z.enum(['visually-impaired', 'hard-of-hearing']).optional(),
   visionSubOption: z.enum(['totally-blind', 'low-vision']).optional(),
-  visionPercentage: z.coerce.number().min(40, 'Impairment must be at least 40% to avail benefits.').max(100).optional(),
-  hearingPercentage: z.coerce.number().min(40, 'Impairment must be at least 40% to avail benefits.').max(100).optional(),
+  visionPercentage: z.coerce.number().min(40, 'Impairment must be at least 40% to avail benefits.').max(100).multipleOf(5, { message: "Percentage must be in increments of 5."}).optional(),
+  hearingPercentage: z.coerce.number().min(40, 'Impairment must be at least 40% to avail benefits.').max(100).multipleOf(5, { message: "Percentage must be in increments of 5."}).optional(),
   requiresSignLanguageGuide: z.boolean().optional(),
   documentUrl: z.string().url().optional(),
   documentName: z.string().optional(),
@@ -82,18 +83,22 @@ export default function DisabilityPage() {
     reset,
     watch,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<DisabilityFormData>({
     resolver: zodResolver(disabilitySchema),
     defaultValues: {
       mainDisability: undefined,
       requiresSignLanguageGuide: false,
       agreedToVoluntaryDisclosure: false,
+      visionPercentage: 40,
+      hearingPercentage: 40,
     },
   });
 
   const mainDisability = watch('mainDisability');
-  const isFormSubmitting = isSubmitting || isUploading;
+  const visionPercentage = watch('visionPercentage');
+  const hearingPercentage = watch('hearingPercentage');
+  const isFormSubmitting = control.formState.isSubmitting || isUploading;
   const isLoading = isUserLoading || isProfileLoading;
 
   useEffect(() => {
@@ -156,7 +161,7 @@ export default function DisabilityPage() {
 
     // If user chose not to disclose, save only that and finish.
     if (!data.mainDisability) {
-        await setDoc(userDocRef, { disability: { mainDisability: 'none' } }, { merge: true });
+        await setDoc(userDocRef, { disability: { mainDisability: undefined } }, { merge: true });
         toast({ title: 'Success', description: 'Your accessibility preferences have been saved.' });
         setIsEditMode(false);
         router.push('/traveler/dashboard');
@@ -208,7 +213,7 @@ export default function DisabilityPage() {
 
   const renderSavedData = () => {
     const disability = userProfile?.disability;
-    if (!disability || disability.mainDisability === 'none' || !disability.mainDisability) {
+    if (!disability || !disability.mainDisability) {
       return (
          <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
             <p>You have not disclosed any accessibility needs.</p>
@@ -280,7 +285,7 @@ export default function DisabilityPage() {
                     name="mainDisability"
                     control={control}
                     render={({ field }) => (
-                    <RadioGroup onValueChange={field.onChange} value={field.value} className="space-y-2">
+                    <RadioGroup onValueChange={(value) => field.onChange(value as 'visually-impaired' | 'hard-of-hearing' | undefined)} value={field.value} className="space-y-2">
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="visually-impaired" id="visually-impaired" />
                             <Label htmlFor="visually-impaired" className="font-normal">Visually Impaired</Label>
@@ -317,19 +322,30 @@ export default function DisabilityPage() {
                     />
                      {errors.visionSubOption && <p className="text-sm text-destructive mt-2">{errors.visionSubOption.message}</p>}
                 </div>
-               <div>
+                <div>
                   <Label htmlFor="visionPercentage">Percentage of vision impairment (Required)</Label>
-                  <Input 
-                    id="visionPercentage"
-                    type="text"
-                    inputMode="numeric"
-                    {...control.register('visionPercentage')} 
-                    min="40" 
-                    max="100"
-                    aria-invalid={errors.visionPercentage ? "true" : "false"}
+                  <Controller
+                    name="visionPercentage"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="flex items-center gap-4 pt-2">
+                        <Slider
+                          id="visionPercentage"
+                          min={40}
+                          max={100}
+                          step={5}
+                          value={[field.value || 40]}
+                          onValueChange={(value) => field.onChange(value[0])}
+                          className="flex-1"
+                          aria-invalid={!!errors.visionPercentage}
+                          aria-describedby="vision-percentage-error"
+                        />
+                        <span className="font-medium text-sm w-12 text-center">{visionPercentage || 40}%</span>
+                      </div>
+                    )}
                   />
-                  {errors.visionPercentage && <p className="text-sm text-destructive">{errors.visionPercentage.message}</p>}
-               </div>
+                  {errors.visionPercentage && <p id="vision-percentage-error" className="text-sm text-destructive">{errors.visionPercentage.message}</p>}
+                </div>
             </fieldset>
           )}
 
@@ -337,16 +353,27 @@ export default function DisabilityPage() {
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
                <div>
                   <Label htmlFor="hearingPercentage">Percentage of hearing impairment (Required)</Label>
-                  <Input 
-                    id="hearingPercentage"
-                    type="text"
-                    inputMode="numeric"
-                    {...control.register('hearingPercentage')} 
-                    min="40" 
-                    max="100"
-                    aria-invalid={errors.hearingPercentage ? "true" : "false"}
+                   <Controller
+                    name="hearingPercentage"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="flex items-center gap-4 pt-2">
+                        <Slider
+                          id="hearingPercentage"
+                          min={40}
+                          max={100}
+                          step={5}
+                          value={[field.value || 40]}
+                          onValueChange={(value) => field.onChange(value[0])}
+                          className="flex-1"
+                          aria-invalid={!!errors.hearingPercentage}
+                           aria-describedby="hearing-percentage-error"
+                        />
+                        <span className="font-medium text-sm w-12 text-center">{hearingPercentage || 40}%</span>
+                      </div>
+                    )}
                   />
-                  {errors.hearingPercentage && <p className="text-sm text-destructive">{errors.hearingPercentage.message}</p>}
+                  {errors.hearingPercentage && <p id="hearing-percentage-error" className="text-sm text-destructive">{errors.hearingPercentage.message}</p>}
                </div>
               <Controller
                   name="requiresSignLanguageGuide"
@@ -418,5 +445,3 @@ export default function DisabilityPage() {
     </div>
   );
 }
-
-    
