@@ -323,7 +323,7 @@ export default function DisabilityPage() {
                      {errors.visionSubOption && <p className="text-sm text-destructive mt-2">{errors.visionSubOption.message}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="visionPercentage">Percentage of vision impairment (Required)</Label>
+                  <Label htmlFor="visionPercentage">Percentage of vision impairment</Label>
                   <Controller
                     name="visionPercentage"
                     control={control}
@@ -353,7 +353,7 @@ export default function DisabilityPage() {
            {mainDisability === 'hard-of-hearing' && (
             <fieldset className="pl-6 border-l-2 border-muted space-y-4">
                <div>
-                  <Label htmlFor="hearingPercentage">Percentage of hearing impairment (Required)</Label>
+                  <Label htmlFor="hearingPercentage">Percentage of hearing impairment</Label>
                    <Controller
                     name="hearingPercentage"
                     control={control}
@@ -400,7 +400,7 @@ export default function DisabilityPage() {
           {mainDisability && (
               <>
                 <div className="space-y-2 pt-4 border-t">
-                    <Label htmlFor="document-upload">Supporting Document (PDF/Image, Required)</Label>
+                    <Label htmlFor="document-upload">Supporting Document (PDF/Image)</Label>
                     <p id="document-upload-description" className="text-sm text-muted-foreground">
                         Please upload your government-issued disability ID card or a similar document. This is used only to verify your eligibility for accessible services.
                         {userProfile?.disability?.documentName && !selectedFile && (
