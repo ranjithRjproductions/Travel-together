@@ -83,7 +83,7 @@ export default function DisabilityPage() {
     reset,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<DisabilityFormData>({
     resolver: zodResolver(disabilitySchema),
     defaultValues: {
@@ -98,7 +98,7 @@ export default function DisabilityPage() {
   const mainDisability = watch('mainDisability');
   const visionPercentage = watch('visionPercentage');
   const hearingPercentage = watch('hearingPercentage');
-  const isFormSubmitting = control.formState.isSubmitting || isUploading;
+  const isFormSubmitting = isSubmitting || isUploading;
   const isLoading = isUserLoading || isProfileLoading;
 
   useEffect(() => {
