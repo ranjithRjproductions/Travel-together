@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -12,6 +13,9 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
+// This function is now simplified. Its main purpose is to set the custom claim
+// which is used by our server-side auth helper (lib/auth.ts) and middleware.
+// The session cookie creation is now handled by the /api/auth/session route.
 export async function login(prevState: any, formData: FormData) {
   'use server';
 
@@ -24,14 +28,10 @@ export async function login(prevState: any, formData: FormData) {
   const { email } = validatedFields.data;
 
   try {
-    // The user has already been authenticated on the client with signInWithEmailAndPassword.
-    // We just need to get their info and create the session cookie.
     const userRecord = await adminAuth.getUserByEmail(email);
     const uid = userRecord.uid;
-    const idToken = await adminAuth.createCustomToken(uid); // We create a token here to establish session
-
+    
     const userDoc = await db.collection('users').doc(uid).get();
-
     if (!userDoc.exists) {
       return { success: false, message: 'User data not found in database.' };
     }
@@ -39,31 +39,17 @@ export async function login(prevState: any, formData: FormData) {
     const userData = userDoc.data() as User;
     const role = userData.role;
 
+    // Set the custom claim for role-based access control.
     await adminAuth.setCustomUserClaims(uid, { role });
 
-    const fiveDays = 60 * 60 * 24 * 5 * 1000;
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-      expiresIn: fiveDays,
-    });
-
-    cookies().set('session', sessionCookie, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: fiveDays,
-      path: '/',
-    });
-
-    const redirectTo =
-      role === 'Guide'
-        ? '/guide/dashboard'
-        : '/traveler/dashboard';
-        
-    redirect(redirectTo);
+    // The redirect will happen from the client-side after the session cookie is set.
+    // This server action just confirms the backend setup is complete.
+    return { success: true };
 
   } catch (error: any) {
-    let message = 'Login failed. Please check your credentials.';
-     if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        message = 'Invalid email or password.';
+    let message = 'An unexpected error occurred.';
+     if (error.code === 'auth/user-not-found') {
+        message = 'Account not found.';
     }
     return { success: false, message };
   }
@@ -96,6 +82,10 @@ export async function signup(prevState: any, formData: FormData) {
   const { uid, name, email, role } = validatedFields.data;
 
   try {
+    // Set the user's role as a custom claim immediately after creation
+    await adminAuth.setCustomUserClaims(uid, { role });
+
+    // Create the user document in Firestore
     await db.collection('users').doc(uid).set({
       id: uid,
       name,
@@ -103,9 +93,8 @@ export async function signup(prevState: any, formData: FormData) {
       role,
     });
     
-    // On successful Firestore write, redirect.
   } catch (error) {
-    console.error('Firestore user creation error:', error);
+    console.error('Signup process error:', error);
     // In case of Firestore error, we should ideally delete the Auth user
     // to allow them to try signing up again.
     try {
@@ -115,7 +104,7 @@ export async function signup(prevState: any, formData: FormData) {
     }
     return {
       success: false,
-      message: 'Failed to store user details. Please try signing up again.',
+      message: 'Failed to complete signup. Please try again.',
     };
   }
 

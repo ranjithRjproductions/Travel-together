@@ -1,8 +1,8 @@
+
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -18,17 +18,20 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 import { LogIn, AlertCircle } from 'lucide-react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth, useFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 import { login } from '@/lib/actions';
 import content from '@/app/content/login.json';
 import Link from 'next/link';
+import { doc, getDoc } from 'firebase/firestore';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
-  const { pending } = useFormStatus();
-  const disabled = pending || isSubmitting;
-
   return (
-    <Button type="submit" className="w-full" disabled={disabled}>
-      {disabled ? content.submitButtonSubmitting : (
+    <Button type="submit" className="w-full" disabled={isSubmitting}>
+      {isSubmitting ? (
+        content.submitButtonSubmitting
+      ) : (
         <>
           <LogIn className="mr-2 h-4 w-4" aria-hidden />
           {content.submitButton}
@@ -39,28 +42,69 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
 }
 
 export function LoginForm() {
-  const [state, formAction] = useActionState(login, null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const auth = useAuth();
+  const { firestore } = useFirebase();
+  const router = useRouter();
 
-  useEffect(() => {
-    // This effect runs when the server action returns a state.
-    // If the login was unsuccessful, we re-enable the form.
-    if (state?.success === false) {
-      setIsSubmitting(false);
-    }
-  }, [state]);
-
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
+
     const formData = new FormData(e.currentTarget);
-    // The server action is the single source of truth for authentication.
-    // We wrap it in a transition to manage the pending state.
-    startTransition(() => {
-        formAction(formData);
-    });
+    const email = String(formData.get('email'));
+    const password = String(formData.get('password'));
+
+    try {
+      // Step 1: Sign in on the client
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      // Step 2: Get the ID token
+      const idToken = await user.getIdToken();
+
+      // Step 3: POST the ID token to the server to create a session cookie
+      const res = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (res.ok) {
+        // Step 4: Server has set the cookie, now determine where to redirect
+        if (!firestore) throw new Error("Firestore not available");
+        
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const redirectTo = userData.role === 'Guide' ? '/guide/dashboard' : '/traveler/dashboard';
+          router.push(redirectTo);
+        } else {
+            throw new Error("User document not found.");
+        }
+      } else {
+        throw new Error('Failed to create session.');
+      }
+    } catch (err: any) {
+      console.error('Login Error:', err);
+      let message = 'An unexpected error occurred. Please try again.';
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        message = 'Invalid email or password.';
+      }
+      setError(message);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -74,11 +118,11 @@ export function LoginForm() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {state?.success === false && state.message && (
+          {error && (
             <Alert variant="destructive" role="alert">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Login Failed</AlertTitle>
-              <AlertDescription>{state.message}</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -69,8 +70,8 @@ export function SignupForm() {
     const password = String(formData.get('password'));
 
     try {
-      const user = await createUserWithEmailAndPassword(auth, email, password);
-      formData.append('uid', user.user.uid);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      formData.append('uid', userCredential.user.uid);
       startTransition(() => formAction(formData));
     } catch (err: any) {
       toast({
