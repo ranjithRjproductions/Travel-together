@@ -41,6 +41,7 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
 export function LoginForm() {
   const [state, formAction] = useActionState(login, null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     if (state?.success === false) {
@@ -53,7 +54,9 @@ export function LoginForm() {
     e.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
-    formAction(formData);
+    startTransition(() => {
+        formAction(formData);
+    });
   };
 
   return (
