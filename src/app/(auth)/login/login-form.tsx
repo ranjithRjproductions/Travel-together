@@ -80,66 +80,55 @@ function VerifyEmailCard({ email, onResend, onBackToLogin }: { email: string; on
 export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [showVerifyEmail, setShowVerifyEmail] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const auth = useAuth();
   const { firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleResendVerification = async () => {
-      if (!unverifiedEmail) return;
-
-      try {
-        // This is a workaround to get a user object to resend verification.
-        // It intentionally fails authentication to get the user context.
-        await signInWithEmailAndPassword(auth, unverifiedEmail, `dummy-password-for-resend-${Date.now()}`);
-    } catch (error: any) {
-        if (error.customData?._tokenResponse?.localId) {
-            const userForVerification = { uid: error.customData._tokenResponse.localId, email: unverifiedEmail };
-            // Re-create a minimal user object that sendEmailVerification can use.
-            const mockUser = {
-                ...auth.currentUser,
-                uid: userForVerification.uid,
-                email: userForVerification.email,
-                emailVerified: false,
-                isAnonymous: false,
-                metadata: {},
-                providerData: [],
-                providerId: 'password',
-                tenantId: null,
-                delete: async () => {},
-                getIdToken: async () => '',
-                getIdTokenResult: async () => ({} as any),
-                reload: async () => {},
-                toJSON: () => ({}),
-            };
-            await sendEmailVerification(mockUser as any);
-            toast({
-                title: 'Verification Email Sent',
-                description: `A new verification link has been sent to ${unverifiedEmail}.`,
-            });
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: "Could not resend verification email. Please try signing up again.",
-            });
-        }
-    } finally {
-        if (auth.currentUser) await signOut(auth); // Ensure we don't leave a user logged in
+    if (!auth.currentUser) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not find a user to send verification to. Please try logging in again."
+        });
+        return;
+    }
+    try {
+        await sendEmailVerification(auth.currentUser);
+        toast({
+            title: 'Verification Email Sent',
+            description: `A new verification link has been sent to ${auth.currentUser.email}.`,
+        });
+    } catch (err: any) {
+         toast({
+            variant: "destructive",
+            title: "Error",
+            description: "There was a problem sending the verification email. Please try again in a moment.",
+        });
     }
   };
 
+  const handleBackToLogin = async () => {
+    if (auth.currentUser) {
+        await signOut(auth);
+    }
+    setShowVerifyEmail(false);
+    setUserEmail('');
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    setUnverifiedEmail(null);
+    setShowVerifyEmail(false);
 
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get('email'));
     const password = String(formData.get('password'));
+    setUserEmail(email);
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -150,8 +139,9 @@ export function LoginForm() {
       const user = userCredential.user;
       
       if (!user.emailVerified) {
-          setUnverifiedEmail(email);
-          await signOut(auth); // Log out the user immediately
+          // Keep the user temporarily signed in to allow for resend.
+          // Don't create session.
+          setShowVerifyEmail(true);
           setIsSubmitting(false);
           return;
       }
@@ -184,6 +174,10 @@ export function LoginForm() {
       }
     } catch (err: any) {
       console.error('Login Error:', err);
+      // Clean up any temporary auth state if login fails for other reasons
+      if (auth.currentUser) {
+        await signOut(auth);
+      }
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password.');
       } else {
@@ -193,12 +187,12 @@ export function LoginForm() {
     }
   };
 
-  if (unverifiedEmail) {
+  if (showVerifyEmail) {
       return (
           <VerifyEmailCard 
-            email={unverifiedEmail}
+            email={userEmail}
             onResend={handleResendVerification}
-            onBackToLogin={() => setUnverifiedEmail(null)}
+            onBackToLogin={handleBackToLogin}
           />
       );
   }
