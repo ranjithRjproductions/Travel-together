@@ -2,7 +2,7 @@
 'use client';
 
 import { useDoc, useFirestore, useUser, useStorage } from '@/firebase';
-import { useMemo, useState, useEffect, ChangeEvent } from 'react';
+import { useMemo, useState, useEffect, ChangeEvent, useRef } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { useForm, SubmitHandler, Controller } from 'react-hook-form';
@@ -72,6 +72,8 @@ export default function GuideProfileSettingsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  const genderRadioGroupRef = useRef<HTMLDivElement>(null);
+
   const userDocRef = useMemo(() => {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
@@ -89,6 +91,13 @@ export default function GuideProfileSettingsPage() {
     resolver: zodResolver(profileSchema),
     defaultValues: { name: '', gender: undefined }
   });
+  
+  useEffect(() => {
+    if (isSubmitting && errors.gender && genderRadioGroupRef.current) {
+        const firstRadioButton = genderRadioGroupRef.current.querySelector<HTMLButtonElement>('button[role="radio"]');
+        firstRadioButton?.focus();
+    }
+  }, [isSubmitting, errors.gender]);
 
   useEffect(() => {
     if (userProfile) {
@@ -257,7 +266,7 @@ export default function GuideProfileSettingsPage() {
                   name="gender"
                   control={control}
                   render={({ field }) => (
-                      <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4" aria-required="true">
+                      <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4" aria-required="true" ref={genderRadioGroupRef}>
                           <div className="flex items-center space-x-2"><RadioGroupItem value="Male" id="gender-male" /><Label htmlFor="gender-male" className="font-normal">Male</Label></div>
                           <div className="flex items-center space-x-2"><RadioGroupItem value="Female" id="gender-female" /><Label htmlFor="gender-female" className="font-normal">Female</Label></div>
                       </RadioGroup>
