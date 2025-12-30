@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -15,6 +16,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Edit } from 'lucide-react';
+
+const timeSlots = Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2);
+    const minutes = i % 2 === 0 ? '00' : '30';
+    const formattedHours = hours.toString().padStart(2, '0');
+    return `${formattedHours}:${minutes}`;
+});
 
 export function Step3View({ request, onEdit }: { request: TravelRequest; onEdit: () => void }) {
     const { travelMedium, isTicketPrebooked, vehicleInfo, time } = request.travelMediumData || {};
@@ -197,7 +205,14 @@ export function Step3Form({ request, onSave }: { request: TravelRequest; onSave:
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Arrival/Departure Time</FormLabel>
-                            <FormControl><Input type="time" {...field} /></FormControl>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {timeSlots.map(time => <SelectItem key={`arr-dep-${time}`} value={time}>{time}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}

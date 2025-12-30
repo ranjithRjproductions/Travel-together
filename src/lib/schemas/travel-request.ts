@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 //=========== STEP 1 SCHEMA ===========//
@@ -100,8 +101,8 @@ export type Step1FormValues = z.infer<typeof step1Schema>;
 //=========== STEP 2 SCHEMA ===========//
 export const step2Schema = z.object({
   requestedDate: z.date({ required_error: "A date of trip is required." }),
-  startTime: z.string().min(1, 'Start time is required.'),
-  endTime: z.string().min(1, 'End time is required.'),
+  startTime: z.string({ required_error: 'Start time is required.' }),
+  endTime: z.string({ required_error: 'End time is required.' }),
 }).refine(data => {
     if (data.startTime && data.endTime) {
         return data.endTime > data.startTime;
