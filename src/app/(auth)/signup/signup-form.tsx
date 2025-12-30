@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
@@ -17,11 +16,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 import { User, Briefcase, UserPlus, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { signup } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import content from '@/app/content/signup.json';
@@ -32,12 +31,10 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   const disabled = pending || isSubmitting;
 
   return (
-    <Button type="submit" className="w-full" disabled={disabled} aria-live="polite">
-      {disabled ? (
-        content.submitButtonSubmitting
-      ) : (
+    <Button type="submit" className="w-full" disabled={disabled}>
+      {disabled ? content.submitButtonSubmitting : (
         <>
-          <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+          <UserPlus className="mr-2 h-4 w-4" aria-hidden />
           {content.submitButton}
         </>
       )}
@@ -48,7 +45,7 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
 export function SignupForm() {
   const [state, formAction] = useActionState(signup, null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [_, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const { toast } = useToast();
   const auth = useAuth();
 
@@ -63,7 +60,7 @@ export function SignupForm() {
     }
   }, [state, toast]);
 
-  const handleClientSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -72,50 +69,36 @@ export function SignupForm() {
     const password = String(formData.get('password'));
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      formData.append('uid', userCredential.user.uid);
-
-      startTransition(() => {
-        formAction(formData);
-      });
-    } catch (error: any) {
-      let message = 'Something went wrong. Please try again.';
-      if (error.code === 'auth/email-already-in-use') {
-        message = 'This email is already registered.';
-      } else if (error.code === 'auth/weak-password') {
-        message = 'Password must be at least 6 characters.';
-      }
-
+      const user = await createUserWithEmailAndPassword(auth, email, password);
+      formData.append('uid', user.user.uid);
+      startTransition(() => formAction(formData));
+    } catch (err: any) {
       toast({
         variant: 'destructive',
         title: 'Signup failed',
-        description: message,
+        description:
+          err.code === 'auth/email-already-in-use'
+            ? 'Email already in use'
+            : 'Something went wrong',
       });
-
       setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleClientSignup} aria-labelledby="signup-title">
+    <form onSubmit={handleSubmit} aria-labelledby="signup-title">
       <Card>
         <CardHeader>
-          <CardTitle as="h1" id="signup-title" className="font-headline text-2xl">
+          <CardTitle as="h1" id="signup-title" className="text-2xl font-headline">
             {content.title}
           </CardTitle>
-
           <CardDescription>{content.description}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           {state?.success === false && state.message && (
-            <Alert variant="destructive" role="alert">
-              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
               <AlertTitle>{content.errorTitle}</AlertTitle>
               <AlertDescription>{state.message}</AlertDescription>
             </Alert>
@@ -128,45 +111,29 @@ export function SignupForm() {
 
           <div className="space-y-2">
             <Label htmlFor="email">{content.emailLabel}</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-            />
+            <Input id="email" name="email" type="email" required autoComplete="email" />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password">{content.passwordLabel}</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="new-password"
-            />
+            <Input id="password" name="password" type="password" required autoComplete="new-password"/>
           </div>
 
           <fieldset className="space-y-3">
-            <legend className="text-sm font-medium">
-              {content.roleLabel}
-            </legend>
+            <legend className="text-sm font-medium">{content.roleLabel}</legend>
 
             <RadioGroup name="role" defaultValue="Traveler" required>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-2">
                 <RadioGroupItem value="Traveler" id="role-traveler" />
-                <Label htmlFor="role-traveler" className="font-normal flex items-center gap-2">
-                  <User className="h-4 w-4" aria-hidden="true" />
-                  {content.roleTraveler}
+                <Label htmlFor="role-traveler" className="font-normal">
+                  <User className="inline h-4 w-4 mr-1" /> {content.roleTraveler}
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-2">
                 <RadioGroupItem value="Guide" id="role-guide" />
-                <Label htmlFor="role-guide" className="font-normal flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" aria-hidden="true" />
-                  {content.roleGuide}
+                <Label htmlFor="role-guide" className="font-normal">
+                  <Briefcase className="inline h-4 w-4 mr-1" /> {content.roleGuide}
                 </Label>
               </div>
             </RadioGroup>
@@ -175,7 +142,7 @@ export function SignupForm() {
 
         <CardFooter className="flex flex-col gap-4">
           <SubmitButton isSubmitting={isSubmitting} />
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-sm text-center text-muted-foreground">
             {content.loginPrompt}{' '}
             <Button variant="link" asChild className="p-0 h-auto">
               <Link href="/login">{content.loginLink}</Link>
