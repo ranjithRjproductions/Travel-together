@@ -7,35 +7,49 @@ import type { User, TravelRequest } from './definitions';
 import { auth as adminAuth, db } from '@/lib/firebase-admin';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
-export async function login(idToken: string) {
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+});
+
+export async function login(prevState: any, formData: FormData) {
   'use server';
 
+  const validatedFields = loginSchema.safeParse(Object.fromEntries(formData));
+
+  if (!validatedFields.success) {
+    return { success: false, message: 'Invalid email or password format.' };
+  }
+  
+  const { email } = validatedFields.data;
+
   try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    const uid = decodedToken.uid;
+    // The user has already been authenticated on the client with signInWithEmailAndPassword.
+    // We just need to get their info and create the session cookie.
+    const userRecord = await adminAuth.getUserByEmail(email);
+    const uid = userRecord.uid;
+    const idToken = await adminAuth.createCustomToken(uid); // We create a token here to establish session
 
     const userDoc = await db.collection('users').doc(uid).get();
 
     if (!userDoc.exists) {
-      // In a server action that redirects, we can't easily return a message.
-      // Redirecting with a query param is a common pattern.
-      redirect('/login?message=User data not found. Please try again.');
+      return { success: false, message: 'User data not found in database.' };
     }
 
     const userData = userDoc.data() as User;
     const role = userData.role;
 
-    // Set role as a custom claim
     await adminAuth.setCustomUserClaims(uid, { role });
 
+    const fiveDays = 60 * 60 * 24 * 5 * 1000;
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-      expiresIn: 60 * 60 * 24 * 5 * 1000, // 5 days
+      expiresIn: fiveDays,
     });
 
     cookies().set('session', sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 5, // 5 days
+      maxAge: fiveDays,
       path: '/',
     });
 
@@ -44,17 +58,14 @@ export async function login(idToken: string) {
         ? '/guide/dashboard'
         : '/traveler/dashboard';
         
-    // The server now handles the redirect directly.
     redirect(redirectTo);
 
   } catch (error: any) {
-    console.error('Login error:', error);
-    let message = 'Login failed due to a server error.';
-    if (error.code === 'auth/id-token-expired' || error.code === 'auth/id-token-revoked') {
-      message = 'Your session has expired or been revoked. Please log in again.';
+    let message = 'Login failed. Please check your credentials.';
+     if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        message = 'Invalid email or password.';
     }
-    // Redirect back to login with an error message
-    redirect(`/login?message=${encodeURIComponent(message)}`);
+    return { success: false, message };
   }
 }
 
