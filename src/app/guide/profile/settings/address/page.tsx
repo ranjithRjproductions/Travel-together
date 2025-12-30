@@ -25,6 +25,7 @@ const addressSchema = z.object({
   city: z.string().min(1, 'City is required'),
   district: z.string().min(1, 'District is required'),
   state: z.string().min(1, 'State is required'),
+  pincode: z.string().regex(/^\d{6}$/, 'Must be a 6-digit pincode'),
   country: z.string().min(1, 'Country is required'),
   isDefault: z.boolean().default(false),
   addressProofUrl: z.string().url().optional(),
@@ -68,6 +69,7 @@ export default function GuideAddressPage() {
         addressLine2: '',
         city: '',
         district: '',
+        pincode: '',
         country: 'India',
         state: 'Tamil Nadu',
         isDefault: true,
@@ -244,6 +246,11 @@ export default function GuideAddressPage() {
               <Input id="country" {...register('country')} readOnly />
             </div>
           </div>
+           <div className="space-y-2">
+            <Label htmlFor="pincode">Pincode</Label>
+            <Input id="pincode" {...register('pincode')} aria-invalid={errors.pincode ? "true" : "false"} maxLength={6} />
+            {errors.pincode && <p className="text-sm text-destructive">{errors.pincode.message}</p>}
+          </div>
            <div className="space-y-2 pt-4 border-t">
               <Label htmlFor="address-proof-upload">Address Proof (PDF/Image)</Label>
               <p id="proof-description" className="text-sm text-muted-foreground">
@@ -279,7 +286,7 @@ export default function GuideAddressPage() {
                 <>
                     <p>{currentAddress.addressLine1}</p>
                     {currentAddress.addressLine2 && <p>{currentAddress.addressLine2}</p>}
-                    <p>{currentAddress.city}, {currentAddress.district}</p>
+                    <p>{currentAddress.city}, {currentAddress.district}, {currentAddress.pincode}</p>
                     <p>{currentAddress.state}, {currentAddress.country}</p>
                     {currentAddress.addressProofUrl && (
                         <div>

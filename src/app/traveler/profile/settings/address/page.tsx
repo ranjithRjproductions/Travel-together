@@ -22,7 +22,7 @@ const addressSchema = z.object({
   addressLine2: z.string().min(1, 'Address Line 2 is required'),
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
-  postalCode: z.string().min(1, 'Postal Code is required'),
+  postalCode: z.string().regex(/^\d{6}$/, 'Must be a 6-digit postal code'),
   country: z.string().min(1, 'Country is required'),
   isDefault: z.boolean().default(false),
 });
@@ -156,7 +156,7 @@ export default function AddressPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="postalCode">Postal Code</Label>
-              <Input id="postalCode" {...register('postalCode')} aria-invalid={errors.postalCode ? "true" : "false"}/>
+              <Input id="postalCode" {...register('postalCode')} aria-invalid={errors.postalCode ? "true" : "false"} maxLength={6} />
               {errors.postalCode && <p className="text-sm text-destructive">{errors.postalCode.message}</p>}
             </div>
             <div>

@@ -46,6 +46,7 @@ export const step1Schema = z.object({
   }),
 }).superRefine((data, ctx) => {
     const { purpose, subPurposeData } = data;
+    const pincodeRegex = /^\d{6}$/;
     if (purpose === 'education') {
         if (!subPurposeData.subPurpose) {
             ctx.addIssue({ code: 'custom', message: 'Please select a support type.', path: ['subPurposeData.subPurpose'] });
@@ -54,7 +55,7 @@ export const step1Schema = z.object({
             if (!subPurposeData.collegeName) ctx.addIssue({ code: 'custom', message: 'College name is required.', path: ['subPurposeData.collegeName'] });
             if (!subPurposeData.collegeAddress?.street) ctx.addIssue({ code: 'custom', message: 'Street address is required.', path: ['subPurposeData.collegeAddress.street'] });
             if (!subPurposeData.collegeAddress?.district) ctx.addIssue({ code: 'custom', message: 'District is required.', path: ['subPurposeData.collegeAddress.district'] });
-            if (!subPurposeData.collegeAddress?.pincode) ctx.addIssue({ code: 'custom', message: 'Pincode is required.', path: ['subPurposeData.collegeAddress.pincode'] });
+            if (!subPurposeData.collegeAddress?.pincode || !pincodeRegex.test(subPurposeData.collegeAddress.pincode)) ctx.addIssue({ code: 'custom', message: 'A valid 6-digit pincode is required.', path: ['subPurposeData.collegeAddress.pincode'] });
         }
         if (subPurposeData.subPurpose === 'scribe' && (!subPurposeData.scribeSubjects || subPurposeData.scribeSubjects.length === 0)) {
             ctx.addIssue({ code: 'custom', message: 'Please select at least one subject.', path: ['subPurposeData.scribeSubjects'] });
@@ -63,7 +64,7 @@ export const step1Schema = z.object({
         if (!subPurposeData.hospitalName) ctx.addIssue({ code: 'custom', message: 'Hospital name is required.', path: ['subPurposeData.hospitalName'] });
         if (!subPurposeData.hospitalAddress?.street) ctx.addIssue({ code: 'custom', message: 'Street address is required.', path: ['subPurposeData.hospitalAddress.street'] });
         if (!subPurposeData.hospitalAddress?.district) ctx.addIssue({ code: 'custom', message: 'District is required.', path: ['subPurposeData.hospitalAddress.district'] });
-        if (!subPurposeData.hospitalAddress?.pincode) ctx.addIssue({ code: 'custom', message: 'Pincode is required.', path: ['subPurposeData.hospitalAddress.pincode'] });
+        if (!subPurposeData.hospitalAddress?.pincode || !pincodeRegex.test(subPurposeData.hospitalAddress.pincode)) ctx.addIssue({ code: 'custom', message: 'A valid 6-digit pincode is required.', path: ['subPurposeData.hospitalAddress.pincode'] });
         if (!subPurposeData.bookingDetails?.isAppointmentPrebooked) ctx.addIssue({ code: 'custom', message: 'Please specify if your appointment is pre-booked.', path: ['subPurposeData.bookingDetails.isAppointmentPrebooked'] });
         if (subPurposeData.bookingDetails?.isAppointmentPrebooked === 'yes') {
             if (!subPurposeData.bookingDetails.startTime) ctx.addIssue({ code: 'custom', message: 'Start time is required.', path: ['subPurposeData.bookingDetails.startTime'] });
@@ -78,7 +79,7 @@ export const step1Schema = z.object({
             if (!subPurposeData.shopName) ctx.addIssue({ code: 'custom', message: 'Shop name is required.', path: ['subPurposeData.shopName'] });
             if (!subPurposeData.shopAddress?.street) ctx.addIssue({ code: 'custom', message: 'Street address is required.', path: ['subPurposeData.shopAddress.street'] });
             if (!subPurposeData.shopAddress?.district) ctx.addIssue({ code: 'custom', message: 'District is required.', path: ['subPurposeData.shopAddress.district'] });
-            if (!subPurposeData.shopAddress?.pincode) ctx.addIssue({ code: 'custom', message: 'Pincode is required.', path: ['subPurposeData.shopAddress.pincode'] });
+            if (!subPurposeData.shopAddress?.pincode || !pincodeRegex.test(subPurposeData.shopAddress.pincode)) ctx.addIssue({ code: 'custom', message: 'A valid 6-digit pincode is required.', path: ['subPurposeData.shopAddress.pincode'] });
         }
         if (subPurposeData.shopType === 'area') {
             if (!subPurposeData.shoppingArea?.area) ctx.addIssue({ code: 'custom', message: 'Area name is required.', path: ['subPurposeData.shoppingArea.area'] });
