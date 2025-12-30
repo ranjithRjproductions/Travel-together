@@ -44,6 +44,8 @@ export function LoginForm() {
   const [, startTransition] = useTransition();
 
   useEffect(() => {
+    // This effect runs when the server action returns a state.
+    // If the login was unsuccessful, we re-enable the form.
     if (state?.success === false) {
       setIsSubmitting(false);
     }
@@ -54,6 +56,8 @@ export function LoginForm() {
     e.preventDefault();
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
+    // The server action is the single source of truth for authentication.
+    // We wrap it in a transition to manage the pending state.
     startTransition(() => {
         formAction(formData);
     });
