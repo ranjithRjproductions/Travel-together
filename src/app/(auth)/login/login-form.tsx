@@ -231,9 +231,9 @@ export function LoginForm() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">{content.passwordLabel}</Label>
-              <Button variant="link" asChild className="p-0 h-auto text-sm">
-                <Link href="/forgot-password">Forgot password?</Link>
-              </Button>
+              <Link href="/forgot-password" className="text-sm underline">
+                Forgot password?
+              </Link>
             </div>
             <Input
               id="password"
