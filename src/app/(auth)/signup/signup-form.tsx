@@ -1,22 +1,22 @@
 
-'use client';
+  'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { User, Briefcase, UserPlus, MailCheck } from 'lucide-react';
-import { signup } from '@/lib/actions';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
-import content from '@/app/content/signup.json';
-import Link from 'next/link';
+  import { useState } from 'react';
+  import { useRouter } from 'next/navigation';
+  import { Button } from '@/components/ui/button';
+  import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+  import { Input } from '@/components/ui/input';
+  import { Label } from '@/components/ui/label';
+  import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+  import { User, Briefcase, UserPlus, MailCheck } from 'lucide-react';
+  import { signup } from '@/lib/actions';
+  import { useToast } from '@/hooks/use-toast';
+  import { useAuth } from '@/firebase';
+  import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
+  import content from '@/app/content/signup.json';
+  import Link from 'next/link';
 
-function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
+  function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   const disabled = isSubmitting;
   return (
     <Button type="submit" className="w-full" disabled={disabled}>
@@ -28,9 +28,9 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
       )}
     </Button>
   );
-}
+  }
 
-function VerifyEmailCard({ email, onResend, onLogin }: { email: string; onResend: () => void; onLogin: () => void; }) {
+  function VerifyEmailCard({ email, onResend, onLogin }: { email: string; onResend: () => void; onLogin: () => void; }) {
     const [isResending, setIsResending] = useState(false);
 
     const handleResend = async () => {
@@ -65,9 +65,9 @@ function VerifyEmailCard({ email, onResend, onLogin }: { email: string; onResend
             </CardFooter>
         </Card>
     );
-}
+  }
 
-export function SignupForm() {
+  export function SignupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [verificationEmailSent, setVerificationEmailSent] = useState(false);
   const [emailForVerification, setEmailForVerification] = useState('');
@@ -153,7 +153,7 @@ export function SignupForm() {
     }
   };
 
-  if (verificationEmailSent) {
+    if (verificationEmailSent) {
       return (
           <VerifyEmailCard 
             email={emailForVerification}
