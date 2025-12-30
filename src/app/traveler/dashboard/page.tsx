@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -33,6 +34,7 @@ export default function TravelerDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
 
   const userDocRef = useMemo(() => {
     if (!user || !firestore) return null;
@@ -41,23 +43,35 @@ export default function TravelerDashboard() {
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  const isProfileComplete = (profile: UserProfile | null | undefined): boolean => {
-    if (!profile) return false;
-    return !!(
-      profile.name &&
-      profile.gender &&
-      profile.photoURL &&
-      profile.address &&
-      profile.contact &&
-      // Check that disability has been at least visited/answered, even if 'none' was chosen.
-      profile.hasOwnProperty('disability')
-    );
+  const checkProfileCompleteness = (profile: UserProfile | null | undefined): { complete: boolean, reason: string } => {
+    if (!profile) return { complete: false, reason: 'Profile data could not be loaded.' };
+    
+    if (!profile.name || !profile.gender || !profile.photoURL) {
+        return { complete: false, reason: 'Please complete your basic profile information, including your name, gender, and photo.' };
+    }
+    if (!profile.contact) {
+        return { complete: false, reason: 'Please add your contact details.' };
+    }
+    if (!profile.address) {
+        return { complete: false, reason: 'Please add an address.' };
+    }
+    if (!profile.address.isDefault) {
+        return { complete: false, reason: 'Please set a default address in your address settings.' };
+    }
+    // Check that disability has been at least visited/answered. The 'disability' property will exist even if they chose not to disclose.
+    if (!profile.hasOwnProperty('disability')) {
+        return { complete: false, reason: 'Please complete the disability disclosure section.' };
+    }
+    
+    return { complete: true, reason: '' };
   };
   
   const handleCreateRequestClick = () => {
-    if (isProfileComplete(userProfile)) {
+    const { complete, reason } = checkProfileCompleteness(userProfile);
+    if (complete) {
       router.push('/traveler/request/create');
     } else {
+      setAlertMessage(reason || 'Please make sure all your profile settings are complete before creating a request. This helps us find the perfect guide for your needs.');
       setIsAlertOpen(true);
     }
   };
@@ -88,7 +102,7 @@ export default function TravelerDashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Complete Your Profile</AlertDialogTitle>
             <AlertDialogDescription>
-              Please make sure all your profile settings are complete before creating a request. This helps us find the perfect guide for your needs.
+             {alertMessage}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
