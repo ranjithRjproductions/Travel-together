@@ -2,8 +2,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,13 +22,12 @@ import { User, Briefcase, UserPlus, AlertCircle } from 'lucide-react';
 import { signup } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import content from '@/app/content/signup.json';
 import Link from 'next/link';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
-  const { pending } = useFormStatus();
-  const disabled = pending || isSubmitting;
+  const disabled = isSubmitting;
 
   return (
     <Button type="submit" className="w-full" disabled={disabled}>
@@ -44,22 +42,10 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
 }
 
 export function SignupForm() {
-  const [state, formAction] = useActionState(signup, null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, startTransition] = useTransition();
   const { toast } = useToast();
   const auth = useAuth();
-
-  useEffect(() => {
-    if (state?.success === false && state.message) {
-      toast({
-        variant: 'destructive',
-        title: content.errorTitle,
-        description: state.message,
-      });
-      setIsSubmitting(false);
-    }
-  }, [state, toast]);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -80,9 +66,24 @@ export function SignupForm() {
     }
 
     try {
+      // Step 1: Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      formData.append('uid', userCredential.user.uid);
-      startTransition(() => formAction(formData));
+      const user = userCredential.user;
+
+      // Step 2: Send verification email
+      await sendEmailVerification(user);
+      
+      // Step 3: Create user document in Firestore via Server Action
+      formData.append('uid', user.uid);
+      const result = await signup(null, formData);
+
+      if (result.success) {
+        // Step 4: Redirect to verification page
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      } else {
+        throw new Error(result.message || 'Failed to create user document.');
+      }
+      
     } catch (err: any) {
       toast({
         variant: 'destructive',
@@ -90,7 +91,7 @@ export function SignupForm() {
         description:
           err.code === 'auth/email-already-in-use'
             ? 'Email already in use'
-            : 'Something went wrong',
+            : err.message || 'Something went wrong',
       });
       setIsSubmitting(false);
     }
@@ -107,14 +108,6 @@ export function SignupForm() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {state?.success === false && state.message && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>{content.errorTitle}</AlertTitle>
-              <AlertDescription>{state.message}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="name">{content.nameLabel}</Label>
             <Input id="name" name="name" required autoComplete="name" />

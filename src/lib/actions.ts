@@ -23,6 +23,8 @@ const signupSchema = z.object({
   uid: z.string().min(1, { message: 'User ID is required.' }),
 });
 
+// This is now only responsible for creating the DB record and setting claims.
+// The client handles the redirect.
 export async function signup(prevState: any, formData: FormData) {
   'use server';
   
@@ -48,6 +50,8 @@ export async function signup(prevState: any, formData: FormData) {
       email,
       role,
     });
+
+    return { success: true, message: 'User record created successfully.' };
     
   } catch (error) {
     console.error('Signup process error:', error);
@@ -63,8 +67,6 @@ export async function signup(prevState: any, formData: FormData) {
       message: 'Failed to complete signup. Please try again.',
     };
   }
-
-  redirect('/login?message=Account created successfully! Please log in.');
 }
 
 
