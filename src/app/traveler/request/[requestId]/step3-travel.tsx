@@ -17,13 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Edit } from 'lucide-react';
 
-const timeSlots = Array.from({ length: 48 }, (_, i) => {
-    const hours = Math.floor(i / 2);
-    const minutes = i % 2 === 0 ? '00' : '30';
-    const formattedHours = hours.toString().padStart(2, '0');
-    return `${formattedHours}:${minutes}`;
-});
-
 export function Step3View({ request, onEdit }: { request: TravelRequest; onEdit: () => void }) {
     const { travelMedium, isTicketPrebooked, vehicleInfo, time } = request.travelMediumData || {};
   
@@ -193,7 +186,7 @@ export function Step3Form({ request, onSave }: { request: TravelRequest; onSave:
                        {watchTravelMedium === 'train' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="vehicleInfo.trainName" render={({ field }) => (<FormItem><FormLabel>Train Name</FormLabel><FormControl><Input placeholder="e.g., Pandian Express" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="vehicleInfo.trainNumber" render={({ field }) => (<FormItem><FormLabel>Train Number (Optional)</FormLabel><FormControl><Input placeholder="e.g., 12638" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="vehicleInfo.trainNumber" render={({ field }) => (<FormItem><FormLabel>Train Number</FormLabel><FormControl><Input placeholder="e.g., 12638" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                       )}
                       {watchTravelMedium === 'flight' && (
@@ -205,14 +198,9 @@ export function Step3Form({ request, onSave }: { request: TravelRequest; onSave:
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Arrival/Departure Time</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {timeSlots.map(time => <SelectItem key={`arr-dep-${time}`} value={time}>{time}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <FormControl>
+                                <Input type="time" {...field} />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}

@@ -13,19 +13,11 @@ import { step2Schema, type Step2FormValues } from '@/lib/schemas/travel-request'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// Helper to generate time slots
-const timeSlots = Array.from({ length: 48 }, (_, i) => {
-    const hours = Math.floor(i / 2);
-    const minutes = i % 2 === 0 ? '00' : '30';
-    const formattedHours = hours.toString().padStart(2, '0');
-    return `${formattedHours}:${minutes}`;
-});
 
 export function Step2View({ request, onEdit }: { request: TravelRequest, onEdit: () => void }) {
     const isHospitalPrebooked = request.purposeData?.purpose === 'hospital' && request.purposeData?.subPurposeData?.bookingDetails?.isAppointmentPrebooked === 'yes';
@@ -98,8 +90,8 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
                 <form onSubmit={form.handleSubmit(handleStep2Save)} className="space-y-6">
                     <FormField control={form.control} name="requestedDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Trip</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>{field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < addDays(new Date(), 5) } initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="startTime" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{timeSlots.map(time => <SelectItem key={`start-${time}`} value={time}>{time}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="endTime" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{timeSlots.map(time => <SelectItem key={`end-${time}`} value={time}>{time}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="startTime" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} readOnly={isHospitalPrebooked} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="endTime" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} readOnly={isHospitalPrebooked} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
                      {isHospitalPrebooked && <p className="text-sm text-muted-foreground">Start and end times are based on your pre-booked appointment from Step 1.</p>}
                      <div className="flex justify-end pt-4">

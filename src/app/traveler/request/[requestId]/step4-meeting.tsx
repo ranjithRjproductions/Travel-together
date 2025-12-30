@@ -16,13 +16,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Edit } from 'lucide-react';
 
-const timeSlots = Array.from({ length: 48 }, (_, i) => {
-    const hours = Math.floor(i / 2);
-    const minutes = i % 2 === 0 ? '00' : '30';
-    const formattedHours = hours.toString().padStart(2, '0');
-    return `${formattedHours}:${minutes}`;
-});
-
 
 export function Step4View({ request, onEdit }: { request: TravelRequest; onEdit: () => void }) {
   const { pickupType, hotelDetails, stationName, pickupTime } = request.pickupData || {};
@@ -169,7 +162,7 @@ export function Step4Form({ request, onSave }: { request: TravelRequest; onSave:
 
             {watchPickupType && watchPickupType !== 'destination' && (
                 <div className="space-y-4 pt-4 border-t">
-                    <FormField control={form.control} name="pickupTime" render={({ field }) => (<FormItem><FormLabel>Pickup Time</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{timeSlots.map(time => <SelectItem key={`pickup-${time}`} value={time}>{time}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="pickupTime" render={({ field }) => (<FormItem><FormLabel>Pickup Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
             )}
 
