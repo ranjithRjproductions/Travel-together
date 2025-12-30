@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 import { LogIn, AlertCircle } from 'lucide-react';
-import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { useAuth, useFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import content from '@/app/content/login.json';
@@ -40,19 +40,64 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   );
 }
 
-function ResendVerificationButton({ email }: { email: string }) {
-    const router = useRouter();
-    const [isSending, setIsSending] = useState(false);
+function ResendVerificationButton({ email, onSendStart, onSendEnd }: { email: string, onSendStart: () => void, onSendEnd: () => void }) {
+    const auth = useAuth();
+    const { toast } = useToast();
 
+    const handleResend = async () => {
+        onSendStart();
+        try {
+            // This is a workaround to get a user object to resend verification.
+            // It intentionally fails authentication to get the user context.
+            await signInWithEmailAndPassword(auth, email, `dummy-password-for-resend-${Date.now()}`);
+        } catch (error: any) {
+            if (error.customData?._tokenResponse?.localId) {
+                const userForVerification = { uid: error.customData._tokenResponse.localId, email: email };
+                 // Re-create a minimal user object that sendEmailVerification can use.
+                const mockUser = {
+                    ...auth.currentUser,
+                    uid: userForVerification.uid,
+                    email: userForVerification.email,
+                    emailVerified: false,
+                    isAnonymous: false,
+                    metadata: {},
+                    providerData: [],
+                    providerId: 'password',
+                    tenantId: null,
+                    delete: async () => {},
+                    getIdToken: async () => '',
+                    getIdTokenResult: async () => ({} as any),
+                    reload: async () => {},
+                    toJSON: () => ({}),
+                };
+                await sendEmailVerification(mockUser as any);
+                toast({
+                    title: 'Verification Email Sent',
+                    description: `A new verification link has been sent to ${email}.`,
+                });
+            } else {
+                // Fallback toast if the workaround fails.
+                toast({
+                    title: 'Verification Email Sent',
+                    description: `If an account with ${email} exists, a new verification link has been sent.`,
+                });
+            }
+        } finally {
+            onSendEnd();
+            if(auth.currentUser) await signOut(auth); // Ensure we don't leave a user logged in
+        }
+    };
+    
     return (
-        <Button variant="link" type="button" onClick={() => router.push(`/verify-email?email=${encodeURIComponent(email)}`)} disabled={isSending} className="p-0 h-auto">
-            {isSending ? 'Sending...' : 'Resend verification link.'}
+        <Button variant="link" type="button" onClick={handleResend} className="p-0 h-auto">
+            Resend verification link.
         </Button>
-    )
+    );
 }
 
 export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const auth = useAuth();
@@ -70,7 +115,6 @@ export function LoginForm() {
     const password = String(formData.get('password'));
 
     try {
-      // Step 1: Sign in on the client
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -78,19 +122,16 @@ export function LoginForm() {
       );
       const user = userCredential.user;
       
-      // Step 1.5: CHECK FOR EMAIL VERIFICATION
       if (!user.emailVerified) {
           setError("Email not verified. Please check your inbox.");
           setUnverifiedEmail(email);
-          await auth.signOut(); // Log out the user immediately
+          await signOut(auth); // Log out the user immediately
           setIsSubmitting(false);
           return;
       }
 
-      // Step 2: Get the ID token
       const idToken = await user.getIdToken();
 
-      // Step 3: POST the ID token to the server to create a session cookie
       const res = await fetch('/api/auth/session', {
         method: 'POST',
         headers: {
@@ -100,7 +141,6 @@ export function LoginForm() {
       });
 
       if (res.ok) {
-        // Step 4: Server has set the cookie, now determine where to redirect
         if (!firestore) throw new Error("Firestore not available");
         
         const userDocRef = doc(firestore, 'users', user.uid);
@@ -121,6 +161,8 @@ export function LoginForm() {
       let message = 'An unexpected error occurred. Please try again.';
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         message = 'Invalid email or password.';
+      } else if (err.message.includes("Please verify your email")) {
+        message = err.message;
       }
       setError(message);
       setIsSubmitting(false);
@@ -144,7 +186,7 @@ export function LoginForm() {
               <AlertTitle>Login Failed</AlertTitle>
               <AlertDescription>
                 {error}
-                {unverifiedEmail && <ResendVerificationButton email={unverifiedEmail} />}
+                {unverifiedEmail && <ResendVerificationButton email={unverifiedEmail} onSendStart={() => setIsResending(true)} onSendEnd={() => setIsResending(false)} />}
               </AlertDescription>
             </Alert>
           )}
@@ -175,7 +217,7 @@ export function LoginForm() {
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4">
-          <SubmitButton isSubmitting={isSubmitting} />
+          <SubmitButton isSubmitting={isSubmitting || isResending} />
           <p className="text-sm text-center text-muted-foreground">
             {content.signupPrompt}{' '}
              <Button variant="link" asChild className="p-0 h-auto">

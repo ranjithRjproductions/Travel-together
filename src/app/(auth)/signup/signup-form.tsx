@@ -1,34 +1,23 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
-import { User, Briefcase, UserPlus, AlertCircle } from 'lucide-react';
+import { User, Briefcase, UserPlus, MailCheck } from 'lucide-react';
 import { signup } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import content from '@/app/content/signup.json';
 import Link from 'next/link';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   const disabled = isSubmitting;
-
   return (
     <Button type="submit" className="w-full" disabled={disabled}>
       {disabled ? content.submitButtonSubmitting : (
@@ -41,11 +30,74 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   );
 }
 
+function VerifyEmailCard({ email, onResend, onLogin }: { email: string; onResend: () => void; onLogin: () => void; }) {
+    const [isResending, setIsResending] = useState(false);
+
+    const handleResend = async () => {
+        setIsResending(true);
+        await onResend();
+        setIsResending(false);
+    };
+
+    return (
+        <Card>
+            <CardHeader className="text-center">
+                <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit">
+                    <MailCheck className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="mt-4">Please Verify Your Email</CardTitle>
+                <CardDescription>
+                    A verification link has been sent to <span className="font-semibold text-primary">{email}</span>. Please check your inbox and click the link to activate your account.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+                <p className="text-sm text-muted-foreground">
+                    Didn't receive the email? Check your spam folder or click below to resend.
+                </p>
+            </CardContent>
+            <CardFooter className="flex-col gap-4">
+                <Button onClick={handleResend} className="w-full" disabled={isResending}>
+                    {isResending ? 'Sending...' : 'Resend Verification Link'}
+                </Button>
+                <Button variant="outline" onClick={onLogin} className="w-full">
+                    Back to Login
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
 export function SignupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState(false);
+  const [emailForVerification, setEmailForVerification] = useState('');
   const { toast } = useToast();
   const auth = useAuth();
   const router = useRouter();
+
+  const handleResendVerification = async () => {
+    if (!auth.currentUser) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not find user to resend verification. Please try logging in again."
+        });
+        return;
+    }
+    try {
+        await sendEmailVerification(auth.currentUser);
+        toast({
+            title: "Email Sent",
+            description: "A new verification link has been sent to your email address.",
+        });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to send verification email. Please try again shortly.",
+        });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,8 +130,11 @@ export function SignupForm() {
       const result = await signup(null, formData);
 
       if (result.success) {
-        // Step 4: Redirect to verification page
-        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+        // Step 4: Show the verification UI instead of redirecting
+        setEmailForVerification(email);
+        setVerificationEmailSent(true);
+        // Important: Sign out the user so they are forced to log in after verifying
+        await signOut(auth);
       } else {
         throw new Error(result.message || 'Failed to create user document.');
       }
@@ -93,9 +148,20 @@ export function SignupForm() {
             ? 'Email already in use'
             : err.message || 'Something went wrong',
       });
-      setIsSubmitting(false);
+    } finally {
+        setIsSubmitting(false);
     }
   };
+
+  if (verificationEmailSent) {
+      return (
+          <VerifyEmailCard 
+            email={emailForVerification}
+            onResend={handleResendVerification}
+            onLogin={() => router.push('/login')}
+          />
+      );
+  }
 
   return (
     <form onSubmit={handleSubmit} aria-labelledby="signup-title">
