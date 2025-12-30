@@ -76,7 +76,6 @@ export function Step3Form({ request, onSave }: { request: TravelRequest; onSave:
         if (!firestore) return;
         const requestDocRef = doc(firestore, 'travelRequests', request.id);
 
-        // --- Time validation logic ---
         if (values.isTicketPrebooked === 'yes' && values.time) {
             const { endTime } = request; // End time from Step 2
             if (endTime && values.time > endTime) {
@@ -87,7 +86,6 @@ export function Step3Form({ request, onSave }: { request: TravelRequest; onSave:
                 return; // Stop submission
             }
         }
-        // --- End validation logic ---
 
         let cleanTravelMediumData: Partial<Step3FormValues> = { travelMedium: values.travelMedium };
 
