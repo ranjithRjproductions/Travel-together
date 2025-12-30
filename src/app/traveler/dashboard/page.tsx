@@ -56,7 +56,7 @@ export default function TravelerDashboard() {
         return { complete: false, reason: 'Please add an address.' };
     }
     if (!profile.address.isDefault) {
-        return { complete: false, reason: 'Please set a default address in your address settings.' };
+        return { complete: false, reason: 'Please make sure at least one address is set as your primary/default address.' };
     }
     // Check that disability has been at least visited/answered. The 'disability' property will exist even if they chose not to disclose.
     if (!profile.hasOwnProperty('disability')) {
