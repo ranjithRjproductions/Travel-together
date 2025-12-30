@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useUser, useStorage } from '@/firebase';
@@ -256,7 +257,7 @@ export default function GuideProfileSettingsPage() {
                   name="gender"
                   control={control}
                   render={({ field }) => (
-                      <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4">
+                      <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4" aria-required="true">
                           <div className="flex items-center space-x-2"><RadioGroupItem value="Male" id="gender-male" /><Label htmlFor="gender-male" className="font-normal">Male</Label></div>
                           <div className="flex items-center space-x-2"><RadioGroupItem value="Female" id="gender-female" /><Label htmlFor="gender-female" className="font-normal">Female</Label></div>
                       </RadioGroup>
