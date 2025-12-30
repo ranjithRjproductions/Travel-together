@@ -4,35 +4,31 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = request.cookies.get('session');
 
-  // Allow POST requests to login/signup to pass through without checks.
-  // This prevents the middleware from interfering with the server actions that create the session.
-  if (request.method === 'POST' && (pathname === '/login' || pathname === '/signup')) {
-    return NextResponse.next();
-  }
-
-  const isPublicRoute =
-    pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isPublicRoute = pathname === '/';
   const isProtectedRoute = pathname.startsWith('/traveler') || pathname.startsWith('/guide');
 
-  // --- Case 1: No session cookie ---
-  if (!session?.value) {
-    if (isProtectedRoute) {
-      // Redirect unauthenticated users from protected routes to the login page.
-      return NextResponse.redirect(new URL('/login', request.url));
+  // If a session exists...
+  if (session?.value) {
+    // ...and the user is trying to access the login, signup, or home page...
+    if (isAuthRoute || isPublicRoute) {
+      // ...redirect them to their dashboard. This prevents logged-in users from seeing public/auth pages.
+      return NextResponse.redirect(new URL('/traveler/dashboard', request.url));
     }
-    // Allow access to public routes.
-    return NextResponse.next();
   }
 
-  // --- Case 2: Session cookie exists ---
-  // If user has a session and is trying to access a public route,
-  // redirect them to a neutral dashboard. The layout will then handle role-specific redirect.
-  if (isPublicRoute) {
-    return NextResponse.redirect(new URL('/traveler/dashboard', request.url));
+  // If no session exists...
+  if (!session?.value) {
+    // ...and the user is trying to access a protected route...
+    if (isProtectedRoute) {
+      // ...redirect them to the login page.
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('message', 'You must be logged in to view this page.');
+      return NextResponse.redirect(loginUrl);
+    }
   }
-  
-  // For all other cases (e.g., accessing a protected route with a session cookie),
-  // let the request proceed. The final role validation will happen in the page/layout.
+
+  // For all other cases, allow the request to proceed.
   return NextResponse.next();
 }
 
