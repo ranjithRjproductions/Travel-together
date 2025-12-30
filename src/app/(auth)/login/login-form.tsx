@@ -231,9 +231,14 @@ export function LoginForm() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">{content.passwordLabel}</Label>
-              <Link href="/forgot-password" className="text-sm text-primary underline-offset-4 hover:underline">
+               <Button
+                type="button"
+                variant="link"
+                className="p-0 h-auto text-sm"
+                onClick={() => router.push('/forgot-password')}
+              >
                 Forgot password?
-              </Link>
+              </Button>
             </div>
             <Input
               id="password"
