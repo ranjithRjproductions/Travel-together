@@ -179,7 +179,7 @@ export function Step3Form({ request, onSave }: { request: TravelRequest; onSave:
                       {watchTravelMedium === 'bus' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="vehicleInfo.busName" render={({ field }) => (<FormItem><FormLabel>Bus Name</FormLabel><FormControl><Input placeholder="e.g., KPN Travels" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="vehicleInfo.busNumber" render={({ field }) => (<FormItem><FormLabel>Bus Number (Optional)</FormLabel><FormControl><Input placeholder="e.g., TN 01 A 1234" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="vehicleInfo.busNumber" render={({ field }) => (<FormItem><FormLabel>Bus Number</FormLabel><FormControl><Input placeholder="e.g., TN 01 A 1234" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                       )}
                        {watchTravelMedium === 'train' && (

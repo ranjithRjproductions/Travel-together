@@ -135,8 +135,13 @@ export const step3Schema = z.object({
             if (!data.time) {
                 ctx.addIssue({ code: 'custom', message: 'Arrival/Departure time is required.', path: ['time'] });
             }
-            if (data.travelMedium === 'bus' && !data.vehicleInfo?.busName) {
-                ctx.addIssue({ code: 'custom', message: 'Bus name is required.', path: ['vehicleInfo.busName'] });
+            if (data.travelMedium === 'bus') {
+                if (!data.vehicleInfo?.busName) {
+                    ctx.addIssue({ code: 'custom', message: 'Bus name is required.', path: ['vehicleInfo.busName'] });
+                }
+                if (!data.vehicleInfo?.busNumber) {
+                    ctx.addIssue({ code: 'custom', message: 'Bus number is required.', path: ['vehicleInfo.busNumber'] });
+                }
             }
             if (data.travelMedium === 'train' && !data.vehicleInfo?.trainName) {
                 ctx.addIssue({ code: 'custom', message: 'Train name is required.', path: ['vehicleInfo.trainName'] });
