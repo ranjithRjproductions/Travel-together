@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useFirestore, useUser, useStorage } from '@/firebase';
@@ -141,27 +142,21 @@ const uploadPhoto = async (file: File): Promise<string> => {
 const onSubmit: SubmitHandler<ProfileFormData> = async (data) => {
   if (!userDocRef || !user) return;
   
+  if (!photoFile && !userProfile?.photoURL) {
+      toast({
+          variant: "destructive",
+          title: "Profile Photo Required",
+          description: "It seems your profile photo is not uploaded. Your profile photo will help us to verify you with your travel request community.",
+      });
+      return;
+  }
+  
   setIsUploading(true);
   let photoURL = userProfile?.photoURL;
   let altText = userProfile?.photoAlt;
 
   try {
     if (photoFile && photoPreview) {
-      // The AI call is too large for the server action body size limit.
-      // We will comment it out for now and use a simple alt text.
-      // const aiResponse = await generateAltText({ userName: data.name, photoDataUri: photoPreview });
-
-      // if (aiResponse.personCount > 1) {
-      //     toast({
-      //         variant: "destructive",
-      //         title: "Invalid Profile Photo",
-      //         description: "Your photo appears to have more than one person. Please upload a photo of just yourself."
-      //     });
-      //     setIsUploading(false);
-      //     return;
-      // }
-      // altText = aiResponse.altText;
-
       altText = `Profile photo of ${data.name}`;
       photoURL = await uploadPhoto(photoFile);
     }

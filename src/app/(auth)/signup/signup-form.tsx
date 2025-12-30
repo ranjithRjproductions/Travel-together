@@ -69,6 +69,16 @@ export function SignupForm() {
     const email = String(formData.get('email'));
     const password = String(formData.get('password'));
 
+    if (!email.endsWith('@gmail.com') && !email.endsWith('@outlook.com')) {
+        toast({
+            variant: 'destructive',
+            title: 'Invalid Email Domain',
+            description: 'Please use a @gmail.com or @outlook.com email address to sign up.',
+        });
+        setIsSubmitting(false);
+        return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       formData.append('uid', userCredential.user.uid);
@@ -112,7 +122,7 @@ export function SignupForm() {
 
           <div className="space-y-2">
             <Label htmlFor="email">{content.emailLabel}</Label>
-            <Input id="email" name="email" type="email" required autoComplete="email" />
+            <Input id="email" name="email" type="email" required />
           </div>
 
           <div className="space-y-2">

@@ -8,56 +8,12 @@ import type { User, TravelRequest } from './definitions';
 import { auth as adminAuth, db } from '@/lib/firebase-admin';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-});
-
-// This function is now simplified. Its main purpose is to set the custom claim
-// which is used by our server-side auth helper (lib/auth.ts) and middleware.
-// The session cookie creation is now handled by the /api/auth/session route.
-export async function login(prevState: any, formData: FormData) {
-  'use server';
-
-  const validatedFields = loginSchema.safeParse(Object.fromEntries(formData));
-
-  if (!validatedFields.success) {
-    return { success: false, message: 'Invalid email or password format.' };
-  }
-  
-  const { email } = validatedFields.data;
-
-  try {
-    const userRecord = await adminAuth.getUserByEmail(email);
-    const uid = userRecord.uid;
-    
-    const userDoc = await db.collection('users').doc(uid).get();
-    if (!userDoc.exists) {
-      return { success: false, message: 'User data not found in database.' };
-    }
-
-    const userData = userDoc.data() as User;
-    const role = userData.role;
-
-    // Set the custom claim for role-based access control.
-    await adminAuth.setCustomUserClaims(uid, { role });
-
-    // The redirect will happen from the client-side after the session cookie is set.
-    // This server action just confirms the backend setup is complete.
-    return { success: true };
-
-  } catch (error: any) {
-    let message = 'An unexpected error occurred.';
-     if (error.code === 'auth/user-not-found') {
-        message = 'Account not found.';
-    }
-    return { success: false, message };
-  }
-}
-
 const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Please enter a valid email.' }),
+  email: z.string().email({ message: 'Please enter a valid email.' }).refine(
+    (email) => email.endsWith('@gmail.com') || email.endsWith('@outlook.com'),
+    { message: 'Only @gmail.com and @outlook.com emails are allowed.' }
+  ),
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),

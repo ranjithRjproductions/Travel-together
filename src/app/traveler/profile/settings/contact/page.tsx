@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -15,12 +16,16 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const phoneRegex = new RegExp(
+  /^[6-9]\d{9}$/
+);
+
 const contactSchema = z.object({
-  primaryPhone: z.string().min(10, 'Please enter a valid phone number'),
+  primaryPhone: z.string().regex(phoneRegex, 'Please enter a valid 10-digit Indian phone number.'),
   whatsappSameAsPrimary: z.boolean().default(false),
   whatsappNumber: z.string().optional(),
-}).refine(data => data.whatsappSameAsPrimary || data.whatsappNumber, {
-  message: "WhatsApp number is required if not same as primary",
+}).refine(data => data.whatsappSameAsPrimary || (data.whatsappNumber && phoneRegex.test(data.whatsappNumber)), {
+  message: "Please enter a valid 10-digit WhatsApp number.",
   path: ["whatsappNumber"],
 });
 
@@ -115,7 +120,7 @@ export default function ContactPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="primaryPhone">Primary Phone Number</Label>
-            <Input id="primaryPhone" type="tel" {...register('primaryPhone')} aria-invalid={errors.primaryPhone ? 'true' : 'false'} />
+            <Input id="primaryPhone" type="tel" maxLength={10} {...register('primaryPhone')} aria-invalid={errors.primaryPhone ? 'true' : 'false'} />
             {errors.primaryPhone && <p className="text-sm text-destructive">{errors.primaryPhone.message}</p>}
           </div>
           <div className="flex items-center space-x-2">
@@ -138,7 +143,7 @@ export default function ContactPage() {
           {!whatsappSameAsPrimary && (
             <div>
               <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
-              <Input id="whatsappNumber" type="tel" {...register('whatsappNumber')} disabled={whatsappSameAsPrimary} aria-invalid={errors.whatsappNumber ? 'true' : 'false'} />
+              <Input id="whatsappNumber" type="tel" maxLength={10} {...register('whatsappNumber')} disabled={whatsappSameAsPrimary} aria-invalid={errors.whatsappNumber ? 'true' : 'false'} />
               {errors.whatsappNumber && <p className="text-sm text-destructive">{errors.whatsappNumber.message}</p>}
             </div>
           )}
