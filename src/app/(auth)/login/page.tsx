@@ -1,3 +1,4 @@
+
 import { LoginForm } from './login-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
@@ -16,9 +17,7 @@ export default function LoginPage({
 }: {
   searchParams?: { message?: string };
 }) {
-  const successMessage = searchParams?.message === 'Account created successfully! Please log in.' 
-    ? content.successMessage 
-    : searchParams?.message;
+  const successMessage = searchParams?.message;
 
   return (
     <>
