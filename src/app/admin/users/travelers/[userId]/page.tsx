@@ -24,7 +24,7 @@ interface FirestoreTimestamp {
 
 // Update TravelRequest to expect the server-side timestamp
 type ServerTravelRequest = Omit<TravelRequest, 'createdAt'> & {
-  createdAt: FirestoreTimestamp;
+  createdAt: FirestoreTimestamp | string; // Can be either on the server
 };
 
 
@@ -46,9 +46,9 @@ async function getTravelerDetails(userId: string) {
     const requests = requestsSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as ServerTravelRequest))
         .sort((a, b) => {
-            // Convert Firestore Timestamps to JS Dates for comparison
-            const dateA = a.createdAt ? a.createdAt.toDate().getTime() : 0;
-            const dateB = b.createdAt ? b.createdAt.toDate().getTime() : 0;
+            // Safely convert Firestore Timestamps or date strings to JS Dates for comparison
+            const dateA = a.createdAt && typeof (a.createdAt as any).toDate === 'function' ? (a.createdAt as FirestoreTimestamp).toDate().getTime() : (a.createdAt ? new Date(a.createdAt as string).getTime() : 0);
+            const dateB = b.createdAt && typeof (b.createdAt as any).toDate === 'function' ? (b.createdAt as FirestoreTimestamp).toDate().getTime() : (b.createdAt ? new Date(b.createdAt as string).getTime() : 0);
             return dateB - dateA;
         });
 
@@ -171,23 +171,30 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                     <p className="text-sm text-muted-foreground">This traveler has not submitted any requests yet.</p>
                 ) : (
                     <div className="space-y-4">
-                        {requests.map(request => (
-                            <div key={request.id} className="p-4 border rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                                <div className="flex-grow">
-                                    <h4 className="font-semibold capitalize">{getRequestTitle(request)}</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Created on {request.createdAt ? format(request.createdAt.toDate(), 'PP') : 'date unknown'}
-                                    </p>
+                        {requests.map(request => {
+                            // Safely convert createdAt to a Date object for formatting
+                            const createdAtDate = request.createdAt && typeof (request.createdAt as any).toDate === 'function' 
+                                ? (request.createdAt as FirestoreTimestamp).toDate() 
+                                : request.createdAt ? new Date(request.createdAt as string) : null;
+
+                            return (
+                                <div key={request.id} className="p-4 border rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                    <div className="flex-grow">
+                                        <h4 className="font-semibold capitalize">{getRequestTitle(request)}</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            Created on {createdAtDate ? format(createdAtDate, 'PP') : 'date unknown'}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        {getRequestStatusBadge(request.status)}
+                                        <Button asChild size="sm" variant="outline">
+                                            <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
+                                        </Button>
+                                        <DeleteRequestButton requestId={request.id} />
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    {getRequestStatusBadge(request.status)}
-                                    <Button asChild size="sm" variant="outline">
-                                        <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
-                                    </Button>
-                                    <DeleteRequestButton requestId={request.id} />
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </CardContent>
