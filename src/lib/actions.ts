@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import type { User, TravelRequest } from './definitions';
 import { auth as adminAuth, db } from '@/lib/firebase-admin';
 import { differenceInMinutes, parseISO } from 'date-fns';
+import { revalidatePath } from 'next/cache';
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -187,5 +188,38 @@ export async function submitTravelRequest(requestId: string): Promise<{ success:
   } catch (error: any) {
     console.error('Failed to submit request:', error);
     return { success: false, message: error.message || 'Could not submit your request.' };
+  }
+}
+
+export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected'): Promise<{ success: boolean; message: string }> {
+  'use server';
+
+  // 1. Verify admin privileges
+  const sessionCookie = cookies().get('session')?.value;
+  if (!sessionCookie) {
+    return { success: false, message: 'Authentication required.' };
+  }
+
+  try {
+    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    if (!adminDoc.exists) {
+      return { success: false, message: 'Permission denied. Not an admin.' };
+    }
+
+    // 2. Update the guide's profile
+    const guideProfileRef = db.collection('users').doc(guideId).collection('guideProfile').doc('guide-profile-doc');
+    
+    await guideProfileRef.update({
+      onboardingState: status,
+    });
+
+    // 3. Revalidate the path to refresh the data on the admin page
+    revalidatePath('/admin/users/guides');
+
+    return { success: true, message: `Guide status updated to ${status}.` };
+  } catch (error: any) {
+    console.error('Error updating guide status:', error);
+    return { success: false, message: 'An unexpected error occurred.' };
   }
 }
