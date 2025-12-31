@@ -2,6 +2,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getUser } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const user = await getUser();
