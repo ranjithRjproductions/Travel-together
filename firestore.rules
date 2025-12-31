@@ -7,7 +7,7 @@ service cloud.firestore {
     // Function to check if the requesting user is an admin.
     // It checks for the existence of a document with the user's UID in the roles_admin collection.
     function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
     // USERS
