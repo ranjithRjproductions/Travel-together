@@ -1,3 +1,4 @@
+
 'use server';
 
 import { db } from '@/lib/firebase-admin';
@@ -33,7 +34,7 @@ async function getGuides() {
     const guides: (User & { onboardingState?: string })[] = [];
 
     for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data() as User;
+      const userData = { uid: userDoc.id, ...userDoc.data() } as User;
       const guideProfileSnapshot = await db.collection('users').doc(userDoc.id).collection('guideProfile').limit(1).get();
 
       let onboardingState = 'not_started';
