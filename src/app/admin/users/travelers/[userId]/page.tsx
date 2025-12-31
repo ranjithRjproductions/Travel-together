@@ -101,7 +101,10 @@ function ProfileSection({ user }: { user: User }) {
                 </div>
                  <Separator />
                  <div className="space-y-4">
-                     <h3 className="font-semibold flex items-center gap-2"><Accessibility className="h-4 w-4" /> Disability Disclosure</h3>
+                    <div className="flex justify-between items-start">
+                        <h3 className="font-semibold flex items-center gap-2"><Accessibility className="h-4 w-4" /> Disability Disclosure</h3>
+                        <Button variant="destructive" size="sm" disabled>Delete Profile Info</Button>
+                    </div>
                     <InfoItem label="Disability Type" value={user.disability?.mainDisability === 'visually-impaired' ? 'Visually Impaired' : user.disability?.mainDisability === 'hard-of-hearing' ? 'Hard of Hearing' : 'Not Disclosed'} />
                     {user.disability?.mainDisability === 'visually-impaired' && (
                         <>
@@ -150,7 +153,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                                 <div>
                                     <h4 className="font-semibold capitalize">{request.purposeData?.purpose} Request</h4>
                                     <p className="text-sm text-muted-foreground">
-                                        Created on {format(request.createdAt.toDate(), 'PP')}
+                                        Created on {request.createdAt ? format(request.createdAt.toDate(), 'PP') : 'date unknown'}
                                     </p>
                                 </div>
                                 {getRequestStatusBadge(request.status)}
@@ -168,18 +171,8 @@ function DangerZoneSection({ userId }: { userId: string }) {
         <Card className="border-destructive">
             <CardHeader>
                 <CardTitle as="h2" className="text-destructive">Danger Zone</CardTitle>
-                <CardDescription>
-                    These actions are permanent and cannot be undone.
-                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="flex justify-between items-center p-4 border border-dashed rounded-lg">
-                    <div>
-                        <h4 className="font-semibold">Delete Profile Information</h4>
-                        <p className="text-sm text-muted-foreground">Permanently delete this user's profile info (address, contact, disability).</p>
-                    </div>
-                    <Button variant="destructive" disabled>Delete Profile Info</Button>
-                </div>
                 <div className="flex justify-between items-center p-4 border border-dashed rounded-lg">
                     <div>
                         <h4 className="font-semibold">Delete Travel Requests</h4>
