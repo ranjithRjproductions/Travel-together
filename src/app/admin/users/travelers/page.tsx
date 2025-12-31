@@ -28,10 +28,12 @@ import homeContent from '@/app/content/home.json';
 
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
-export const metadata: Metadata = {
-  title: `Manage Travelers | ${siteName}`,
-  description: 'View and manage all traveler accounts in the system.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+    return {
+        title: `Manage Travelers | ${siteName}`,
+        description: 'View and manage all traveler accounts in the system.',
+    };
+}
 
 type TravelerWithStats = User & {
   id: string;
