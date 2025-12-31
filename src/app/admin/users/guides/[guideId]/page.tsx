@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, ShieldCheck, Languages, CheckCircle, Car } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, ShieldCheck, Languages, CheckCircle, Car, PenLine } from 'lucide-react';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
 
@@ -148,6 +148,15 @@ export default async function GuideDetailPage({ params }: { params: { guideId: s
                         <InfoItem label="Has Experience with Disability?" value={guideProfile.disabilityExpertise?.hasDisabilityExperience} />
                         <InfoItem label="Experience Type" value={guideProfile.disabilityExpertise?.experienceType} />
                         <InfoItem label="Knows Sign Language" value={guideProfile.disabilityExpertise?.hearingSupport?.knowsSignLanguage} />
+
+                        {guideProfile.disabilityExpertise?.experienceType === 'visually-impaired' && guideProfile.disabilityExpertise?.visionSupport && (
+                            <div className="space-y-4 pt-4 mt-4 border-t">
+                                <h4 className="text-md font-semibold flex items-center gap-2"><PenLine className="h-4 w-4" /> Scribe Expertise</h4>
+                                <InfoItem label="Willing to act as Scribe?" value={guideProfile.disabilityExpertise.visionSupport.willingToScribe} />
+                                <InfoItem label="Scribe Subjects" value={guideProfile.disabilityExpertise.visionSupport.scribeSubjects?.join(', ')} />
+                            </div>
+                        )}
+
                         <Separator />
                         <InfoItem label="Local Expertise Areas" value={guideProfile.disabilityExpertise?.localExpertise?.join(', ')} icon={MapPin} />
                         <InfoItem label="Reading Languages" value={guideProfile.disabilityExpertise?.readingLanguages?.join(', ')} icon={Languages} />

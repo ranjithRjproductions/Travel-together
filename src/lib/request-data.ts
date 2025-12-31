@@ -24,4 +24,5 @@ export const scribeSubjectOptions = [
     { id: 'economics', label: 'Economics' },
     { id: 'commerce', label: 'Commerce' },
     { id: 'accountancy', label: 'Accountancy' },
+    { id: 'bank_exam', label: 'Bank Exam' },
 ];

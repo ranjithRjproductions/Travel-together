@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { scribeSubjectOptions } from '@/lib/request-data';
 
 const expertiseAreas = [
     { id: 'education', label: 'Education Support (familiar with local educational places)' },
@@ -32,6 +33,8 @@ const expertiseSchema = z.object({
     experienceType: z.enum(['visually-impaired', 'hearing-impaired']).optional(),
     visionSupport: z.object({
         specialization: z.enum(['totally-blind', 'low-vision']).optional(),
+        willingToScribe: z.enum(['yes', 'no']).optional(),
+        scribeSubjects: z.array(z.string()).optional(),
     }).optional(),
     hearingSupport: z.object({
         knowsSignLanguage: z.boolean().default(false),
@@ -42,7 +45,7 @@ const expertiseSchema = z.object({
     readingLanguages: z.array(z.string()).optional(),
     writingLanguages: z.array(z.string()).optional(),
     willingToUseVehicle: z.enum(['yes', 'no'], { required_error: 'Please select an option.' }),
-    driversLicenseUrl: z.string().url().optional(), // Make this optional in the schema for initial validation
+    driversLicenseUrl: z.string().url().optional(),
     agreeToAwareness: z.boolean().refine(val => val === true, {
         message: 'You must acknowledge your awareness.',
     }),
@@ -52,6 +55,17 @@ const expertiseSchema = z.object({
 }).superRefine((data, ctx) => {
     if (data.hasDisabilityExperience === 'yes' && !data.experienceType) {
         ctx.addIssue({ code: 'custom', message: 'Please select the type of disability experience.', path: ['experienceType'] });
+    }
+    if (data.experienceType === 'visually-impaired') {
+        if (!data.visionSupport?.specialization) {
+            ctx.addIssue({ code: 'custom', message: 'Please select your specialization.', path: ['visionSupport.specialization'] });
+        }
+        if (!data.visionSupport?.willingToScribe) {
+            ctx.addIssue({ code: 'custom', message: 'Please specify if you are willing to scribe.', path: ['visionSupport.willingToScribe'] });
+        }
+        if (data.visionSupport.willingToScribe === 'yes' && (!data.visionSupport.scribeSubjects || data.visionSupport.scribeSubjects.length === 0)) {
+            ctx.addIssue({ code: 'custom', message: 'Please select at least one subject you can scribe for.', path: ['visionSupport.scribeSubjects'] });
+        }
     }
 });
 
@@ -99,6 +113,8 @@ export default function GuideExpertisePage() {
     });
 
     const hasDisabilityExperience = watch('hasDisabilityExperience');
+    const experienceType = watch('experienceType');
+    const willingToScribe = watch('visionSupport.willingToScribe');
     const willingToUseVehicle = watch('willingToUseVehicle');
     const formIsSubmitting = isSubmitting || isUploading;
 
@@ -225,6 +241,67 @@ export default function GuideExpertisePage() {
                             )} />
                             {errors.experienceType && <p className="text-sm text-destructive mt-2">{errors.experienceType.message}</p>}
                         </fieldset>
+                    )}
+
+                    {experienceType === 'visually-impaired' && (
+                        <fieldset className="pl-6 border-l-2 border-muted space-y-4">
+                            <legend className="text-sm font-medium mb-2">Visually Impaired Specialization</legend>
+                            <Controller name="visionSupport.specialization" control={control} render={({ field }) => (
+                                <RadioGroup onValueChange={field.onChange} value={field.value} className="space-y-2">
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="totally-blind" id="totally-blind" /><Label htmlFor="totally-blind" className="font-normal">Totally Blind</Label></div>
+                                    <div className="flex items-center space-x-2"><RadioGroupItem value="low-vision" id="low-vision" /><Label htmlFor="low-vision" className="font-normal">Low Vision</Label></div>
+                                </RadioGroup>
+                            )} />
+                            {errors.visionSupport?.specialization && <p className="text-sm text-destructive mt-2">{errors.visionSupport.specialization.message}</p>}
+                            
+                            <div className="pt-4 border-t">
+                                <legend className="text-sm font-medium mb-2">Are you willing to act as a scribe for exams?</legend>
+                                 <Controller name="visionSupport.willingToScribe" control={control} render={({ field }) => (
+                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4">
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="yes" id="scribe-yes" /><Label htmlFor="scribe-yes" className="font-normal">Yes</Label></div>
+                                        <div className="flex items-center space-x-2"><RadioGroupItem value="no" id="scribe-no" /><Label htmlFor="scribe-no" className="font-normal">No</Label></div>
+                                    </RadioGroup>
+                                )} />
+                                {errors.visionSupport?.willingToScribe && <p className="text-sm text-destructive mt-2">{errors.visionSupport.willingToScribe.message}</p>}
+                            </div>
+
+                            {willingToScribe === 'yes' && (
+                                <div className="p-4 border rounded-md">
+                                    <Label className="text-base">Scribe Subjects Expertise</Label>
+                                    <p className="text-sm text-muted-foreground mb-4">Select the subjects you are proficient in scribing for.</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {scribeSubjectOptions.map((item) => (
+                                        <Controller key={item.id} name="visionSupport.scribeSubjects" control={control} render={({ field }) => (
+                                            <div className="flex items-start space-x-2 my-1">
+                                                <Checkbox id={`scribe-expertise-${item.id}`} checked={field.value?.includes(item.id)}
+                                                    onCheckedChange={(checked) => {
+                                                        const currentSubs = field.value || [];
+                                                        return checked
+                                                            ? field.onChange([...currentSubs, item.id])
+                                                            : field.onChange(currentSubs.filter(v => v !== item.id));
+                                                    }}
+                                                />
+                                                <Label htmlFor={`scribe-expertise-${item.id}`} className="font-normal text-sm">{item.label}</Label>
+                                            </div>
+                                        )} />
+                                    ))}
+                                    </div>
+                                    {errors.visionSupport?.scribeSubjects && <p className="text-sm text-destructive mt-2">{errors.visionSupport.scribeSubjects.message}</p>}
+                                </div>
+                            )}
+                        </fieldset>
+                    )}
+
+                    {experienceType === 'hearing-impaired' && (
+                         <fieldset className="pl-6 border-l-2 border-muted space-y-4">
+                            <legend className="text-sm font-medium mb-2">Hearing Impaired Support</legend>
+                             <Controller name="hearingSupport.knowsSignLanguage" control={control} render={({ field }) => (
+                                <div className="flex items-start space-x-2">
+                                    <Checkbox id="knowsSignLanguage" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
+                                    <Label htmlFor="knowsSignLanguage" className="font-normal">I know sign language.</Label>
+                                </div>
+                            )} />
+                         </fieldset>
                     )}
 
                     {/* Local Expertise */}
