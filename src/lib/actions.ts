@@ -347,3 +347,53 @@ export async function deleteTravelRequest(requestId: string): Promise<{ success:
     return { success: false, message: 'An unexpected error occurred during request deletion.' };
   }
 }
+
+export async function deleteGuideAccount(guideId: string): Promise<{ success: boolean; message: string }> {
+  'use server';
+
+  // 1. Verify admin privileges
+  const sessionCookie = cookies().get('session')?.value;
+  if (!sessionCookie) {
+    return { success: false, message: 'Authentication required.' };
+  }
+
+  try {
+    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    if (!adminDoc.exists) {
+      return { success: false, message: 'Permission denied. Not an admin.' };
+    }
+
+    // 2. Delete user from Firebase Authentication
+    await adminAuth.deleteUser(guideId);
+
+    // 3. Delete guide's subcollection documents (recursively not supported on client/admin SDK, must be done manually or with cloud function)
+    const guideProfileCollectionRef = db.collection('users').doc(guideId).collection('guideProfile');
+    const guideProfileSnapshot = await guideProfileCollectionRef.get();
+    const batch = db.batch();
+    guideProfileSnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+
+    // 4. Delete user document from Firestore
+    await db.collection('users').doc(guideId).delete();
+
+    // 5. Revalidate the path to refresh the data on the admin page
+    revalidatePath('/admin/users/guides');
+
+    return { success: true, message: 'Guide account and all associated data have been deleted.' };
+  } catch (error: any) {
+    console.error('Error deleting guide account:', error);
+    if (error.code === 'auth/user-not-found') {
+        try {
+            await db.collection('users').doc(guideId).delete();
+            revalidatePath('/admin/users/guides');
+            return { success: true, message: 'User already deleted from Auth, Firestore record cleaned up.' };
+        } catch (dbError: any) {
+            return { success: false, message: `Auth user not found, but failed to clean Firestore: ${dbError.message}` };
+        }
+    }
+    return { success: false, message: 'An unexpected error occurred during account deletion.' };
+  }
+}

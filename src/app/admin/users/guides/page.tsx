@@ -25,6 +25,8 @@ import { Check, X, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
+import { Progress } from '@/components/ui/progress';
+import { DeleteGuideButton } from './delete-guide-button';
 
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
@@ -35,31 +37,64 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+type GuideWithStats = User & {
+  id: string;
+  onboardingState?: string;
+  profileCompletion: number;
+};
 
-async function getGuides() {
+const calculateGuideProfileCompletion = (user: User, guideProfile: any): number => {
+    let completedSteps = 0;
+    const totalSteps = 5;
+
+    // Step 1: Profile Information (from root user object)
+    if (user.name && user.gender && user.photoURL) {
+        completedSteps++;
+    }
+    // Steps 2-5: From guideProfile subcollection document
+    if (guideProfile?.address) {
+        completedSteps++;
+    }
+    if (guideProfile?.contact) {
+        completedSteps++;
+    }
+    if (guideProfile?.disabilityExpertise) {
+        completedSteps++;
+    }
+    if (guideProfile?.verification) {
+        completedSteps++;
+    }
+    
+    return Math.round((completedSteps / totalSteps) * 100);
+}
+
+
+async function getGuides(): Promise<GuideWithStats[]> {
   try {
     const usersSnapshot = await db.collection('users').where('role', '==', 'Guide').get();
     if (usersSnapshot.empty) {
       return [];
     }
 
-    const guides: (User & { onboardingState?: string })[] = [];
-
-    for (const userDoc of usersSnapshot.docs) {
-      const userData = { uid: userDoc.id, ...userDoc.data() } as User;
+    const guides = await Promise.all(usersSnapshot.docs.map(async (userDoc) => {
+      const userData = { id: userDoc.id, uid: userDoc.id, ...userDoc.data() } as User & { id: string, uid: string };
       const guideProfileSnapshot = await db.collection('users').doc(userDoc.id).collection('guideProfile').limit(1).get();
 
       let onboardingState = 'not_started';
+      let guideProfileData: any = null;
       if (!guideProfileSnapshot.empty) {
-        const guideProfileData = guideProfileSnapshot.docs[0].data();
+        guideProfileData = guideProfileSnapshot.docs[0].data();
         onboardingState = guideProfileData.onboardingState || 'unknown';
       }
+      
+      const profileCompletion = calculateGuideProfileCompletion(userData, guideProfileData);
 
-      guides.push({
+      return {
         ...userData,
         onboardingState,
-      });
-    }
+        profileCompletion,
+      };
+    }));
 
     return guides;
   } catch (error) {
@@ -88,7 +123,7 @@ function StatusBadge({ status }: { status: string }) {
     return <Badge variant={variant} className="capitalize">{status.replace('-', ' ')}</Badge>;
 }
 
-function ActionButtons({ guide }: { guide: User & { onboardingState?: string } }) {
+function ActionButtons({ guide }: { guide: User & { onboardingState?: string, uid: string } }) {
     if (guide.onboardingState !== 'verification-pending') {
         return null;
     }
@@ -146,13 +181,15 @@ export default async function ManageGuidesPage() {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>Profile Completion</TableHead>
+              <TableHead className="text-right">Approve/Reject</TableHead>
+              <TableHead className="text-right">Delete</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {guidesPending.length === 0 && otherGuides.length === 0 && (
+            {guides.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">No guides found.</TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">No guides found.</TableCell>
                 </TableRow>
             )}
 
@@ -161,7 +198,14 @@ export default async function ManageGuidesPage() {
                 <TableCell className="font-medium">{guide.name}</TableCell>
                 <TableCell>{guide.email}</TableCell>
                 <TableCell><StatusBadge status={guide.onboardingState || 'unknown'} /></TableCell>
+                <TableCell>
+                    <div className="flex items-center gap-2">
+                        <Progress value={guide.profileCompletion} className="w-24"/>
+                        <span className="text-xs text-muted-foreground">{guide.profileCompletion}%</span>
+                    </div>
+                </TableCell>
                 <TableCell className="text-right"><ActionButtons guide={guide} /></TableCell>
+                <TableCell className="text-right"><DeleteGuideButton guide={guide} /></TableCell>
               </TableRow>
             ))}
 
@@ -170,7 +214,14 @@ export default async function ManageGuidesPage() {
                 <TableCell className="font-medium">{guide.name}</TableCell>
                 <TableCell>{guide.email}</TableCell>
                 <TableCell><StatusBadge status={guide.onboardingState || 'unknown'} /></TableCell>
+                 <TableCell>
+                    <div className="flex items-center gap-2">
+                        <Progress value={guide.profileCompletion} className="w-24"/>
+                        <span className="text-xs text-muted-foreground">{guide.profileCompletion}%</span>
+                    </div>
+                </TableCell>
                 <TableCell className="text-right"><ActionButtons guide={guide} /></TableCell>
+                 <TableCell className="text-right"><DeleteGuideButton guide={guide} /></TableCell>
               </TableRow>
             ))}
           </TableBody>
