@@ -1,8 +1,10 @@
+
 export type User = {
   uid: string;
   name: string;
   email: string;
   role: 'Traveler' | 'Guide';
+  isAdmin?: boolean;
   photoURL?: string;
   photoAlt?: string;
   address?: {
