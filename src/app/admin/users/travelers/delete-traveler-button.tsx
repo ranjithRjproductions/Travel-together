@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,12 +13,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { type User } from '@/lib/definitions';
 import { deleteTravelerAccount } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
-export function TravelerActions({ traveler }: { traveler: User & { id: string } }) {
+export function DeleteTravelerButton({ traveler }: { traveler: User & { id: string } }) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
@@ -62,12 +61,6 @@ export function TravelerActions({ traveler }: { traveler: User & { id: string } 
         </AlertDialogContent>
       </AlertDialog>
 
-      <Button asChild variant="outline" size="sm">
-        <Link href={`/admin/users/travelers/${traveler.id}`}>
-          <Eye className="mr-2 h-4 w-4" />
-          View
-        </Link>
-      </Button>
       <Button variant="destructive" size="sm" onClick={() => setIsAlertOpen(true)} disabled={isDeleting}>
         <Trash2 className="mr-2 h-4 w-4" />
         Delete

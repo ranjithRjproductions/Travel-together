@@ -18,7 +18,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { type User } from '@/lib/definitions';
-import { TravelerActions } from './traveler-actions';
+import { Button } from '@/components/ui/button';
+import { DeleteTravelerButton } from './delete-traveler-button';
+import Link from 'next/link';
+import { Eye } from 'lucide-react';
 
 
 async function getTravelers() {
@@ -60,7 +63,8 @@ export default async function ManageTravelersPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-center">View</TableHead>
+              <TableHead className="text-center">Delete</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -75,8 +79,16 @@ export default async function ManageTravelersPage() {
                 <TableRow key={traveler.id}>
                   <TableCell className="font-medium">{traveler.name}</TableCell>
                   <TableCell>{traveler.email}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <TravelerActions traveler={traveler} />
+                   <TableCell className="text-center">
+                     <Button asChild variant="outline" size="sm">
+                        <Link href={`/admin/users/travelers/${traveler.id}`}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </Link>
+                      </Button>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <DeleteTravelerButton traveler={traveler} />
                   </TableCell>
                 </TableRow>
               ))
