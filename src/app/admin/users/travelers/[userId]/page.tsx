@@ -10,12 +10,11 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Briefcase, Calendar } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 async function getTravelerDetails(userId: string) {
     const userDocRef = db.collection('users').doc(userId);
-    // The query was changed here: removed .orderBy('createdAt', 'desc')
     const requestsQuery = db.collection('travelRequests').where('travelerId', '==', userId);
 
     const [userDoc, requestsSnapshot] = await Promise.all([
@@ -29,13 +28,12 @@ async function getTravelerDetails(userId: string) {
 
     const user = { id: userDoc.id, ...userDoc.data() } as User & { id: string };
     
-    // Sort the requests in code after fetching
     const requests = requestsSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as TravelRequest))
         .sort((a, b) => {
             const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return dateB - dateA; // Sort descending
+            return dateB - dateA; 
         });
 
     return { user, requests };
@@ -151,6 +149,29 @@ function RequestsSection({ requests }: { requests: TravelRequest[] }) {
     );
 }
 
+function DangerZoneSection({ userId }: { userId: string }) {
+    return (
+        <Card className="border-destructive">
+            <CardHeader>
+                <CardTitle as="h2" className="text-destructive">Danger Zone</CardTitle>
+                <CardDescription>
+                    These actions are permanent and cannot be undone.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex justify-between items-center p-4 border border-dashed rounded-lg">
+                    <div>
+                        <h4 className="font-semibold">Delete Travel Requests</h4>
+                        <p className="text-sm text-muted-foreground">Permanently delete all of this user's travel requests.</p>
+                    </div>
+                    <Button variant="destructive" disabled>Delete Requests</Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+
 export default async function TravelerDetailPage({ params }: { params: { userId: string } }) {
   const data = await getTravelerDetails(params.userId);
 
@@ -171,6 +192,7 @@ export default async function TravelerDetailPage({ params }: { params: { userId:
 
         <ProfileSection user={user} />
         <RequestsSection requests={requests} />
+        <DangerZoneSection userId={user.id} />
     </div>
   );
 }

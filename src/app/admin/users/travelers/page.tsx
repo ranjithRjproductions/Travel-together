@@ -18,9 +18,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { type User } from '@/lib/definitions';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Eye, Trash2 } from 'lucide-react';
+import { TravelerActions } from './traveler-actions';
+
 
 async function getTravelers() {
   try {
@@ -32,9 +31,9 @@ async function getTravelers() {
     const travelers = usersSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
-            id: doc.id, // Use the document ID as 'id'
+            id: doc.id,
             ...data
-        } as User & { id: string }; // Ensure id is part of the type
+        } as User & { id: string };
     });
     return travelers;
 
@@ -77,16 +76,7 @@ export default async function ManageTravelersPage() {
                   <TableCell className="font-medium">{traveler.name}</TableCell>
                   <TableCell>{traveler.email}</TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button asChild variant="outline" size="sm">
-                        <Link href={`/admin/users/travelers/${traveler.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                        </Link>
-                    </Button>
-                    <Button variant="destructive" size="sm" disabled>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                    </Button>
+                    <TravelerActions traveler={traveler} />
                   </TableCell>
                 </TableRow>
               ))
