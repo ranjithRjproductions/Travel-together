@@ -13,6 +13,19 @@ import Link from 'next/link';
 import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
+// This is a Firestore server-side Timestamp
+interface FirestoreTimestamp {
+  _seconds: number;
+  _nanoseconds: number;
+  toDate(): Date;
+}
+
+// Update TravelRequest to expect the server-side timestamp
+type ServerTravelRequest = Omit<TravelRequest, 'createdAt'> & {
+  createdAt: FirestoreTimestamp;
+};
+
+
 async function getTravelerDetails(userId: string) {
     const userDocRef = db.collection('users').doc(userId);
     const requestsQuery = db.collection('travelRequests').where('travelerId', '==', userId);
@@ -26,14 +39,15 @@ async function getTravelerDetails(userId: string) {
         return null;
     }
 
-    const user = { id: userDoc.id, ...userDoc.data() } as User & { id: string };
+    const user = { uid: userDoc.id, ...userDoc.data() } as User & { uid: string };
     
     const requests = requestsSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as TravelRequest))
+        .map(doc => ({ id: doc.id, ...doc.data() } as ServerTravelRequest))
         .sort((a, b) => {
-            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return dateB - dateA; 
+            // Convert Firestore Timestamps to JS Dates for comparison
+            const dateA = a.createdAt ? a.createdAt.toDate().getTime() : 0;
+            const dateB = b.createdAt ? b.createdAt.toDate().getTime() : 0;
+            return dateB - dateA;
         });
 
     return { user, requests };
@@ -119,7 +133,7 @@ function getRequestStatusBadge(status: TravelRequest['status']) {
     return <Badge variant={variants[status]} className="capitalize">{status.replace('-', ' ')}</Badge>;
 }
 
-function RequestsSection({ requests }: { requests: TravelRequest[] }) {
+function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
     return (
         <Card>
             <CardHeader>
@@ -136,7 +150,7 @@ function RequestsSection({ requests }: { requests: TravelRequest[] }) {
                                 <div>
                                     <h4 className="font-semibold capitalize">{request.purposeData?.purpose} Request</h4>
                                     <p className="text-sm text-muted-foreground">
-                                        Created on {format(new Date(request.createdAt), 'PP')}
+                                        Created on {format(request.createdAt.toDate(), 'PP')}
                                     </p>
                                 </div>
                                 {getRequestStatusBadge(request.status)}
@@ -199,7 +213,7 @@ export default async function TravelerDetailPage({ params }: { params: { userId:
 
         <ProfileSection user={user} />
         <RequestsSection requests={requests} />
-        <DangerZoneSection userId={user.id} />
+        <DangerZoneSection userId={user.uid} />
     </div>
   );
 }
