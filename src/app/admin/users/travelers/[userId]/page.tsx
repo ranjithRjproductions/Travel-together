@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar, View, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { DeleteProfileInfoButton } from './delete-profile-info-button';
+import { DeleteRequestButton } from './delete-request-button';
 
 // This is a Firestore server-side Timestamp
 interface FirestoreTimestamp {
@@ -147,6 +148,17 @@ function getRequestStatusBadge(status: TravelRequest['status']) {
     return <Badge variant={variants[status]} className="capitalize">{status.replace('-', ' ')}</Badge>;
 }
 
+const getRequestTitle = (request: ServerTravelRequest): string => {
+    const { purposeData } = request;
+    if (!purposeData?.purpose) return 'Untitled Request';
+
+    let title = `${purposeData.purpose.charAt(0).toUpperCase() + purposeData.purpose.slice(1)}`;
+    if (purposeData.purpose === 'education' && purposeData.subPurposeData?.subPurpose) {
+        title += `: ${purposeData.subPurposeData.subPurpose === 'scribe' ? 'Scribe for Exam' : 'Admission Support'}`;
+    }
+    return title;
+};
+
 function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
     return (
         <Card>
@@ -162,7 +174,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                         {requests.map(request => (
                             <div key={request.id} className="p-4 border rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                                 <div className="flex-grow">
-                                    <h4 className="font-semibold capitalize">{request.purposeData?.purpose} Request</h4>
+                                    <h4 className="font-semibold capitalize">{getRequestTitle(request)}</h4>
                                     <p className="text-sm text-muted-foreground">
                                         Created on {request.createdAt ? format(request.createdAt.toDate(), 'PP') : 'date unknown'}
                                     </p>
@@ -172,9 +184,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                                     <Button asChild size="sm" variant="outline">
                                         <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
                                     </Button>
-                                    <Button size="sm" variant="destructive" disabled>
-                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                    </Button>
+                                    <DeleteRequestButton requestId={request.id} />
                                 </div>
                             </div>
                         ))}

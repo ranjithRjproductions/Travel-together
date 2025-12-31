@@ -308,3 +308,42 @@ export async function deleteTravelerProfileInfo(travelerId: string): Promise<{ s
     return { success: false, message: 'An unexpected error occurred during profile info deletion.' };
   }
 }
+
+
+export async function deleteTravelRequest(requestId: string): Promise<{ success: boolean; message: string }> {
+  'use server';
+
+  // 1. Verify admin privileges
+  const sessionCookie = cookies().get('session')?.value;
+  if (!sessionCookie) {
+    return { success: false, message: 'Authentication required.' };
+  }
+
+  try {
+    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    if (!adminDoc.exists) {
+      return { success: false, message: 'Permission denied. Not an admin.' };
+    }
+
+    // 2. Delete the travel request document
+    const requestDocRef = db.collection('travelRequests').doc(requestId);
+    const requestDoc = await requestDocRef.get();
+    if (!requestDoc.exists) {
+      return { success: false, message: 'Request not found.' };
+    }
+    const travelerId = requestDoc.data()?.travelerId;
+
+    await requestDocRef.delete();
+
+    // 3. Revalidate the traveler detail page to refresh the list
+    if (travelerId) {
+        revalidatePath(`/admin/users/travelers/${travelerId}`);
+    }
+
+    return { success: true, message: 'Travel request deleted successfully.' };
+  } catch (error: any) {
+    console.error('Error deleting travel request:', error);
+    return { success: false, message: 'An unexpected error occurred during request deletion.' };
+  }
+}
