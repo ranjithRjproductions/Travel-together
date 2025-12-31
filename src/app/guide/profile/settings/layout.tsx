@@ -13,14 +13,6 @@ import {
   Sparkles,
   ArrowLeft,
 } from 'lucide-react';
-import type { Metadata } from 'next';
-import homeContent from '@/app/content/home.json';
-
-const siteName = homeContent.meta.title.split('–')[0].trim();
-
-export const metadata: Metadata = {
-  title: "Profile Information | Guide Settings"
-};
 
 const guideNavigation = [
   { name: 'Profile Information', href: '/guide/profile/settings', icon: User, exact: true },
@@ -83,5 +75,3 @@ export default function GuideProfileSettingsLayout({
     </div>
   );
 }
-
-    
