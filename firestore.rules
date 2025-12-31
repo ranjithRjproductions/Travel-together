@@ -5,22 +5,22 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Function to check if the requesting user is an admin.
-    // It checks for the existence of a document with the user's UID in the roles_admin collection.
     function isAdmin() {
       return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
     // USERS
     // A user can read their own document. Admins can read any user document.
-    // Updates are restricted to only safe, user-editable fields.
-    // Deletion is restricted to admins only to prevent accidental data loss.
+    // Create is allowed for the user themselves.
+    // Updates are restricted to only safe, user-editable fields to prevent privilege escalation.
+    // Deletion is restricted to admins only to prevent data loss.
     match /users/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['name', 'photoURL', 'photoAlt', 'gender', 'address', 'contact', 'disability']);
-      allow delete: if isAdmin();
+      allow delete: if request.auth != null && isAdmin();
     }
     
     // GUIDE PROFILE (Subcollection of users)
@@ -32,8 +32,7 @@ service cloud.firestore {
 
     // TRAVEL REQUESTS
     // Create is allowed if the user is authenticated and is the owner.
-    // Read/Delete is allowed for the owner or an admin.
-    // The read rule is hardened to ensure travelerId exists.
+    // Read/Delete is allowed for the owner or an admin. The read rule is hardened to ensure travelerId exists.
     // Update is restricted to prevent users from changing the status or guideId.
     match /travelRequests/{requestId} {
       allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
@@ -42,7 +41,20 @@ service cloud.firestore {
           (resource.data.travelerId is string && resource.data.travelerId == request.auth.uid) 
           || isAdmin()
         );
-      allow update: if request.auth != null && resource.data.travelerId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.travelerId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly([
+                'purposeData',
+                'requestedDate',
+                'startTime',
+                'endTime',
+                'travelMediumData',
+                'pickupData',
+                'step1Complete',
+                'step2Complete',
+                'step3Complete',
+                'step4Complete'
+             ]);
     }
 
     // ADMIN ROLES (Read-only for clients)
