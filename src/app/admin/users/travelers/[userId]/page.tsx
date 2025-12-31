@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar, View, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { DeleteProfileInfoButton } from './delete-profile-info-button';
 
@@ -160,14 +160,22 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                 ) : (
                     <div className="space-y-4">
                         {requests.map(request => (
-                            <div key={request.id} className="p-4 border rounded-lg flex justify-between items-center">
-                                <div>
+                            <div key={request.id} className="p-4 border rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div className="flex-grow">
                                     <h4 className="font-semibold capitalize">{request.purposeData?.purpose} Request</h4>
                                     <p className="text-sm text-muted-foreground">
                                         Created on {request.createdAt ? format(request.createdAt.toDate(), 'PP') : 'date unknown'}
                                     </p>
                                 </div>
-                                {getRequestStatusBadge(request.status)}
+                                <div className="flex items-center gap-4">
+                                    {getRequestStatusBadge(request.status)}
+                                    <Button asChild size="sm" variant="outline">
+                                        <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
+                                    </Button>
+                                    <Button size="sm" variant="destructive" disabled>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                     </div>
