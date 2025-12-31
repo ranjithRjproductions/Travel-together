@@ -22,23 +22,56 @@ import { Button } from '@/components/ui/button';
 import { DeleteTravelerButton } from './delete-traveler-button';
 import Link from 'next/link';
 import { Eye } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+
+type TravelerWithStats = User & {
+  id: string;
+  requestCount: number;
+  profileCompletion: number;
+};
+
+const calculateProfileCompletion = (user: User): number => {
+    let completedFields = 0;
+    const totalFields = 6;
+
+    if (user.name) completedFields++;
+    if (user.photoURL) completedFields++;
+    if (user.gender) completedFields++;
+    if (user.address && user.address.addressLine1) completedFields++;
+    if (user.contact && user.contact.primaryPhone) completedFields++;
+    if (user.hasOwnProperty('disability')) completedFields++;
+
+    return Math.round((completedFields / totalFields) * 100);
+}
 
 
-async function getTravelers() {
+async function getTravelers(): Promise<TravelerWithStats[]> {
   try {
     const usersSnapshot = await db.collection('users').where('role', '==', 'Traveler').get();
     if (usersSnapshot.empty) {
       return [];
     }
 
-    const travelers = usersSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            ...data
-        } as User & { id: string };
-    });
-    return travelers;
+    const travelersWithStats = await Promise.all(
+        usersSnapshot.docs.map(async (doc) => {
+            const userData = doc.data() as User;
+            const travelerId = doc.id;
+            
+            const requestsSnapshot = await db.collection('travelRequests').where('travelerId', '==', travelerId).get();
+            const requestCount = requestsSnapshot.size;
+
+            const profileCompletion = calculateProfileCompletion(userData);
+
+            return {
+                id: travelerId,
+                ...userData,
+                requestCount,
+                profileCompletion,
+            } as TravelerWithStats;
+        })
+    );
+
+    return travelersWithStats;
 
   } catch (error) {
     console.error("Error fetching travelers:", error);
@@ -63,6 +96,8 @@ export default async function ManageTravelersPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead className="text-center">Total Requests</TableHead>
+              <TableHead className="text-center">Profile Completion</TableHead>
               <TableHead className="text-center">View</TableHead>
               <TableHead className="text-center">Delete</TableHead>
             </TableRow>
@@ -70,7 +105,7 @@ export default async function ManageTravelersPage() {
           <TableBody>
             {travelers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No travelers found.
                 </TableCell>
               </TableRow>
@@ -79,6 +114,13 @@ export default async function ManageTravelersPage() {
                 <TableRow key={traveler.id}>
                   <TableCell className="font-medium">{traveler.name}</TableCell>
                   <TableCell>{traveler.email}</TableCell>
+                   <TableCell className="text-center">{traveler.requestCount}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                        <Progress value={traveler.profileCompletion} className="w-24"/>
+                        <span className="text-xs text-muted-foreground">{traveler.profileCompletion}%</span>
+                    </div>
+                  </TableCell>
                    <TableCell className="text-center">
                      <Button asChild variant="outline" size="sm">
                         <Link href={`/admin/users/travelers/${traveler.id}`}>
