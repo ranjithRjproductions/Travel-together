@@ -19,11 +19,10 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 import { LogIn, AlertCircle, MailCheck } from 'lucide-react';
 import { signInWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
-import { useAuth, useFirebase } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import content from '@/app/content/login.json';
 import Link from 'next/link';
-import { doc, getDoc } from 'firebase/firestore';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
@@ -83,7 +82,6 @@ export function LoginForm() {
   const [showVerifyEmail, setShowVerifyEmail] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const auth = useAuth();
-  const { firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -139,8 +137,6 @@ export function LoginForm() {
       const user = userCredential.user;
       
       if (!user.emailVerified) {
-          // Keep the user temporarily signed in to allow for resend.
-          // Don't create session.
           setShowVerifyEmail(true);
           setIsSubmitting(false);
           return;
@@ -157,17 +153,14 @@ export function LoginForm() {
       });
 
       if (res.ok) {
-        if (!firestore) throw new Error("Firestore not available");
+        const { isAdmin, role } = await res.json();
         
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const redirectTo = userData.role === 'Guide' ? '/guide/dashboard' : '/traveler/dashboard';
-          router.push(redirectTo);
+        if (isAdmin) {
+          router.push('/admin');
+        } else if (role === 'Guide') {
+          router.push('/guide/dashboard');
         } else {
-            throw new Error("User document not found.");
+          router.push('/traveler/dashboard');
         }
       } else {
         throw new Error('Failed to create session.');

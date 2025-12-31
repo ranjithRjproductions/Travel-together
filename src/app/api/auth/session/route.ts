@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth as adminAuth } from '@/lib/firebase-admin';
+import { auth as adminAuth, db } from '@/lib/firebase-admin';
 
 // Disabling caching for this route.
 export const dynamic = 'force-dynamic';
@@ -20,6 +20,20 @@ export async function POST(request: NextRequest) {
     const decodedIdToken = await adminAuth.verifyIdToken(idToken);
     const uid = decodedIdToken.uid;
 
+    // Check for admin privileges and get user role in parallel
+    const [userDoc, adminDoc] = await Promise.all([
+        db.collection('users').doc(uid).get(),
+        db.collection('roles_admin').doc(uid).get()
+    ]);
+
+    if (!userDoc.exists) {
+        return NextResponse.json({ error: 'User data not found.' }, { status: 404 });
+    }
+
+    const userData = userDoc.data();
+    const isAdmin = adminDoc.exists;
+    const role = userData?.role;
+
     // The session cookie will be exchanged for an ID token and refreshed automatically.
     const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
 
@@ -32,7 +46,7 @@ export async function POST(request: NextRequest) {
       path: '/',
     };
 
-    const response = NextResponse.json({ status: 'success' }, { status: 200 });
+    const response = NextResponse.json({ status: 'success', role, isAdmin }, { status: 200 });
     response.cookies.set(options);
     
     return response;
