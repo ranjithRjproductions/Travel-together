@@ -50,12 +50,14 @@ export default function CreateRequestFormPage() {
 
   const { data: request, isLoading: isRequestLoading, error: requestError } = useDoc<TravelRequest>(requestDocRef);
 
-  const userDocRef = useMemo(() => {
-    if (!authUser || !firestore) return null;
-    return doc(firestore, 'users', authUser.uid);
-  }, [authUser, firestore]);
-  const { data: userData } = useDoc<UserData>(userDocRef);
-  
+  // Fetch the TRAVELER'S user data using the ID from the request document.
+  const travelerDocRef = useMemo(() => {
+    if (!firestore || !request?.travelerId) return null;
+    return doc(firestore, 'users', request.travelerId);
+  }, [firestore, request?.travelerId]);
+  const { data: travelerData, isLoading: isTravelerDataLoading } = useDoc<UserData>(travelerDocRef);
+
+
   const [currentTab, setCurrentTab] = useState('step-1');
   const [isEditingStep1, setIsEditingStep1] = useState(true);
   const [isEditingStep2, setIsEditingStep2] = useState(false);
@@ -164,7 +166,7 @@ export default function CreateRequestFormPage() {
     // The useDoc hook will trigger a re-render with the updated request data
   };
 
-  const isLoading = isAuthLoading || isRequestLoading || isNew || !hasLoadedOnce;
+  const isLoading = isAuthLoading || isRequestLoading || isTravelerDataLoading || isNew || !hasLoadedOnce;
   
   if (isLoading) {
     return (
@@ -190,7 +192,7 @@ export default function CreateRequestFormPage() {
     );
   }
   
-  if (!request || !userData) {
+  if (!request || !travelerData) {
      return (
         <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8 text-center">
             <p>Loading details...</p>
@@ -204,7 +206,7 @@ export default function CreateRequestFormPage() {
       <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
          <h1 className="font-headline text-3xl md:text-4xl font-bold mb-8">Request Details</h1>
          <div className="max-w-2xl mx-auto">
-          <Step5Review request={request} userData={userData} />
+          <Step5Review request={request} userData={travelerData} />
            <div className="flex justify-end mt-6">
               <Button onClick={() => router.push('/traveler/my-requests')}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -222,7 +224,7 @@ export default function CreateRequestFormPage() {
       <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
          <h1 className="font-headline text-3xl md:text-4xl font-bold mb-8">Request Details (Admin View)</h1>
          <div className="max-w-2xl mx-auto">
-          <Step5Review request={request} userData={userData} />
+          <Step5Review request={request} userData={travelerData} />
            <div className="flex justify-end mt-6">
               <Button onClick={() => router.back()}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -292,7 +294,7 @@ export default function CreateRequestFormPage() {
                     )}
                 </TabsContent>
                  <TabsContent value="step-5" className="mt-4">
-                    <Step5Review request={request} userData={userData} />
+                    <Step5Review request={request} userData={travelerData} />
                 </TabsContent>
             </Tabs>
         </div>
