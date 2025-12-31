@@ -161,6 +161,13 @@ function DangerZoneSection({ userId }: { userId: string }) {
             <CardContent className="space-y-4">
                 <div className="flex justify-between items-center p-4 border border-dashed rounded-lg">
                     <div>
+                        <h4 className="font-semibold">Delete Profile Information</h4>
+                        <p className="text-sm text-muted-foreground">Permanently delete this user's profile info (address, contact, disability).</p>
+                    </div>
+                    <Button variant="destructive" disabled>Delete Profile Info</Button>
+                </div>
+                <div className="flex justify-between items-center p-4 border border-dashed rounded-lg">
+                    <div>
                         <h4 className="font-semibold">Delete Travel Requests</h4>
                         <p className="text-sm text-muted-foreground">Permanently delete all of this user's travel requests.</p>
                     </div>
