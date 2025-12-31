@@ -56,14 +56,11 @@ const expertiseSchema = z.object({
     if (data.hasDisabilityExperience === 'yes' && !data.experienceType) {
         ctx.addIssue({ code: 'custom', message: 'Please select the type of disability experience.', path: ['experienceType'] });
     }
-    if (data.experienceType === 'visually-impaired') {
-        if (!data.visionSupport?.specialization) {
-            ctx.addIssue({ code: 'custom', message: 'Please select your specialization.', path: ['visionSupport.specialization'] });
-        }
+    if (data.localExpertise.includes('education')) {
         if (!data.visionSupport?.willingToScribe) {
             ctx.addIssue({ code: 'custom', message: 'Please specify if you are willing to scribe.', path: ['visionSupport.willingToScribe'] });
         }
-        if (data.visionSupport.willingToScribe === 'yes' && (!data.visionSupport.scribeSubjects || data.visionSupport.scribeSubjects.length === 0)) {
+        if (data.visionSupport?.willingToScribe === 'yes' && (!data.visionSupport.scribeSubjects || data.visionSupport.scribeSubjects.length === 0)) {
             ctx.addIssue({ code: 'custom', message: 'Please select at least one subject you can scribe for.', path: ['visionSupport.scribeSubjects'] });
         }
     }
@@ -114,6 +111,7 @@ export default function GuideExpertisePage() {
 
     const hasDisabilityExperience = watch('hasDisabilityExperience');
     const experienceType = watch('experienceType');
+    const localExpertise = watch('localExpertise');
     const willingToScribe = watch('visionSupport.willingToScribe');
     const willingToUseVehicle = watch('willingToUseVehicle');
     const formIsSubmitting = isSubmitting || isUploading;
@@ -243,7 +241,7 @@ export default function GuideExpertisePage() {
                         </fieldset>
                     )}
 
-                    {experienceType === 'visually-impaired' && (
+                    {experienceType === 'visually-impaired' && hasDisabilityExperience === 'yes' && (
                         <fieldset className="pl-6 border-l-2 border-muted space-y-4">
                             <legend className="text-sm font-medium mb-2">Visually Impaired Specialization</legend>
                             <Controller name="visionSupport.specialization" control={control} render={({ field }) => (
@@ -253,8 +251,44 @@ export default function GuideExpertisePage() {
                                 </RadioGroup>
                             )} />
                             {errors.visionSupport?.specialization && <p className="text-sm text-destructive mt-2">{errors.visionSupport.specialization.message}</p>}
-                            
-                            <div className="pt-4 border-t">
+                        </fieldset>
+                    )}
+
+                    {experienceType === 'hearing-impaired' && (
+                         <fieldset className="pl-6 border-l-2 border-muted space-y-4">
+                            <legend className="text-sm font-medium mb-2">Hearing Impaired Support</legend>
+                             <Controller name="hearingSupport.knowsSignLanguage" control={control} render={({ field }) => (
+                                <div className="flex items-start space-x-2">
+                                    <Checkbox id="knowsSignLanguage" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
+                                    <Label htmlFor="knowsSignLanguage" className="font-normal">I know sign language.</Label>
+                                </div>
+                            )} />
+                         </fieldset>
+                    )}
+
+                    {/* Local Expertise */}
+                    <fieldset>
+                        <legend className="text-sm font-medium mb-2">Select your areas of expertise in your local places.</legend>
+                        {expertiseAreas.map(item => (
+                            <Controller key={item.id} name="localExpertise" control={control} render={({ field }) => (
+                                <div className="flex items-start space-x-2 my-2">
+                                    <Checkbox id={item.id} checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                            return checked
+                                                ? field.onChange([...(field.value || []), item.id])
+                                                : field.onChange(field.value?.filter(v => v !== item.id));
+                                        }}
+                                    />
+                                    <Label htmlFor={item.id} className="font-normal text-sm">{item.label}</Label>
+                                </div>
+                            )} />
+                        ))}
+                         {errors.localExpertise && <p className="text-sm text-destructive mt-2">{errors.localExpertise.message}</p>}
+                    </fieldset>
+                    
+                     {localExpertise?.includes('education') && (
+                        <fieldset className="pl-6 border-l-2 border-muted space-y-4">
+                             <div className="pt-4">
                                 <legend className="text-sm font-medium mb-2">Are you willing to act as a scribe for exams?</legend>
                                  <Controller name="visionSupport.willingToScribe" control={control} render={({ field }) => (
                                     <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4">
@@ -292,37 +326,6 @@ export default function GuideExpertisePage() {
                         </fieldset>
                     )}
 
-                    {experienceType === 'hearing-impaired' && (
-                         <fieldset className="pl-6 border-l-2 border-muted space-y-4">
-                            <legend className="text-sm font-medium mb-2">Hearing Impaired Support</legend>
-                             <Controller name="hearingSupport.knowsSignLanguage" control={control} render={({ field }) => (
-                                <div className="flex items-start space-x-2">
-                                    <Checkbox id="knowsSignLanguage" checked={field.value} onCheckedChange={field.onChange} className="mt-1" />
-                                    <Label htmlFor="knowsSignLanguage" className="font-normal">I know sign language.</Label>
-                                </div>
-                            )} />
-                         </fieldset>
-                    )}
-
-                    {/* Local Expertise */}
-                    <fieldset>
-                        <legend className="text-sm font-medium mb-2">Select your areas of expertise in your local places.</legend>
-                        {expertiseAreas.map(item => (
-                            <Controller key={item.id} name="localExpertise" control={control} render={({ field }) => (
-                                <div className="flex items-start space-x-2 my-2">
-                                    <Checkbox id={item.id} checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                            return checked
-                                                ? field.onChange([...(field.value || []), item.id])
-                                                : field.onChange(field.value?.filter(v => v !== item.id));
-                                        }}
-                                    />
-                                    <Label htmlFor={item.id} className="font-normal text-sm">{item.label}</Label>
-                                </div>
-                            )} />
-                        ))}
-                         {errors.localExpertise && <p className="text-sm text-destructive mt-2">{errors.localExpertise.message}</p>}
-                    </fieldset>
 
                     {/* Language Expertise */}
                     <div className="grid md:grid-cols-2 gap-6">

@@ -126,7 +126,7 @@ export default async function GuideDetailPage({ params }: { params: { guideId: s
                         <p className="text-sm">
                             {guideProfile.address?.addressLine1}<br/>
                             {guideProfile.address?.addressLine2 && <>{guideProfile.address.addressLine2}<br/></>}
-                            {guideProfile.address?.city}, {guideProfile.address?.district}, {guideProfile.address?.state} {guideProfile.address?.pincode}<br/>
+                            {guideProfile.address?.city}, {guideProfile.address?.district}, {guideProfile.address?.pincode}<br/>
                             {guideProfile.address?.country}
                         </p>
                         <InfoLink label="Address Proof" href={guideProfile.address?.addressProofUrl} />
@@ -146,10 +146,19 @@ export default async function GuideDetailPage({ params }: { params: { guideId: s
                 <div className="space-y-8">
                      <Section title="Disability & Language Expertise" icon={Accessibility}>
                         <InfoItem label="Has Experience with Disability?" value={guideProfile.disabilityExpertise?.hasDisabilityExperience} />
-                        <InfoItem label="Experience Type" value={guideProfile.disabilityExpertise?.experienceType} />
-                        <InfoItem label="Knows Sign Language" value={guideProfile.disabilityExpertise?.hearingSupport?.knowsSignLanguage} />
-
-                        {guideProfile.disabilityExpertise?.experienceType === 'visually-impaired' && guideProfile.disabilityExpertise?.visionSupport && (
+                        {guideProfile.disabilityExpertise?.hasDisabilityExperience === 'yes' && (
+                            <>
+                                <InfoItem label="Experience Type" value={guideProfile.disabilityExpertise?.experienceType} />
+                                {guideProfile.disabilityExpertise?.experienceType === 'visually-impaired' && (
+                                    <InfoItem label="Specialization" value={guideProfile.disabilityExpertise?.visionSupport?.specialization} />
+                                )}
+                                {guideProfile.disabilityExpertise?.experienceType === 'hearing-impaired' && (
+                                    <InfoItem label="Knows Sign Language" value={guideProfile.disabilityExpertise?.hearingSupport?.knowsSignLanguage} />
+                                )}
+                            </>
+                        )}
+                        
+                        {guideProfile.disabilityExpertise?.visionSupport?.willingToScribe === 'yes' && (
                             <div className="space-y-4 pt-4 mt-4 border-t">
                                 <h4 className="text-md font-semibold flex items-center gap-2"><PenLine className="h-4 w-4" /> Scribe Expertise</h4>
                                 <InfoItem label="Willing to act as Scribe?" value={guideProfile.disabilityExpertise.visionSupport.willingToScribe} />
