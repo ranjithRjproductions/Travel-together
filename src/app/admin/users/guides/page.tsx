@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/definitions';
 import { updateGuideStatus } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
-import { Check, X, ArrowLeft } from 'lucide-react';
+import { Check, X, ArrowLeft, Eye } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
@@ -182,14 +182,15 @@ export default async function ManageGuidesPage() {
               <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Profile Completion</TableHead>
-              <TableHead className="text-right">Approve/Reject</TableHead>
-              <TableHead className="text-right">Delete</TableHead>
+              <TableHead>Approve/Reject</TableHead>
+              <TableHead>View</TableHead>
+              <TableHead>Delete</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {guides.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">No guides found.</TableCell>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">No guides found.</TableCell>
                 </TableRow>
             )}
 
@@ -204,8 +205,16 @@ export default async function ManageGuidesPage() {
                         <span className="text-xs text-muted-foreground">{guide.profileCompletion}%</span>
                     </div>
                 </TableCell>
-                <TableCell className="text-right"><ActionButtons guide={guide} /></TableCell>
-                <TableCell className="text-right"><DeleteGuideButton guide={guide} /></TableCell>
+                <TableCell><ActionButtons guide={guide} /></TableCell>
+                <TableCell>
+                     <Button asChild variant="outline" size="sm">
+                        <Link href={`/admin/users/guides/${guide.id}`}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </Link>
+                      </Button>
+                </TableCell>
+                <TableCell><DeleteGuideButton guide={guide} /></TableCell>
               </TableRow>
             ))}
 
@@ -220,8 +229,16 @@ export default async function ManageGuidesPage() {
                         <span className="text-xs text-muted-foreground">{guide.profileCompletion}%</span>
                     </div>
                 </TableCell>
-                <TableCell className="text-right"><ActionButtons guide={guide} /></TableCell>
-                 <TableCell className="text-right"><DeleteGuideButton guide={guide} /></TableCell>
+                <TableCell><ActionButtons guide={guide} /></TableCell>
+                <TableCell>
+                     <Button asChild variant="outline" size="sm">
+                        <Link href={`/admin/users/guides/${guide.id}`}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </Link>
+                      </Button>
+                </TableCell>
+                 <TableCell><DeleteGuideButton guide={guide} /></TableCell>
               </TableRow>
             ))}
           </TableBody>
