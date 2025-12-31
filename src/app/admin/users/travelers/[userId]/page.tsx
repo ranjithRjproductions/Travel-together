@@ -15,7 +15,8 @@ import { format } from 'date-fns';
 
 async function getTravelerDetails(userId: string) {
     const userDocRef = db.collection('users').doc(userId);
-    const requestsQuery = db.collection('travelRequests').where('travelerId', '==', userId).orderBy('createdAt', 'desc');
+    // The query was changed here: removed .orderBy('createdAt', 'desc')
+    const requestsQuery = db.collection('travelRequests').where('travelerId', '==', userId);
 
     const [userDoc, requestsSnapshot] = await Promise.all([
         userDocRef.get(),
@@ -27,7 +28,15 @@ async function getTravelerDetails(userId: string) {
     }
 
     const user = userDoc.data() as User;
-    const requests = requestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TravelRequest));
+    
+    // Sort the requests in code after fetching
+    const requests = requestsSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as TravelRequest))
+        .sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA; // Sort descending
+        });
 
     return { user, requests };
 }
