@@ -164,19 +164,7 @@ export default function GuideProfileSettingsPage() {
 
     try {
       if (photoFile && photoPreview) {
-        // const aiResponse = await generateAltText({ userName: data.name, photoDataUri: photoPreview });
-
-        // if (aiResponse.personCount > 1) {
-        //     toast({
-        //         variant: "destructive",
-        //         title: "Invalid Profile Photo",
-        //         description: "Your photo appears to have more than one person. Please upload a photo of just yourself."
-        //     });
-        //     setIsUploading(false);
-        //     return;
-        // }
-        // altText = aiResponse.altText;
-        altText = `Profile photo of ${data.name}`; // Temporary placeholder
+        altText = `Profile photo of ${data.name}`;
         photoURL = await uploadPhoto(photoFile);
       } else if (!photoURL) {
         toast({
