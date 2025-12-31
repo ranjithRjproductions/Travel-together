@@ -27,6 +27,9 @@ import { Progress } from '@/components/ui/progress';
 type TravelerWithStats = User & {
   id: string;
   requestCount: number;
+  draftCount: number;
+  inProgressCount: number;
+  pendingCount: number;
   profileCompletion: number;
 };
 
@@ -58,14 +61,36 @@ async function getTravelers(): Promise<TravelerWithStats[]> {
             const travelerId = doc.id;
             
             const requestsSnapshot = await db.collection('travelRequests').where('travelerId', '==', travelerId).get();
-            const requestCount = requestsSnapshot.size;
+            
+            let draftCount = 0;
+            let inProgressCount = 0; // 'confirmed'
+            let pendingCount = 0;
 
+            requestsSnapshot.forEach(doc => {
+              const request = doc.data();
+              switch (request.status) {
+                case 'draft':
+                  draftCount++;
+                  break;
+                case 'confirmed':
+                  inProgressCount++;
+                  break;
+                case 'pending':
+                  pendingCount++;
+                  break;
+              }
+            });
+
+            const requestCount = requestsSnapshot.size;
             const profileCompletion = calculateProfileCompletion(userData);
 
             return {
                 id: travelerId,
                 ...userData,
                 requestCount,
+                draftCount,
+                inProgressCount,
+                pendingCount,
                 profileCompletion,
             } as TravelerWithStats;
         })
@@ -97,6 +122,9 @@ export default async function ManageTravelersPage() {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead className="text-center">Total Requests</TableHead>
+              <TableHead className="text-center">Drafts</TableHead>
+              <TableHead className="text-center">In Progress</TableHead>
+              <TableHead className="text-center">Pending</TableHead>
               <TableHead className="text-center">Profile Completion</TableHead>
               <TableHead className="text-center">View</TableHead>
               <TableHead className="text-center">Delete</TableHead>
@@ -105,7 +133,7 @@ export default async function ManageTravelersPage() {
           <TableBody>
             {travelers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   No travelers found.
                 </TableCell>
               </TableRow>
@@ -114,7 +142,10 @@ export default async function ManageTravelersPage() {
                 <TableRow key={traveler.id}>
                   <TableCell className="font-medium">{traveler.name}</TableCell>
                   <TableCell>{traveler.email}</TableCell>
-                   <TableCell className="text-center">{traveler.requestCount}</TableCell>
+                  <TableCell className="text-center">{traveler.requestCount}</TableCell>
+                  <TableCell className="text-center">{traveler.draftCount}</TableCell>
+                  <TableCell className="text-center">{traveler.inProgressCount}</TableCell>
+                  <TableCell className="text-center">{traveler.pendingCount}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                         <Progress value={traveler.profileCompletion} className="w-24"/>
