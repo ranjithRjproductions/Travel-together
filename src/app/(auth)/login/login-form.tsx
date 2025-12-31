@@ -153,11 +153,10 @@ export function LoginForm() {
       });
 
       if (res.ok) {
-        const { isAdmin, role } = await res.json();
+        const { role } = await res.json();
         
-        if (isAdmin) {
-          router.push('/admin');
-        } else if (role === 'Guide') {
+        // This is the corrected logic. It no longer checks for `isAdmin`.
+        if (role === 'Guide') {
           router.push('/guide/dashboard');
         } else {
           router.push('/traveler/dashboard');
