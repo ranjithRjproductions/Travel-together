@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { logout } from '@/lib/actions';
-import { User, LogOut, List } from 'lucide-react';
+import { User, LogOut, List, Shield } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
@@ -92,6 +92,19 @@ export function UserNav({ user }: { user?: UserType | null }) {
             </DropdownMenuItem>
           )}
         </DropdownMenuGroup>
+        {user.isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <Shield aria-hidden="true" />
+                  <span>Admin Panel</span>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        )}
         <DropdownMenuSeparator />
         <LogoutButton />
       </DropdownMenuContent>
