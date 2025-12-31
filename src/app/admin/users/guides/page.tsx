@@ -5,7 +5,6 @@ import { db } from '@/lib/firebase-admin';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -22,7 +21,20 @@ import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/definitions';
 import { updateGuideStatus } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
-import { Check, X } from 'lucide-react';
+import { Check, X, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import type { Metadata } from 'next';
+import homeContent from '@/app/content/home.json';
+
+const siteName = homeContent.meta.title.split('–')[0].trim();
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: `Manage Guides | ${siteName}`,
+    description: 'Review, approve, and manage all guide accounts in the system.',
+  };
+}
+
 
 async function getGuides() {
   try {
@@ -112,10 +124,20 @@ export default async function ManageGuidesPage() {
   return (
      <Card>
       <CardHeader>
-        <CardTitle>Manage Guides</CardTitle>
-        <CardDescription>
-          Review, approve, and manage all guide accounts. Guides pending verification are listed first.
-        </CardDescription>
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle>Manage Guides</CardTitle>
+                <CardDescription>
+                Review, approve, and manage all guide accounts. Guides pending verification are listed first.
+                </CardDescription>
+            </div>
+            <Button asChild variant="outline">
+                <Link href="/admin">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Dashboard
+                </Link>
+            </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
