@@ -16,9 +16,7 @@ export async function middleware(request: NextRequest) {
     // If they are on an auth route or the homepage, redirect them to their appropriate dashboard
     if (isAuthRoute || isPublicRoute) {
       let redirectUrl = '/traveler/dashboard'; // Default
-      if (user.isAdmin) {
-        redirectUrl = '/admin';
-      } else if (user.role === 'Guide') {
+      if (user.role === 'Guide') {
         redirectUrl = '/guide/dashboard';
       }
       return NextResponse.redirect(new URL(redirectUrl, request.url));
