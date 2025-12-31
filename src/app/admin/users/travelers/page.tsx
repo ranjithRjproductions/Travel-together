@@ -20,7 +20,7 @@ import {
 import { type User } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Eye } from 'lucide-react';
+import { Eye, Trash2 } from 'lucide-react';
 
 async function getTravelers() {
   try {
@@ -61,7 +61,7 @@ export default async function ManageTravelersPage() {
           <TableBody>
             {travelers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No travelers found.
                 </TableCell>
               </TableRow>
@@ -70,12 +70,16 @@ export default async function ManageTravelersPage() {
                 <TableRow key={traveler.uid}>
                   <TableCell className="font-medium">{traveler.name}</TableCell>
                   <TableCell>{traveler.email}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right space-x-2">
                     <Button asChild variant="outline" size="sm">
                         <Link href={`/admin/users/travelers/${traveler.uid}`}>
                             <Eye className="mr-2 h-4 w-4" />
                             View
                         </Link>
+                    </Button>
+                    <Button variant="destructive" size="sm" disabled>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
                     </Button>
                   </TableCell>
                 </TableRow>
