@@ -10,8 +10,9 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar, Trash2 } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
+import { DeleteProfileInfoButton } from './delete-profile-info-button';
 
 // This is a Firestore server-side Timestamp
 interface FirestoreTimestamp {
@@ -63,7 +64,7 @@ function InfoItem({ label, value, defaultText = 'Not provided' }: { label: strin
     );
 }
 
-function ProfileSection({ user }: { user: User }) {
+function ProfileSection({ user }: { user: User & { uid: string } }) {
     const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
     return (
         <Card>
@@ -92,33 +93,43 @@ function ProfileSection({ user }: { user: User }) {
                  <Separator />
                 <div className="space-y-4">
                      <h3 className="font-semibold flex items-center gap-2"><MapPin className="h-4 w-4" /> Address</h3>
-                     <p className="text-sm">
-                        {user.address?.addressLine1}<br/>
-                        {user.address?.addressLine2 && <>{user.address.addressLine2}<br/></>}
-                        {user.address?.city}, {user.address?.state} {user.address?.postalCode}<br/>
-                        {user.address?.country}
-                     </p>
+                     {user.address ? (
+                        <p className="text-sm">
+                            {user.address?.addressLine1}<br/>
+                            {user.address?.addressLine2 && <>{user.address.addressLine2}<br/></>}
+                            {user.address?.city}, {user.address?.state} {user.address?.postalCode}<br/>
+                            {user.address?.country}
+                        </p>
+                     ) : (
+                        <p className="text-sm text-muted-foreground">No address provided.</p>
+                     )}
                 </div>
                  <Separator />
                  <div className="space-y-4">
                     <div className="flex justify-between items-start">
                         <h3 className="font-semibold flex items-center gap-2"><Accessibility className="h-4 w-4" /> Disability Disclosure</h3>
-                        <Button variant="destructive" size="sm" disabled>Delete Profile Info</Button>
+                         <DeleteProfileInfoButton traveler={user} />
                     </div>
-                    <InfoItem label="Disability Type" value={user.disability?.mainDisability === 'visually-impaired' ? 'Visually Impaired' : user.disability?.mainDisability === 'hard-of-hearing' ? 'Hard of Hearing' : 'Not Disclosed'} />
-                    {user.disability?.mainDisability === 'visually-impaired' && (
+                    {user.disability ? (
                         <>
-                            <InfoItem label="Vision Status" value={user.disability.visionSubOption} />
-                            <InfoItem label="Impairment Percentage" value={`${user.disability.visionPercentage}%`} />
+                            <InfoItem label="Disability Type" value={user.disability?.mainDisability === 'visually-impaired' ? 'Visually Impaired' : user.disability?.mainDisability === 'hard-of-hearing' ? 'Hard of Hearing' : 'Not Disclosed'} />
+                            {user.disability?.mainDisability === 'visually-impaired' && (
+                                <>
+                                    <InfoItem label="Vision Status" value={user.disability.visionSubOption} />
+                                    <InfoItem label="Impairment Percentage" value={`${user.disability.visionPercentage}%`} />
+                                </>
+                            )}
+                            {user.disability?.mainDisability === 'hard-of-hearing' && (
+                                <>
+                                    <InfoItem label="Impairment Percentage" value={`${user.disability.hearingPercentage}%`} />
+                                    <InfoItem label="Requires Sign Language" value={user.disability.requiresSignLanguageGuide ? 'Yes' : 'No'} />
+                                </>
+                            )}
+                            {user.disability?.documentName && <InfoItem label="Document" value={<a href={user.disability.documentUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">{user.disability.documentName}</a>} />}
                         </>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No disability information provided.</p>
                     )}
-                    {user.disability?.mainDisability === 'hard-of-hearing' && (
-                         <>
-                            <InfoItem label="Impairment Percentage" value={`${user.disability.hearingPercentage}%`} />
-                            <InfoItem label="Requires Sign Language" value={user.disability.requiresSignLanguageGuide ? 'Yes' : 'No'} />
-                        </>
-                    )}
-                    {user.disability?.documentName && <InfoItem label="Document" value={<a href={user.disability.documentUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">{user.disability.documentName}</a>} />}
                 </div>
             </CardContent>
         </Card>

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import type { User, TravelRequest } from './definitions';
-import { auth as adminAuth, db } from '@/lib/firebase-admin';
+import admin, { auth as adminAuth, db } from '@/lib/firebase-admin';
 import { differenceInMinutes, parseISO } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 
@@ -272,5 +272,39 @@ export async function deleteTravelerAccount(travelerId: string): Promise<{ succe
         }
     }
     return { success: false, message: 'An unexpected error occurred during account deletion.' };
+  }
+}
+
+export async function deleteTravelerProfileInfo(travelerId: string): Promise<{ success: boolean; message: string }> {
+  'use server';
+
+  // 1. Verify admin privileges
+  const sessionCookie = cookies().get('session')?.value;
+  if (!sessionCookie) {
+    return { success: false, message: 'Authentication required.' };
+  }
+
+  try {
+    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    if (!adminDoc.exists) {
+      return { success: false, message: 'Permission denied. Not an admin.' };
+    }
+
+    // 2. Delete the specific fields from the user's document
+    const userDocRef = db.collection('users').doc(travelerId);
+    await userDocRef.update({
+      address: admin.firestore.FieldValue.delete(),
+      contact: admin.firestore.FieldValue.delete(),
+      disability: admin.firestore.FieldValue.delete(),
+    });
+
+    // 3. Revalidate the path to refresh the data on the detail page
+    revalidatePath(`/admin/users/travelers/${travelerId}`);
+
+    return { success: true, message: 'Traveler profile information has been deleted.' };
+  } catch (error: any) {
+    console.error('Error deleting traveler profile info:', error);
+    return { success: false, message: 'An unexpected error occurred during profile info deletion.' };
   }
 }
