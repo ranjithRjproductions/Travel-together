@@ -8,6 +8,14 @@ import {
 import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import content from '@/app/content/guide-dashboard.json';
+import type { Metadata } from 'next';
+import homeContent from '@/app/content/home.json';
+
+const siteName = homeContent.meta.title.split('–')[0].trim();
+
+export const metadata: Metadata = {
+  title: `${content.pageTitle} | ${siteName}`,
+};
 
 export default async function GuideDashboard() {
   const user = await getUser();
