@@ -27,7 +27,7 @@ async function getTravelerDetails(userId: string) {
         return null;
     }
 
-    const user = userDoc.data() as User;
+    const user = { id: userDoc.id, ...userDoc.data() } as User & { id: string };
     
     // Sort the requests in code after fetching
     const requests = requestsSnapshot.docs

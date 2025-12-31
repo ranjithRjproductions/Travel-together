@@ -29,7 +29,13 @@ async function getTravelers() {
       return [];
     }
 
-    const travelers = usersSnapshot.docs.map(doc => doc.data() as User);
+    const travelers = usersSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id, // Use the document ID as 'id'
+            ...data
+        } as User & { id: string }; // Ensure id is part of the type
+    });
     return travelers;
 
   } catch (error) {
@@ -67,12 +73,12 @@ export default async function ManageTravelersPage() {
               </TableRow>
             ) : (
               travelers.map((traveler) => (
-                <TableRow key={traveler.uid}>
+                <TableRow key={traveler.id}>
                   <TableCell className="font-medium">{traveler.name}</TableCell>
                   <TableCell>{traveler.email}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button asChild variant="outline" size="sm">
-                        <Link href={`/admin/users/travelers/${traveler.uid}`}>
+                        <Link href={`/admin/users/travelers/${traveler.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
                             View
                         </Link>
