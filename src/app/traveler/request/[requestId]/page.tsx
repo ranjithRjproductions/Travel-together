@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -246,7 +247,7 @@ export default function CreateRequestFormPage() {
     <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
         <div className="flex justify-between items-center mb-6">
             <Button variant="outline" asChild>
-                <Link href="/traveler/my-requests">Back to My Requests</Link>
+                <Link href="/traveler/dashboard">Back to Dashboard</Link>
             </Button>
         </div>
         <h1 className="font-headline text-3xl md:text-4xl font-bold mb-8">New Travel Request</h1>
