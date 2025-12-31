@@ -216,7 +216,7 @@ export default function GuideProfileSettingsPage() {
   };
 
   const isLoading = isUserLoading || isProfileLoading;
-  const initials = userProfile?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || user?.email?.[0].toUpperCase();
+  const initials = userProfile?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || user?.email?.[0].toUpperCase();
   const isFormSubmitting = isSubmitting || isUploading;
 
   if (isLoading) {
