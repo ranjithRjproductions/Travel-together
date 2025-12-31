@@ -10,10 +10,22 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar, View, Trash2 } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar, View } from 'lucide-react';
 import { format } from 'date-fns';
 import { DeleteProfileInfoButton } from './delete-profile-info-button';
 import { DeleteRequestButton } from './delete-request-button';
+import type { Metadata } from 'next';
+import homeContent from '@/app/content/home.json';
+
+const siteName = homeContent.meta.title.split('–')[0].trim();
+
+export async function generateMetadata({ params }: { params: { userId: string } }): Promise<Metadata> {
+  const userDoc = await db.collection('users').doc(params.userId).get();
+  const userName = userDoc.exists ? userDoc.data()?.name : 'Traveler';
+  return {
+    title: `Details for ${userName} | ${siteName}`,
+  };
+}
 
 // This is a Firestore server-side Timestamp
 interface FirestoreTimestamp {
@@ -242,7 +254,6 @@ export default async function TravelerDetailPage({ params }: { params: { userId:
 
         <ProfileSection user={user} />
         <RequestsSection requests={requests} />
-        <DangerZoneSection userId={user.uid} />
     </div>
   );
 }

@@ -23,6 +23,15 @@ import { DeleteTravelerButton } from './delete-traveler-button';
 import Link from 'next/link';
 import { Eye } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import type { Metadata } from 'next';
+import homeContent from '@/app/content/home.json';
+
+const siteName = homeContent.meta.title.split('–')[0].trim();
+
+export const metadata: Metadata = {
+  title: `Manage Travelers | ${siteName}`,
+  description: 'View and manage all traveler accounts in the system.',
+};
 
 type TravelerWithStats = User & {
   id: string;
