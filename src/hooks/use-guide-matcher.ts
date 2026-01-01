@@ -24,21 +24,18 @@ export function useGuideMatcher(request: TravelRequest | null, traveler: UserDat
   const [matchedGuides, setMatchedGuides] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch all active guides. We will filter them on the client.
+  // Step 1: Fetch all active guides.
   const guidesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(
-      collection(firestore, 'users'),
-      where('role', '==', 'Guide')
-    );
+    return query(collection(firestore, 'users'), where('role', '==', 'Guide'));
   }, [firestore]);
 
   const { data: allGuides, isLoading: areGuidesLoading } = useCollection<UserData>(guidesQuery);
+  
+  const guideProfilesMap = useMemo(() => new Map<string, GuideProfile>(), []);
 
   useEffect(() => {
     if (areGuidesLoading || !allGuides || !request || !traveler || !firestore) {
-      // If we are still loading initial data, don't do anything yet.
-      // If we are not loading but have no guides, we can finish.
       if (!areGuidesLoading) {
         setIsLoading(false);
       }
@@ -49,54 +46,60 @@ export function useGuideMatcher(request: TravelRequest | null, traveler: UserDat
     setIsLoading(true);
 
     const filterAndSetGuides = async () => {
-      // Step 1: Fetch all guide profiles for the potential guides.
-      const guidesWithProfiles = await Promise.all(
-        allGuides.map(async (guide) => {
-          const profileRef = doc(firestore, `users/${guide.id}/guideProfile/guide-profile-doc`);
-          const profileSnap = await getDoc(profileRef);
-          return {
-            ...guide,
-            guideProfile: profileSnap.exists() ? (profileSnap.data() as GuideProfile) : undefined,
-          };
-        })
-      );
-      
+      // Step 2: Fetch guide profiles for all potential guides if not already cached
+      const profilesToFetch = allGuides.filter(guide => !guideProfilesMap.has(guide.id));
+      if (profilesToFetch.length > 0) {
+        await Promise.all(
+          profilesToFetch.map(async (guide) => {
+            const profileRef = doc(firestore, `users/${guide.id}/guideProfile/guide-profile-doc`);
+            const profileSnap = await getDoc(profileRef);
+            if (profileSnap.exists()) {
+              guideProfilesMap.set(guide.id, profileSnap.data() as GuideProfile);
+            }
+          })
+        );
+      }
+
       if (!isMounted) return;
+
+      const guidesWithProfiles: GuideWithProfile[] = allGuides.map((guide) => {
+        const profileDoc = guideProfilesMap.get(guide.id);
+        return {
+          ...guide,
+          uid: guide.id, // Ensure UID exists for React key
+          guideProfile: profileDoc,
+        };
+      });
 
       const requestDistrict = request?.purposeData?.subPurposeData?.collegeAddress?.district 
           || request?.purposeData?.subPurposeData?.hospitalAddress?.district
           || request?.purposeData?.subPurposeData?.shopAddress?.district
           || request?.purposeData?.subPurposeData?.shoppingArea?.district;
 
-      // Step 2: Filter the guides with their full profiles.
-      const filteredGuides = guidesWithProfiles.filter((guide: GuideWithProfile) => {
+      // Step 3: Perform fine-grained filtering on the client
+      const filteredGuides = guidesWithProfiles.filter((guide) => {
         const { guideProfile } = guide;
 
-        // Profile Sanity Check
         if (!guideProfile) {
           console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Missing guideProfile.`);
           return false;
         }
         
-        // Filter 1: Availability
         if (guideProfile.onboardingState !== 'active' || !guideProfile.isAvailable) {
-           console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Not active or available.`);
+          console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Not active or available.`);
           return false;
         }
 
-        // Filter 2: Location
         if (!requestDistrict || guideProfile.address?.district !== requestDistrict) {
              console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Mismatched district. Guide: ${guideProfile.address?.district}, Request: ${requestDistrict}`);
              return false;
         }
 
-        // Filter 3: Gender
         if (traveler.gender && guide.gender !== traveler.gender) {
           console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Mismatched gender.`);
           return false;
         }
 
-        // Filter 4: Expertise
         const expertise = guideProfile.disabilityExpertise;
         if (!expertise) {
           console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Missing disabilityExpertise.`);
@@ -123,14 +126,12 @@ export function useGuideMatcher(request: TravelRequest | null, traveler: UserDat
           if (!expertise.localExpertise?.includes('shopping')) return false;
         }
 
-        // Filter 5: Sign Language Requirement
-        if (traveler.disability?.mainDisability === 'hard-of-hearing' && traveler.disability.requiresSignLanguageGuide) {
+        if (request.travelerData?.disability?.mainDisability === 'hard-of-hearing' && request.travelerData?.disability.requiresSignLanguageGuide) {
           if (expertise.hearingSupport?.knowsSignLanguage !== true) {
             return false;
           }
         }
 
-        // If all checks pass, it's a match!
         return true;
       });
 
@@ -143,7 +144,7 @@ export function useGuideMatcher(request: TravelRequest | null, traveler: UserDat
     return () => {
       isMounted = false;
     };
-  }, [allGuides, areGuidesLoading, request, traveler, firestore]);
+  }, [allGuides, areGuidesLoading, request, traveler, firestore, guideProfilesMap]);
 
   return { matchedGuides, isLoading };
 }
