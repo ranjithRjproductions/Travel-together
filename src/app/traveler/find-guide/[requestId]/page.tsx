@@ -61,6 +61,7 @@ export default function FindGuidePage() {
 
     const { data: traveler, isLoading: isTravelerLoading } = useDoc<UserData>(travelerDocRef);
     
+    // The guide matcher hook now encapsulates all the complex logic.
     const { matchedGuides, isLoading: areGuidesLoading } = useGuideMatcher(request, traveler);
     
     const isLoading = isRequestLoading || isTravelerLoading || areGuidesLoading;
@@ -132,4 +133,3 @@ export default function FindGuidePage() {
         </div>
     );
 }
-

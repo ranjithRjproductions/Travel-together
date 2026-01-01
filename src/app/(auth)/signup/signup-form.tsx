@@ -153,7 +153,7 @@
     }
   };
 
-  if (verificationEmailSent) {
+bif (verificationEmailSent) {
       return (
           <VerifyEmailCard 
             email={emailForVerification}
