@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -208,10 +209,9 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
         if (result.success) {
             toast({
                 title: "Request Submitted!",
-                description: "Your request has been sent to available guides.",
+                description: "You will now be taken to find a guide.",
             });
-            router.push('/traveler/my-requests');
-            router.refresh(); // Refresh the page to get the latest status
+            router.push('/traveler/my-bookings');
         } else {
             toast({
                 title: "Submission Failed",
@@ -296,7 +296,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                             disabled={isSubmitting}
                             onClick={handleSubmit}
                         >
-                            {isSubmitting ? 'Submitting...' : 'Confirm & Submit Request'}
+                            {isSubmitting ? 'Submitting...' : 'Proceed to Find Guides'}
                         </Button>
                     </div>
                  )}

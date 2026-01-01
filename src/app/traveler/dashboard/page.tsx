@@ -142,13 +142,13 @@ export default function TravelerDashboard() {
 
           <Card className="flex flex-col">
             <CardHeader>
-              <CardTitle>{content.myRequests.title}</CardTitle>
-              <CardDescription>{content.myRequests.description}</CardDescription>
+              <CardTitle>My Bookings</CardTitle>
+              <CardDescription>View and manage your current and past bookings.</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow flex items-end">
               <Button asChild size="lg" className="w-full" variant="secondary">
-                <Link href="/traveler/my-requests">
-                  <List aria-hidden="true" /> View My Requests
+                <Link href="/traveler/my-bookings">
+                  <List aria-hidden="true" /> View My Bookings
                 </Link>
               </Button>
             </CardContent>

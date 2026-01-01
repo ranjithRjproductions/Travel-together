@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { logout } from '@/lib/actions';
-import { User, LogOut, List, Shield } from 'lucide-react';
+import { User, LogOut, List, Shield, BookMarked, FileText } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
@@ -47,8 +47,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
     
   const photoAltText = user.photoAlt || `Profile picture of ${user.name}`;
   const profileUrl = user.role === 'Guide' ? '/guide/profile/settings' : '/traveler/profile/settings';
-  const requestsUrl = user.role === 'Traveler' ? '/traveler/my-requests' : '/guide/requests';
-
+  
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
@@ -85,12 +84,20 @@ export function UserNav({ user }: { user?: UserType | null }) {
             </Link>
           </DropdownMenuItem>
            {user.role === 'Traveler' && (
-            <DropdownMenuItem asChild>
-              <Link href={requestsUrl}>
-                <List aria-hidden="true" />
-                <span>My Requests</span>
-              </Link>
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem asChild>
+                <Link href="/traveler/my-bookings">
+                  <BookMarked aria-hidden="true" />
+                  <span>My Bookings</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/traveler/my-requests">
+                  <FileText aria-hidden="true" />
+                  <span>Draft Requests</span>
+                </Link>
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuGroup>
         {user.isAdmin && (
