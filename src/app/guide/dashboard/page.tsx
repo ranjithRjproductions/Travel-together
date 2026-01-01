@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { respondToTravelRequest } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { User, MapPin, CreditCard, CheckCircle } from 'lucide-react';
+import { User, MapPin, CreditCard, CheckCircle, Clock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
@@ -112,9 +112,12 @@ function RequestTravelerInfo({ travelerData, status }: { travelerData: Partial<U
 
     if (status === 'confirmed') {
         return (
-            <div className="flex items-center gap-2 text-amber-600">
-                <CreditCard className="h-4 w-4" />
-                <span className="font-semibold">Payment Pending</span>
+            <div className="text-right">
+                 <div className="flex items-center justify-end gap-2 text-amber-600">
+                    <CreditCard className="h-4 w-4" />
+                    <span className="font-semibold">Payment Pending</span>
+                </div>
+                <p className="text-xs text-muted-foreground">from {travelerData.name}</p>
             </div>
         );
     }
@@ -191,12 +194,13 @@ function ConfirmedRequests() {
               <CardContent className="p-4 grid sm:grid-cols-3 gap-4 items-center">
                   <div className="sm:col-span-2 space-y-1">
                       <h3 className="font-semibold">{getRequestTitle(request)}</h3>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                           <span>{request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}</span>
+                          <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {request.startTime} - {request.endTime}</div>
                            <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {request.purposeData?.subPurposeData?.collegeAddress?.district || request.purposeData?.subPurposeData?.hospitalAddress?.district || request.purposeData?.subPurposeData?.shoppingArea?.district}</div>
                       </div>
                   </div>
-                  <div>
+                  <div className="sm:text-right">
                       <RequestTravelerInfo travelerData={request.travelerData} status={request.status} />
                   </div>
               </CardContent>
