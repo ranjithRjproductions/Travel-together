@@ -19,10 +19,13 @@ import { type TravelRequest } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
+import { respondToTravelRequest } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 
 function IncomingRequests() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const incomingRequestsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -34,6 +37,22 @@ function IncomingRequests() {
   }, [user, firestore]);
 
   const { data: requests, isLoading } = useCollection<TravelRequest>(incomingRequestsQuery);
+
+  const handleResponse = async (requestId: string, response: 'confirmed' | 'declined') => {
+    const result = await respondToTravelRequest(requestId, response);
+    if (result.success) {
+      toast({
+        title: `Request ${response === 'confirmed' ? 'Accepted' : 'Declined'}`,
+        description: `You have successfully ${response === 'confirmed' ? 'accepted' : 'declined'} the request.`,
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Action Failed',
+        description: result.message,
+      });
+    }
+  };
 
   if (isUserLoading || isLoading) {
     return <Skeleton className="h-48 w-full" />;
@@ -69,12 +88,12 @@ function IncomingRequests() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-                <p><span className="font-semibold">Location:</span> {request.purposeData?.subPurposeData?.collegeAddress?.district}</p>
+                <p><span className="font-semibold">Location:</span> {request.purposeData?.subPurposeData?.collegeAddress?.district || request.purposeData?.subPurposeData?.hospitalAddress?.district || request.purposeData?.subPurposeData?.shoppingArea?.district}</p>
                  <p><span className="font-semibold">Est. Earnings:</span> ₹{request.estimatedCost?.toFixed(2)}</p>
             </CardContent>
             <CardFooter className="flex gap-2">
-                <Button>Accept</Button>
-                <Button variant="outline">Decline</Button>
+                <Button onClick={() => handleResponse(request.id, 'confirmed')}>Accept</Button>
+                <Button variant="outline" onClick={() => handleResponse(request.id, 'declined')}>Decline</Button>
             </CardFooter>
           </Card>
         ))}
@@ -150,4 +169,3 @@ export default function GuideDashboard() {
     </div>
   );
 }
-

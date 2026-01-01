@@ -14,15 +14,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type TravelRequest } from '@/lib/definitions';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 
 function RequestList({
   requests,
   emptyMessage,
-  isLoading
+  isLoading,
+  showStatus,
 }: {
   requests: TravelRequest[] | null;
   emptyMessage: string;
   isLoading: boolean;
+  showStatus?: boolean;
 }) {
 
   if (isLoading) {
@@ -59,6 +62,15 @@ function RequestList({
     }
   };
 
+  const getStatusBadge = (status: TravelRequest['status']) => {
+    switch(status) {
+        case 'pending': return <Badge variant="secondary">Finding Guides</Badge>;
+        case 'guide-selected': return <Badge variant="secondary">Waiting for Guide</Badge>;
+        case 'confirmed': return <Badge variant="default">Confirmed</Badge>;
+        default: return null;
+    }
+  };
+
 
   return (
     <div className="space-y-4">
@@ -73,9 +85,12 @@ function RequestList({
                         Submitted on {formatCreationDate(request.createdAt)}
                     </p>
                 </div>
-                <Button asChild variant="outline">
-                  <Link href={`/traveler/request/${request.id}`}>View Details</Link>
-                </Button>
+                <div className="flex items-center gap-4">
+                    {showStatus && getStatusBadge(request.status)}
+                    <Button asChild variant="outline">
+                      <Link href={`/traveler/request/${request.id}`}>View Details</Link>
+                    </Button>
+                </div>
             </CardContent>
         </Card>
       ))}
@@ -87,6 +102,18 @@ export default function MyBookingsPage() {
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
+
+  const inProgressRequestsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'travelRequests'),
+      where('travelerId', '==', user.uid),
+      where('status', 'in', ['pending', 'guide-selected'])
+    );
+  }, [user, firestore]);
+
+  const { data: inProgressRequests, isLoading: inProgressLoading } = useCollection<TravelRequest>(inProgressRequestsQuery);
+
 
   // This will be used later for guides who have accepted.
   // const upcomingRequestsQuery = useMemoFirebase(() => {
@@ -123,11 +150,12 @@ export default function MyBookingsPage() {
               <TabsTrigger value="past">Past</TabsTrigger>
             </TabsList>
             <TabsContent value="inprogress" className="mt-4">
-              <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
-                <p>
-                  Requests that are awaiting guide acceptance will appear here.
-                </p>
-              </div>
+               <RequestList
+                requests={inProgressRequests}
+                isLoading={inProgressLoading}
+                emptyMessage="Requests that are awaiting guide acceptance will appear here."
+                showStatus={true}
+              />
             </TabsContent>
             <TabsContent value="upcoming" className="mt-4">
               <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">

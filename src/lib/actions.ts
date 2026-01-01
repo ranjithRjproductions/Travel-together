@@ -191,6 +191,51 @@ export async function submitTravelRequest(requestId: string): Promise<{ success:
   }
 }
 
+export async function respondToTravelRequest(requestId: string, response: 'confirmed' | 'declined'): Promise<{ success: boolean, message: string }> {
+  'use server';
+
+  const sessionCookie = cookies().get('session')?.value;
+  if (!sessionCookie) {
+      return { success: false, message: 'Authentication required.' };
+  }
+
+  try {
+      const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+      const guideId = decodedClaims.uid;
+      
+      const requestDocRef = db.collection('travelRequests').doc(requestId);
+      const requestDoc = await requestDocRef.get();
+
+      if (!requestDoc.exists) {
+          return { success: false, message: 'This travel request no longer exists.' };
+      }
+      
+      const requestData = requestDoc.data() as TravelRequest;
+
+      if (requestData.guideId !== guideId) {
+          return { success: false, message: 'You are not authorized to respond to this request.' };
+      }
+
+      if (response === 'confirmed') {
+          await requestDocRef.update({ status: 'confirmed' });
+      } else {
+          // If declined, set status back to 'pending' and remove the guideId so traveler can choose another.
+          await requestDocRef.update({ 
+              status: 'pending', 
+              guideId: admin.firestore.FieldValue.delete() 
+          });
+      }
+
+      revalidatePath('/guide/dashboard');
+
+      return { success: true, message: `Request has been successfully ${response}.` };
+
+  } catch (error: any) {
+      console.error('Error responding to travel request:', error);
+      return { success: false, message: 'An unexpected error occurred. Please try again.' };
+  }
+}
+
 export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected'): Promise<{ success: boolean; message: string }> {
   'use server';
 
