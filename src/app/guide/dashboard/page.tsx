@@ -104,31 +104,20 @@ function IncomingRequests() {
   );
 }
 
-function RequestTravelerInfo({ travelerId }: { travelerId: string }) {
-    const firestore = useFirestore();
-    const travelerDocRef = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return doc(firestore, 'users', travelerId);
-    }, [firestore, travelerId]);
-
-    const { data: traveler, isLoading } = useDoc<UserProfile>(travelerDocRef);
-
-    if (isLoading) {
+function RequestTravelerInfo({ travelerData }: { travelerData: Partial<UserProfile> | undefined }) {
+    if (!travelerData) {
         return <Skeleton className="h-10 w-32" />;
     }
-    if (!traveler) {
-        return <p className="text-sm text-muted-foreground">Unknown Traveler</p>;
-    }
 
-    const initials = traveler.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
+    const initials = travelerData.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
 
     return (
         <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
-                <AvatarImage src={traveler.photoURL} alt={traveler.photoAlt || `Photo of ${traveler.name}`} />
+                <AvatarImage src={travelerData.photoURL} alt={travelerData.photoAlt || `Photo of ${travelerData.name}`} />
                 <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <span className="font-medium">{traveler.name}</span>
+            <span className="font-medium">{travelerData.name}</span>
         </div>
     );
 }
@@ -189,7 +178,7 @@ function ConfirmedRequests() {
                   </div>
                   <div>
                       <p className="text-sm text-muted-foreground">Booked by:</p>
-                      <RequestTravelerInfo travelerId={request.travelerId} />
+                      <RequestTravelerInfo travelerData={request.travelerData} />
                   </div>
               </CardContent>
           </Card>

@@ -163,25 +163,42 @@ export async function submitTravelRequest(requestId: string): Promise<{ success:
       throw new Error('Not authenticated.');
     }
     const decodedToken = await adminAuth.verifySessionCookie(sessionCookie);
+    const travelerId = decodedToken.uid;
 
+    // Get both the request and the user's profile data
     const requestDocRef = db.collection('travelRequests').doc(requestId);
-    const requestDoc = await requestDocRef.get();
+    const userDocRef = db.collection('users').doc(travelerId);
+
+    const [requestDoc, userDoc] = await Promise.all([requestDocRef.get(), userDocRef.get()]);
 
     if (!requestDoc.exists) {
       throw new Error('Request not found.');
     }
+    if (!userDoc.exists) {
+      throw new Error('User profile not found.');
+    }
 
     const request = requestDoc.data() as TravelRequest;
+    const userData = userDoc.data() as User;
 
-    if (request.travelerId !== decodedToken.uid) {
+    if (request.travelerId !== travelerId) {
       throw new Error('Permission denied.');
     }
     
+    // Calculate cost and prepare data for embedding
     const estimatedCost = calculateCostOnServer(request);
+    const travelerDataToEmbed: Partial<User> = {
+      name: userData.name,
+      gender: userData.gender,
+      photoURL: userData.photoURL,
+      photoAlt: userData.photoAlt,
+      disability: userData.disability,
+    };
 
     await requestDocRef.update({
       status: 'pending',
       estimatedCost: estimatedCost,
+      travelerData: travelerDataToEmbed, // Embed traveler data
     });
 
     return { success: true, message: 'Request submitted successfully.' };
