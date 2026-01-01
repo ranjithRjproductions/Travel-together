@@ -43,6 +43,21 @@ function RequestList({
     );
   }
 
+  const formatCreationDate = (createdAt: any) => {
+    if (!createdAt) return '...';
+    // Firestore Timestamps have a toDate() method.
+    if (typeof createdAt.toDate === 'function') {
+      return format(createdAt.toDate(), 'PP');
+    }
+    // Fallback for ISO string dates
+    try {
+      return format(new Date(createdAt), 'PP');
+    } catch (e) {
+      return 'Invalid date';
+    }
+  };
+
+
   return (
     <div className="space-y-4">
       {requests.map(request => (
@@ -53,7 +68,7 @@ function RequestList({
                         {request.purposeData?.purpose} Request for {request.purposeData?.subPurposeData?.collegeAddress?.district || request.purposeData?.subPurposeData?.hospitalAddress?.district || request.purposeData?.subPurposeData?.shoppingArea?.district}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                        Submitted on {request.createdAt ? format(new Date(request.createdAt), 'PP') : '...'}
+                        Submitted on {formatCreationDate(request.createdAt)}
                     </p>
                 </div>
                 <Button asChild variant="outline">
