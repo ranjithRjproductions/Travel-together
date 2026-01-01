@@ -73,6 +73,12 @@ service cloud.firestore {
              !('guideId' in request.resource.data) &&
              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'guideId']))
           )
+        ) ||
+        // Case 4: Traveler is simulating payment
+        ( resource.data.travelerId == request.auth.uid &&
+          resource.data.status == 'confirmed' &&
+          request.resource.data.status == 'paid' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
         )
       );
     }
