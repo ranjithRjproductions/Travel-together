@@ -33,7 +33,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function CreateRequestFormPage() {
   const params = useParams();
   const requestId = params.requestId as string;
-  const isNew = requestId === 'new';
+  const isNew = requestId === 'create';
 
   const { user: authUser, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();

@@ -211,8 +211,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                 title: "Request Submitted!",
                 description: "You will now be taken to find a guide.",
             });
-            // TODO: Change this redirect to the new "Find Guide" page
-            router.push(`/traveler/my-bookings`);
+            router.push(`/traveler/find-guide/${request.id}`);
         } else {
             toast({
                 title: "Submission Failed",
