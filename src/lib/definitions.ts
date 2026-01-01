@@ -1,4 +1,5 @@
 
+
 export type User = {
   uid: string;
   name: string;
@@ -40,6 +41,10 @@ export type GuideProfile = {
   languages: string[];
   expertise: string[];
   verificationIdUrl?: string;
+  onboardingState?: 'started' | 'profile-complete' | 'verification-pending' | 'active' | 'rejected';
+  isAvailable?: boolean;
+  address?: any;
+  disabilityExpertise?: any;
 };
 
 export type TravelRequest = {
@@ -47,7 +52,7 @@ export type TravelRequest = {
   travelerId: string;
   guideId?: string;
   status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'completed' | 'cancelled';
-  createdAt: string; // ISO string
+  createdAt: any; // Can be a server timestamp or a string
   
   purposeData?: {
     purpose?: 'education' | 'hospital' | 'shopping';
@@ -82,6 +87,9 @@ export type TravelRequest = {
   };
   
   estimatedCost?: number;
+  
+  // Fields to track traveler's data at the time of request
+  travelerData?: Partial<User>;
   
   step1Complete: boolean;
   step2Complete: boolean;

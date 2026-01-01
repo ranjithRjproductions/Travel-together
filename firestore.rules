@@ -33,28 +33,34 @@ service cloud.firestore {
     // TRAVEL REQUESTS
     // Create is allowed if the user is authenticated and is the owner.
     // Read/Delete is allowed for the owner or an admin. The read rule is hardened to ensure travelerId exists.
-    // Update is restricted to prevent users from changing the status or guideId.
+    // Update is allowed for the traveler (to select a guide) or the assigned guide (to accept/decline).
     match /travelRequests/{requestId} {
       allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
       allow read, delete: if request.auth != null && 
         (
-          (resource.data.travelerId is string && resource.data.travelerId == request.auth.uid) 
-          || isAdmin()
+          (resource.data.travelerId is string && resource.data.travelerId == request.auth.uid) ||
+          (resource.data.guideId is string && resource.data.guideId == request.auth.uid) ||
+          isAdmin()
         );
-      allow update: if request.auth != null && resource.data.travelerId == request.auth.uid &&
-        request.resource.data.diff(resource.data).affectedKeys()
+      allow update: if request.auth != null && 
+        // Case 1: Traveler is updating the form in 'draft' state
+        ( resource.data.travelerId == request.auth.uid &&
+          resource.data.status == 'draft' &&
+          request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly([
-                'purposeData',
-                'requestedDate',
-                'startTime',
-                'endTime',
-                'travelMediumData',
-                'pickupData',
-                'step1Complete',
-                'step2Complete',
-                'step3Complete',
-                'step4Complete'
-             ]);
+                'purposeData', 'requestedDate', 'startTime', 'endTime', 
+                'travelMediumData', 'pickupData', 'travelerData',
+                'step1Complete', 'step2Complete', 'step3Complete', 'step4Complete',
+                'status', 'estimatedCost' // Allow status update for final submission from draft
+             ])
+        ) ||
+        // Case 2: Traveler is selecting a guide
+        ( resource.data.travelerId == request.auth.uid &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status == 'guide-selected' &&
+          request.resource.data.guideId is string &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'guideId'])
+        );
     }
 
     // ADMIN ROLES (Read-only for clients)
