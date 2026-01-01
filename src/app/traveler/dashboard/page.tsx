@@ -14,7 +14,7 @@ import { useUser, useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import content from '@/app/content/traveler-dashboard.json';
-import { PlusCircle, List, User as UserIcon } from 'lucide-react';
+import { PlusCircle, BookMarked, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type User as UserProfile } from '@/lib/definitions';
@@ -148,7 +148,7 @@ export default function TravelerDashboard() {
             <CardContent className="flex-grow flex items-end">
               <Button asChild size="lg" className="w-full" variant="secondary">
                 <Link href="/traveler/my-bookings">
-                  <List aria-hidden="true" /> View My Bookings
+                  <BookMarked aria-hidden="true" /> View My Bookings
                 </Link>
               </Button>
             </CardContent>
