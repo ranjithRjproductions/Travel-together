@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { logout } from '@/lib/actions';
-import { User, LogOut, List, Shield, BookMarked, FileText } from 'lucide-react';
+import { User, LogOut, BookMarked, Shield, FileText } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
@@ -94,7 +94,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
               <DropdownMenuItem asChild>
                 <Link href="/traveler/my-requests">
                   <FileText aria-hidden="true" />
-                  <span>Draft Requests</span>
+                  <span>Drafts</span>
                 </Link>
               </DropdownMenuItem>
             </>

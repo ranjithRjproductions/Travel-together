@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -25,13 +26,11 @@ import {
   doc,
 } from 'firebase/firestore';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, Edit, MoreHorizontal, Trash2, View } from 'lucide-react';
+import { ArrowLeft, Edit, MoreHorizontal, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { type TravelRequest } from '@/lib/definitions';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format, formatDistanceToNow } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,12 +60,10 @@ function RequestListSkeleton() {
 
 function RequestList({
   requests,
-  listType,
   emptyMessage,
   onDelete,
 }: {
   requests: TravelRequest[];
-  listType: 'draft' | 'upcoming';
   emptyMessage: string;
   onDelete: (id: string) => void;
 }) {
@@ -86,7 +83,7 @@ function RequestList({
     if (typeof createdAt.toDate === 'function') {
       return formatDistanceToNow(createdAt.toDate(), { addSuffix: true });
     }
-    // Fallback for string dates, though Firestore Timestamps are preferred
+    // Fallback for string dates
     try {
       const date = new Date(createdAt);
       if (!isNaN(date.getTime())) {
@@ -94,89 +91,23 @@ function RequestList({
       }
     } catch (e) { /* ignore invalid date strings */ }
 
-    // If all else fails, provide a generic fallback
     return 'a while ago';
   };
   
-   const getRequestDetails = (request: TravelRequest): { title: string, subtitle: string } => {
-      const { purposeData } = request;
-      if (!purposeData?.purpose) return { title: 'Untitled Request', subtitle: 'No details provided' };
-      
-      switch (purposeData.purpose) {
-        case 'education':
-          return {
-            title: `Education: ${purposeData.subPurposeData?.subPurpose === 'scribe' ? 'Scribe for Exam' : 'Admission Support'}`,
-            subtitle: `${purposeData.subPurposeData?.collegeName || 'Institute'}`,
-          };
-        case 'hospital':
-           return {
-            title: 'Hospital Visit',
-            subtitle: `${purposeData.subPurposeData?.hospitalName || 'Hospital'}`,
-          };
-        case 'shopping':
-          return {
-            title: 'Shopping Assistance',
-            subtitle: `In ${purposeData.subPurposeData?.shoppingArea?.area || purposeData.subPurposeData?.shopAddress?.district || 'area'}`,
-          };
-        default:
-          return { title: 'General Request', subtitle: 'Details not available'};
-      }
-  };
-
-  const getStatusVariant = (
-    status: TravelRequest['status']
-  ): 'default' | 'secondary' | 'destructive' | 'outline' => {
-    switch (status) {
-      case 'confirmed':
-        return 'default';
-      case 'pending':
-        return 'secondary';
-      case 'cancelled':
-        return 'destructive';
-      case 'completed':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
-  };
-
-  const statusText: Record<TravelRequest['status'], string> = {
-    draft: 'Draft',
-    pending: 'Waiting for Approval',
-    confirmed: 'Guide Assigned',
-    completed: 'Completed',
-    cancelled: 'Cancelled'
-  }
-
   return (
     <div className="space-y-4">
-      {requests.map((request, index) => {
-          const { title, subtitle } = getRequestDetails(request);
-          return (
+      {requests.map((request, index) => (
             <Card key={request.id}>
               <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div className="flex-grow">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold capitalize">
-                        {listType === 'draft' ? `Draft ${index + 1} of ${requests.length}` : title}
-                    </h3>
-                    {listType === 'upcoming' && (
-                        <Badge variant={getStatusVariant(request.status)}>
-                            <span className="sr-only">Status: </span>
-                            {statusText[request.status]}
-                        </Badge>
-                    )}
-                  </div>
+                  <h3 className="font-semibold capitalize">
+                      Draft {index + 1} of {requests.length}
+                  </h3>
                    <p className="text-sm text-muted-foreground">
-                    {listType === 'draft' ? 
-                      `Created ${formatCreationDate(request.createdAt)}` :
-                      `${subtitle} on ${request.requestedDate ? format(new Date(request.requestedDate), 'MMM d, yyyy') : 'date not set'}`
-                    }
+                      Created {formatCreationDate(request.createdAt)}
                   </p>
                 </div>
-
-                {listType === 'draft' ? (
-                  <DropdownMenu>
+                <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`More options for draft created ${formatCreationDate(request.createdAt)}`}>
                         <MoreHorizontal className="h-4 w-4" />
@@ -195,17 +126,9 @@ function RequestList({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                ) : (
-                  <Button asChild>
-                    <Link href={`/traveler/request/${request.id}`}>
-                       <View className="mr-2 h-4 w-4" /> View Request
-                    </Link>
-                  </Button>
-                )}
               </CardContent>
             </Card>
-          );
-      })}
+      ))}
     </div>
   );
 }
@@ -221,11 +144,12 @@ export default function MyRequestsPage() {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'travelRequests'),
-      where('travelerId', '==', user.uid)
+      where('travelerId', '==', user.uid),
+      where('status', '==', 'draft')
     );
   }, [user, firestore]);
 
-  const { data: requests, isLoading: isRequestsLoading } =
+  const { data: draftRequests, isLoading: isRequestsLoading } =
     useCollection<TravelRequest>(requestsQuery);
 
   if (isUserLoading) {
@@ -269,17 +193,11 @@ export default function MyRequestsPage() {
       });
   };
 
-  const draftRequests = requests?.filter((r) => r.status === 'draft') || [];
-  const upcomingRequests =
-    requests?.filter(
-      (r) => r.status === 'pending' || r.status === 'confirmed'
-    ) || [];
-
   return (
     <div className="grid gap-6 md:gap-8">
       <AriaLive message={ariaLiveMessage} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="font-headline text-3xl font-bold">My Travel Requests</h1>
+        <h1 className="font-headline text-3xl font-bold">Draft Requests</h1>
          <Button variant="outline" onClick={() => router.push('/traveler/dashboard')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
@@ -288,36 +206,15 @@ export default function MyRequestsPage() {
 
       <Card>
         <CardContent className="p-6">
-          <Tabs defaultValue="upcoming">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="drafts">Drafts ({draftRequests.length})</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming ({upcomingRequests.length})</TabsTrigger>
-            </TabsList>
-            <TabsContent value="drafts" className="mt-4">
-              {isRequestsLoading ? (
-                <RequestListSkeleton />
-              ) : (
-                <RequestList
-                  requests={draftRequests}
-                  listType="draft"
-                  emptyMessage="You have no draft requests."
-                  onDelete={handleDeleteRequest}
-                />
-              )}
-            </TabsContent>
-            <TabsContent value="upcoming" className="mt-4">
-              {isRequestsLoading ? (
-                <RequestListSkeleton />
-              ) : (
-                <RequestList
-                  requests={upcomingRequests}
-                  listType="upcoming"
-                  emptyMessage="You have no upcoming requests."
-                  onDelete={handleDeleteRequest}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
+            {isRequestsLoading ? (
+            <RequestListSkeleton />
+            ) : (
+            <RequestList
+                requests={draftRequests || []}
+                emptyMessage="You have no draft requests."
+                onDelete={handleDeleteRequest}
+            />
+            )}
         </CardContent>
       </Card>
     </div>

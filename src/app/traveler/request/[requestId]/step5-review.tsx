@@ -218,8 +218,8 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                 description: result.message,
                 variant: 'destructive',
             });
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     }
 
     return (
@@ -296,7 +296,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                             disabled={isSubmitting}
                             onClick={handleSubmit}
                         >
-                            {isSubmitting ? 'Submitting...' : 'Proceed to Find Guides'}
+                            {isSubmitting ? 'Submitting...' : 'Submit and Find Guides'}
                         </Button>
                     </div>
                  )}
