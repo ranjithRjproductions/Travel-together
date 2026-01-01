@@ -54,8 +54,6 @@ export function UserNav({ user }: { user?: UserType | null }) {
         <Button 
           variant="ghost" 
           className="relative h-10 w-10 rounded-full"
-          aria-haspopup="true"
-          aria-expanded={open}
         >
           <Avatar className="h-10 w-10">
             <AvatarImage

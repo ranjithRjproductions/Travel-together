@@ -2,8 +2,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -12,10 +12,9 @@ import {
   CardTitle,
   CardFooter
 } from '@/components/ui/card';
-import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import content from '@/app/content/guide-dashboard.json';
-import { type TravelRequest } from '@/lib/definitions';
+import { type TravelRequest, type User as UserProfile } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
@@ -104,7 +103,17 @@ function IncomingRequests() {
 
 
 export default function GuideDashboard() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemo(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  const isUserLoading = isAuthLoading || isProfileLoading;
 
   if (isUserLoading) {
     return (
@@ -126,7 +135,7 @@ export default function GuideDashboard() {
   return (
     <div className="grid gap-8">
       <h1 className="font-headline text-3xl font-bold">
-        {content.welcome.replace('{name}', user.displayName?.split(' ')[0] || 'Guide')}
+        {content.welcome.replace('{name}', userProfile?.name?.split(' ')[0] || 'Guide')}
       </h1>
 
       <IncomingRequests />
