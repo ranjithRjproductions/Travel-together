@@ -1,0 +1,74 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Function to check if the requesting user is an admin.
+    function isAdmin() {
+      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    // USERS
+    // A user can read their own document. Admins can read any user document.
+    // Create is allowed for the user themselves.
+    // Updates are restricted to only safe, user-editable fields to prevent privilege escalation.
+    // Deletion is restricted to admins only to prevent data loss.
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'photoURL', 'photoAlt', 'gender', 'address', 'contact', 'disability']);
+      allow delete: if request.auth != null && isAdmin();
+    }
+    
+    // GUIDE PROFILE (Subcollection of users)
+    // Only the owner of the user profile can write their guide sub-profile.
+    // Admins can also read any guide profile.
+    match /users/{userId}/guideProfile/{guideProfileId} {
+       allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+
+    // TRAVEL REQUESTS
+    // Create is allowed if the user is authenticated and is the owner.
+    // Read/Delete is allowed for the owner or an admin. The read rule is hardened to ensure travelerId exists.
+    // Update is allowed for the traveler (to select a guide) or the assigned guide (to accept/decline).
+    match /travelRequests/{requestId} {
+      allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
+      allow read, delete: if request.auth != null && 
+        (
+          (resource.data.travelerId is string && resource.data.travelerId == request.auth.uid) ||
+          (resource.data.guideId is string && resource.data.guideId == request.auth.uid) ||
+          isAdmin()
+        );
+      allow update: if request.auth != null && 
+        // Case 1: Traveler is updating the form in 'draft' state
+        ( resource.data.travelerId == request.auth.uid &&
+          resource.data.status == 'draft' &&
+          request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly([
+                'purposeData', 'requestedDate', 'startTime', 'endTime', 
+                'travelMediumData', 'pickupData', 'travelerData',
+                'step1Complete', 'step2Complete', 'step3Complete', 'step4Complete',
+                'status', 'estimatedCost' // Allow status update for final submission from draft
+             ])
+        ) ||
+        // Case 2: Traveler is selecting a guide
+        ( resource.data.travelerId == request.auth.uid &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status == 'guide-selected' &&
+          request.resource.data.guideId is string &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'guideId'])
+        );
+    }
+
+    // ADMIN ROLES (Read-only for clients)
+    // This collection is managed server-side. Admins can read it to verify privileges,
+    // but no client can write to it, preventing privilege escalation.
+    match /roles_admin/{userId} {
+      allow get, list: if isAdmin();
+      allow write: if false;
+    }
+  }
+}

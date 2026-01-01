@@ -117,7 +117,7 @@ export default function FindGuidePage() {
     const isLoading = isRequestLoading || isTravelerLoading || areGuidesLoading;
     
     const handleSelectGuide = async (guideId: string) => {
-        if (!requestDocRef) return;
+        if (!requestDocRef || !traveler) return;
         
         setSelectedGuideId(guideId);
         setIsSubmitting(true);
