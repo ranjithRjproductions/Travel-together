@@ -94,7 +94,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
               <DropdownMenuItem asChild>
                 <Link href="/traveler/my-requests">
                   <FileText aria-hidden="true" />
-                  <span>Drafts</span>
+                  <span>My Requests</span>
                 </Link>
               </DropdownMenuItem>
             </>

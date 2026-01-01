@@ -46,12 +46,14 @@ function RequestList({
   const formatCreationDate = (createdAt: any) => {
     if (!createdAt) return '...';
     // Firestore Timestamps have a toDate() method.
-    if (typeof createdAt.toDate === 'function') {
+    if (createdAt && typeof createdAt.toDate === 'function') {
       return format(createdAt.toDate(), 'PP');
     }
     // Fallback for ISO string dates
     try {
-      return format(new Date(createdAt), 'PP');
+      const d = new Date(createdAt);
+      if (isNaN(d.getTime())) return 'Invalid Date';
+      return format(d, 'PP');
     } catch (e) {
       return 'Invalid date';
     }
@@ -72,7 +74,7 @@ function RequestList({
                     </p>
                 </div>
                 <Button asChild variant="outline">
-                  <Link href={`/traveler/request/${request.id}`}>View & Find Guides</Link>
+                  <Link href={`/traveler/request/${request.id}`}>View Details</Link>
                 </Button>
             </CardContent>
         </Card>
@@ -86,16 +88,17 @@ export default function MyBookingsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const pendingRequestsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(
-      collection(firestore, 'travelRequests'),
-      where('travelerId', '==', user.uid),
-      where('status', '==', 'pending')
-    );
-  }, [user, firestore]);
+  // This will be used later for guides who have accepted.
+  // const upcomingRequestsQuery = useMemoFirebase(() => {
+  //   if (!user || !firestore) return null;
+  //   return query(
+  //     collection(firestore, 'travelRequests'),
+  //     where('travelerId', '==', user.uid),
+  //     where('status', '==', 'confirmed')
+  //   );
+  // }, [user, firestore]);
 
-  const { data: pendingRequests, isLoading: pendingLoading } = useCollection<TravelRequest>(pendingRequestsQuery);
+  // const { data: upcomingRequests, isLoading: upcomingLoading } = useCollection<TravelRequest>(upcomingRequestsQuery);
 
 
   return (
@@ -120,11 +123,11 @@ export default function MyBookingsPage() {
               <TabsTrigger value="past">Past</TabsTrigger>
             </TabsList>
             <TabsContent value="inprogress" className="mt-4">
-              <RequestList 
-                requests={pendingRequests}
-                isLoading={pendingLoading}
-                emptyMessage="You have no requests currently in progress. Submit one to find a guide!"
-              />
+              <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
+                <p>
+                  Requests that are awaiting guide acceptance will appear here.
+                </p>
+              </div>
             </TabsContent>
             <TabsContent value="upcoming" className="mt-4">
               <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
