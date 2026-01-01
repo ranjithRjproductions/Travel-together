@@ -74,7 +74,26 @@ function IncomingRequests() {
         title += `: ${purposeData.subPurposeData.subPurpose === 'scribe' ? 'Scribe for Exam' : 'Admission Support'}`;
     }
     return title;
-};
+  };
+  
+  const getLocationInfo = (request: TravelRequest) => {
+    const { purposeData } = request;
+    if (!purposeData) return null;
+
+    switch (purposeData.purpose) {
+      case 'education':
+        return { label: 'College', name: purposeData.subPurposeData?.collegeName, district: purposeData.subPurposeData?.collegeAddress?.district };
+      case 'hospital':
+        return { label: 'Hospital', name: purposeData.subPurposeData?.hospitalName, district: purposeData.subPurposeData?.hospitalAddress?.district };
+      case 'shopping':
+        if (purposeData.subPurposeData?.shopType === 'particular') {
+            return { label: 'Shop', name: purposeData.subPurposeData?.shopName, district: purposeData.subPurposeData?.shopAddress?.district };
+        }
+        return { label: 'Area', name: purposeData.subPurposeData?.shoppingArea?.area, district: purposeData.subPurposeData?.shoppingArea?.district };
+      default:
+        return null;
+    }
+  };
 
   return (
     <section aria-labelledby="incoming-requests-heading">
@@ -82,24 +101,30 @@ function IncomingRequests() {
         New Incoming Requests
       </h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {requests.map(request => (
-          <Card key={request.id} className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle>{getRequestTitle(request)}</CardTitle>
-              <CardDescription>
-                New request for {request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-                <p><span className="font-semibold">Location:</span> {request.purposeData?.subPurposeData?.collegeAddress?.district || request.purposeData?.subPurposeData?.hospitalAddress?.district || request.purposeData?.subPurposeData?.shoppingArea?.district}</p>
-                 <p><span className="font-semibold">Est. Earnings:</span> ₹{request.estimatedCost?.toFixed(2)}</p>
-            </CardContent>
-            <CardFooter className="flex gap-2">
-                <Button onClick={() => handleResponse(request.id, 'confirmed')}>Accept</Button>
-                <Button variant="outline" onClick={() => handleResponse(request.id, 'declined')}>Decline</Button>
-            </CardFooter>
-          </Card>
-        ))}
+        {requests.map(request => {
+            const locationInfo = getLocationInfo(request);
+            return (
+              <Card key={request.id} className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle>{getRequestTitle(request)}</CardTitle>
+                  <CardDescription>
+                    New request for {request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    {locationInfo && (
+                        <p><span className="font-semibold">{locationInfo.label}:</span> {locationInfo.name}, {locationInfo.district}</p>
+                    )}
+                     <p><span className="font-semibold">Time:</span> {request.startTime} - {request.endTime}</p>
+                     <p><span className="font-semibold">Est. Earnings:</span> ₹{request.estimatedCost?.toFixed(2)}</p>
+                </CardContent>
+                <CardFooter className="flex gap-2">
+                    <Button onClick={() => handleResponse(request.id, 'confirmed')}>Accept</Button>
+                    <Button variant="outline" onClick={() => handleResponse(request.id, 'declined')}>Decline</Button>
+                </CardFooter>
+              </Card>
+            );
+        })}
       </div>
     </section>
   );
