@@ -1,9 +1,11 @@
 
+
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { useGuideMatcher } from '@/hooks/use-guide-matcher';
 import { type TravelRequest, type User as UserData } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 function GuideListSkeleton() {
     return (
@@ -86,13 +89,15 @@ function GuideExpertiseTags({ guide, request }: { guide: any, request: TravelReq
     );
 }
 
-
 export default function FindGuidePage() {
     const params = useParams();
     const router = useRouter();
     const requestId = params.requestId as string;
     const { user: authUser } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedGuideId, setSelectedGuideId] = useState<string | null>(null);
 
     const requestDocRef = useMemoFirebase(() => {
         if (!firestore || !requestId) return null;
@@ -111,6 +116,37 @@ export default function FindGuidePage() {
     const { matchedGuides, isLoading: areGuidesLoading } = useGuideMatcher(request, traveler);
     
     const isLoading = isRequestLoading || isTravelerLoading || areGuidesLoading;
+    
+    const handleSelectGuide = async (guideId: string) => {
+        if (!requestDocRef) return;
+        
+        setSelectedGuideId(guideId);
+        setIsSubmitting(true);
+
+        try {
+            await updateDoc(requestDocRef, {
+                guideId: guideId,
+                status: 'guide-selected'
+            });
+
+            toast({
+                title: "Guide Selected!",
+                description: "The guide has been notified. You can track the confirmation status in 'My Bookings'."
+            });
+            router.push('/traveler/my-bookings');
+
+        } catch (error) {
+            console.error("Error selecting guide:", error);
+            toast({
+                variant: 'destructive',
+                title: "Something went wrong",
+                description: "Could not select the guide. Please try again."
+            });
+            setIsSubmitting(false);
+            setSelectedGuideId(null);
+        }
+    }
+
 
     return (
         <div className="container mx-auto py-8">
@@ -159,9 +195,17 @@ export default function FindGuidePage() {
                                 <GuideExpertiseTags guide={guide} request={request} />
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full">
-                                    <UserCheck className="mr-2 h-4 w-4" />
-                                    Select Guide
+                                <Button 
+                                    className="w-full" 
+                                    onClick={() => handleSelectGuide(guide.uid)}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting && selectedGuideId === guide.uid ? 'Notifying...' : (
+                                        <>
+                                            <UserCheck className="mr-2 h-4 w-4" />
+                                            Select Guide
+                                        </>
+                                    )}
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -199,4 +243,3 @@ export default function FindGuidePage() {
     );
 }
 
-    

@@ -46,7 +46,7 @@ export type TravelRequest = {
   id: string;
   travelerId: string;
   guideId?: string;
-  status: 'draft' | 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'completed' | 'cancelled';
   createdAt: string; // ISO string
   
   purposeData?: {
