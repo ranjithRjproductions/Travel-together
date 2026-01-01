@@ -19,14 +19,14 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/definitions';
-import { updateGuideStatus } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
-import { Check, X, ArrowLeft, Eye } from 'lucide-react';
+import { ArrowLeft, Eye } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
 import { Progress } from '@/components/ui/progress';
 import { DeleteGuideButton } from './delete-guide-button';
+import { ApproveRejectButtons } from './approve-reject-buttons';
 
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
@@ -123,32 +123,6 @@ function StatusBadge({ status }: { status: string }) {
     return <Badge variant={variant} className="capitalize">{status.replace('-', ' ')}</Badge>;
 }
 
-function ActionButtons({ guide }: { guide: User & { onboardingState?: string, uid: string } }) {
-    if (guide.onboardingState !== 'verification-pending') {
-        return null;
-    }
-
-    const approveAction = updateGuideStatus.bind(null, guide.uid, 'active');
-    const rejectAction = updateGuideStatus.bind(null, guide.uid, 'rejected');
-
-    return (
-        <div className="flex gap-2">
-            <form action={approveAction}>
-                <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 hover:bg-green-50">
-                    <Check className="h-4 w-4" />
-                    <span className="sr-only">Approve</span>
-                </Button>
-            </form>
-            <form action={rejectAction}>
-                 <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Reject</span>
-                </Button>
-            </form>
-        </div>
-    );
-}
-
 export default async function ManageGuidesPage() {
   const guides = await getGuides();
 
@@ -205,7 +179,9 @@ export default async function ManageGuidesPage() {
                         <span className="text-xs text-muted-foreground">{guide.profileCompletion}%</span>
                     </div>
                 </TableCell>
-                <TableCell><ActionButtons guide={guide} /></TableCell>
+                <TableCell>
+                  {guide.onboardingState === 'verification-pending' ? <ApproveRejectButtons guide={guide} /> : null}
+                </TableCell>
                 <TableCell>
                      <Button asChild variant="outline" size="sm">
                         <Link href={`/admin/users/guides/${guide.id}`}>
@@ -229,7 +205,9 @@ export default async function ManageGuidesPage() {
                         <span className="text-xs text-muted-foreground">{guide.profileCompletion}%</span>
                     </div>
                 </TableCell>
-                <TableCell><ActionButtons guide={guide} /></TableCell>
+                <TableCell>
+                    {guide.onboardingState === 'verification-pending' ? <ApproveRejectButtons guide={guide} /> : null}
+                </TableCell>
                 <TableCell>
                      <Button asChild variant="outline" size="sm">
                         <Link href={`/admin/users/guides/${guide.id}`}>
