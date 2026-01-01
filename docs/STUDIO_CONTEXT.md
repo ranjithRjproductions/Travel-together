@@ -33,6 +33,9 @@ We have successfully built out the foundational features of the application:
     5.  **Review & Submit**: A final summary where the request is submitted, its status changed to `pending`, and cost is calculated.
 *   **Traveler "My Requests" Page**: A dashboard for travelers to view their requests, separated into "Drafts" and "Upcoming" tabs, with options to continue editing or delete drafts.
 *   **UI & Styling**: The frontend is built with Next.js, React, ShadCN UI components, and Tailwind CSS. The UI is clean, modern, and focus has been placed on fixing semantic HTML issues to prevent hydration errors.
+*   **Global Accessible Footer**: A reusable footer component has been implemented across the entire application. It features two distinct parts for accessibility:
+    *   A navigation section for sitewide links (About, Blogs, Contact, Privacy, etc.) wrapped in a `div` with a `role="group"`.
+    *   A separate `<footer>` element containing only the copyright notice, ensuring it serves as the unique `contentinfo` landmark for each page.
 
 ## 3. Project Structure Overview
 
@@ -41,7 +44,7 @@ The application follows the Next.js App Router paradigm.
 *   `src/app/(auth)`: Contains login and signup pages.
 *   `src/app/(traveler|guide)`: These are the protected route groups for each user role. Each contains a `dashboard`, `profile/settings` area, and role-specific pages.
 *   `src/app/traveler/request/[requestId]`: A dynamic route that handles the creation and viewing of travel requests. It uses client-side logic to create a new draft document in Firestore if the ID is 'new'.
-*   `src/components`: Reusable React components, including a large set of UI components from ShadCN in `src/components/ui`.
+*   `src/components`: Reusable React components, including a large set of UI components from ShadCN in `src/components/ui` and the new global `Footer`.
 *   `src/lib`: Contains shared logic:
     *   `actions.ts`: Server Actions for `login`, `signup`, `logout`, and `submitTravelRequest`.
     *   `auth.ts`: Server-side helper `getUser()` to verify session cookies and retrieve user data.
@@ -54,7 +57,7 @@ The application follows the Next.js App Router paradigm.
 
 ## 4. Strict Validation & Criteria (Key Directives)
 
-*   **Semantic HTML**: **NO NESTING of heading tags (e.g., `<h1>` inside `<h3>`)**. Use the `as` prop on components like `CardTitle` to change the rendered tag to prevent hydration errors. This has been a recurring issue and must be avoided.
+*   **Semantic HTML**: **NO NESTING of heading tags (e.g., `<h1>` inside `<h3>`)**. Use the `as` prop on components like `CardTitle` to change the rendered tag to prevent hydration errors. A page must not have more than one `contentinfo` landmark. This has been a recurring issue and must be avoided.
 *   **Accessibility First**: Forms must be fully accessible.
     *   Use `aria-required`, `aria-invalid`, and `aria-describedby` where appropriate.
     *   Ensure all form controls are properly linked to their labels (`htmlFor` and `id`).
