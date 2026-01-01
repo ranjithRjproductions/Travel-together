@@ -51,7 +51,7 @@ export type TravelRequest = {
   id: string;
   travelerId: string;
   guideId?: string;
-  status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'paid' | 'completed' | 'cancelled';
   createdAt: any; // Can be a server timestamp or a string
   
   purposeData?: {

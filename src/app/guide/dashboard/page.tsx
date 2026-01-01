@@ -20,8 +20,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { respondToTravelRequest } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { User, MapPin } from 'lucide-react';
+import { User, MapPin, CreditCard, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 
 function IncomingRequests() {
@@ -104,22 +105,41 @@ function IncomingRequests() {
   );
 }
 
-function RequestTravelerInfo({ travelerData }: { travelerData: Partial<UserProfile> | undefined }) {
+function RequestTravelerInfo({ travelerData, status }: { travelerData: Partial<UserProfile> | undefined, status: TravelRequest['status'] }) {
     if (!travelerData) {
         return <Skeleton className="h-10 w-32" />;
     }
 
-    const initials = travelerData.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
+    if (status === 'confirmed') {
+        return (
+            <div className="flex items-center gap-2 text-amber-600">
+                <CreditCard className="h-4 w-4" />
+                <span className="font-semibold">Payment Pending</span>
+            </div>
+        );
+    }
+    
+    if (status === 'paid') {
+        const initials = travelerData.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
+        return (
+            <div>
+                 <div className="flex items-center gap-2 text-green-600 font-semibold">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Paid & Confirmed</span>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={travelerData.photoURL} alt={travelerData.photoAlt || `Photo of ${travelerData.name}`} />
+                        <AvatarFallback>{initials}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{travelerData.name}</span>
+                </div>
+            </div>
+        );
+    }
 
-    return (
-        <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-                <AvatarImage src={travelerData.photoURL} alt={travelerData.photoAlt || `Photo of ${travelerData.name}`} />
-                <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <span className="font-medium">{travelerData.name}</span>
-        </div>
-    );
+    // Default case, should not happen often in this component
+    return <Badge variant="outline">{status}</Badge>;
 }
 
 function ConfirmedRequests() {
@@ -131,7 +151,7 @@ function ConfirmedRequests() {
     return query(
       collection(firestore, 'travelRequests'),
       where('guideId', '==', user.uid),
-      where('status', '==', 'confirmed')
+      where('status', 'in', ['confirmed', 'paid'])
     );
   }, [user, firestore]);
 
@@ -169,7 +189,7 @@ function ConfirmedRequests() {
         {requests.map(request => (
           <Card key={request.id}>
               <CardContent className="p-4 grid sm:grid-cols-3 gap-4 items-center">
-                  <div className="col-span-2 space-y-1">
+                  <div className="sm:col-span-2 space-y-1">
                       <h3 className="font-semibold">{getRequestTitle(request)}</h3>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>{request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}</span>
@@ -177,8 +197,7 @@ function ConfirmedRequests() {
                       </div>
                   </div>
                   <div>
-                      <p className="text-sm text-muted-foreground">Booked by:</p>
-                      <RequestTravelerInfo travelerData={request.travelerData} />
+                      <RequestTravelerInfo travelerData={request.travelerData} status={request.status} />
                   </div>
               </CardContent>
           </Card>

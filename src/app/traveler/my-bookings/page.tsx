@@ -1,20 +1,36 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeft, Edit, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type TravelRequest } from '@/lib/definitions';
+import { type TravelRequest, type User as UserData } from '@/lib/definitions';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+
+function GuideInfo({ guideId }: { guideId: string }) {
+    const firestore = useFirestore();
+    const guideDocRef = useMemoFirebase(() => {
+        if (!firestore || !guideId) return null;
+        return doc(firestore, 'users', guideId);
+    }, [firestore, guideId]);
+
+    const { data: guide, isLoading } = useDoc<UserData>(guideDocRef);
+
+    if (isLoading) return <Skeleton className="h-5 w-24" />;
+    if (!guide) return <span className="text-muted-foreground">Guide not found</span>;
+
+    return <span className="font-semibold">{guide.name}</span>;
+}
 
 function RequestList({
   requests,
@@ -48,11 +64,9 @@ function RequestList({
 
   const formatCreationDate = (createdAt: any) => {
     if (!createdAt) return '...';
-    // Firestore Timestamps have a toDate() method.
     if (createdAt && typeof createdAt.toDate === 'function') {
       return format(createdAt.toDate(), 'PP');
     }
-    // Fallback for ISO string dates
     try {
       const d = new Date(createdAt);
       if (isNaN(d.getTime())) return 'Invalid Date';
@@ -66,7 +80,8 @@ function RequestList({
     switch(status) {
         case 'pending': return <Badge variant="secondary">Finding Guides</Badge>;
         case 'guide-selected': return <Badge variant="secondary">Waiting for Guide</Badge>;
-        case 'confirmed': return <Badge variant="default">Confirmed</Badge>;
+        case 'confirmed': return <Badge variant="default" className="bg-amber-500">Payment Pending</Badge>;
+        case 'paid': return <Badge variant="default" className="bg-green-600">Paid & Confirmed</Badge>;
         default: return null;
     }
   };
@@ -98,6 +113,75 @@ function RequestList({
   );
 }
 
+function UpcomingRequestList({
+  requests,
+  isLoading,
+}: {
+  requests: TravelRequest[] | null;
+  isLoading: boolean;
+}) {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    const handlePayment = async (requestId: string) => {
+        if (!firestore) return;
+        const requestRef = doc(firestore, 'travelRequests', requestId);
+        try {
+            await updateDoc(requestRef, { status: 'paid' });
+            toast({
+                title: 'Payment Successful!',
+                description: 'Your booking is now fully confirmed.',
+            });
+        } catch (error) {
+            console.error('Payment simulation failed:', error);
+            toast({
+                title: 'Payment Failed',
+                description: 'Could not process payment. Please try again.',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    if (isLoading) {
+        return <RequestList isLoading={true} requests={null} emptyMessage="" />;
+    }
+
+    if (!requests || requests.length === 0) {
+        return (
+            <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
+                <p>Your confirmed bookings with assigned guides will appear here.</p>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="space-y-4">
+            {requests.map(request => (
+                <Card key={request.id}>
+                    <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                         <div className="flex-grow">
+                            <h3 className="font-semibold capitalize flex items-center gap-2">
+                                {request.purposeData?.purpose} with {request.guideId ? <GuideInfo guideId={request.guideId} /> : '...'}
+                            </h3>
+                             <p className="text-sm text-muted-foreground">
+                                {request.requestedDate ? format(new Date(request.requestedDate), 'PPPP') : 'Date not set'}
+                            </p>
+                        </div>
+                         <div className="flex items-center gap-4">
+                            {request.status === 'confirmed' ? (
+                                <Button onClick={() => handlePayment(request.id)}>Pay Now (₹{request.estimatedCost?.toFixed(2)})</Button>
+                            ) : (
+                                <Badge variant="default" className="bg-green-600">Paid & Confirmed</Badge>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+
 export default function MyBookingsPage() {
   const router = useRouter();
   const { user } = useUser();
@@ -114,18 +198,16 @@ export default function MyBookingsPage() {
 
   const { data: inProgressRequests, isLoading: inProgressLoading } = useCollection<TravelRequest>(inProgressRequestsQuery);
 
+  const upcomingRequestsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'travelRequests'),
+      where('travelerId', '==', user.uid),
+      where('status', 'in', ['confirmed', 'paid'])
+    );
+  }, [user, firestore]);
 
-  // This will be used later for guides who have accepted.
-  // const upcomingRequestsQuery = useMemoFirebase(() => {
-  //   if (!user || !firestore) return null;
-  //   return query(
-  //     collection(firestore, 'travelRequests'),
-  //     where('travelerId', '==', user.uid),
-  //     where('status', '==', 'confirmed')
-  //   );
-  // }, [user, firestore]);
-
-  // const { data: upcomingRequests, isLoading: upcomingLoading } = useCollection<TravelRequest>(upcomingRequestsQuery);
+  const { data: upcomingRequests, isLoading: upcomingLoading } = useCollection<TravelRequest>(upcomingRequestsQuery);
 
 
   return (
@@ -143,12 +225,15 @@ export default function MyBookingsPage() {
 
       <Card>
         <CardContent className="p-6">
-          <Tabs defaultValue="inprogress">
+          <Tabs defaultValue="upcoming">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="inprogress">In Progress</TabsTrigger>
               <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+              <TabsTrigger value="inprogress">In Progress</TabsTrigger>
               <TabsTrigger value="past">Past</TabsTrigger>
             </TabsList>
+             <TabsContent value="upcoming" className="mt-4">
+                <UpcomingRequestList requests={upcomingRequests} isLoading={upcomingLoading} />
+            </TabsContent>
             <TabsContent value="inprogress" className="mt-4">
                <RequestList
                 requests={inProgressRequests}
@@ -156,13 +241,6 @@ export default function MyBookingsPage() {
                 emptyMessage="Requests that are awaiting guide acceptance will appear here."
                 showStatus={true}
               />
-            </TabsContent>
-            <TabsContent value="upcoming" className="mt-4">
-              <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
-                <p>
-                  Your confirmed bookings with assigned guides will appear here.
-                </p>
-              </div>
             </TabsContent>
             <TabsContent value="past" className="mt-4">
               <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
