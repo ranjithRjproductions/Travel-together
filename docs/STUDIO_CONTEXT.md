@@ -13,8 +13,13 @@ The platform facilitates the creation of detailed travel requests by travelers, 
 
 We have successfully built out the foundational features of the application:
 
-*   **Dual-Role Authentication**: Secure signup and login flows for both Traveler and Guide roles using Firebase Authentication (Email/Password).
-*   **Role-Based Access Control**: The app uses server-side middleware and protected layouts to ensure users can only access their respective dashboards (`/traveler/*` or `/guide/*`).
+*   **Dual-Role Authentication**: Secure signup and login flows for both Traveler and Guide roles using Firebase Authentication (Email/Password), including email verification.
+*   **Role-Based Access Control & Admin Panel**:
+    *   The app uses server-side middleware and protected layouts to ensure users can only access their respective dashboards (`/traveler/*` or `/guide/*`).
+    *   A comprehensive **Admin Dashboard** (`/admin/*`) is implemented and is accessible only to users with an `isAdmin` flag.
+    *   **User Management**: Admins can view lists of all guides and travelers, see their profile completion progress, and access detailed profile views.
+    *   **Guide Verification**: Admins can approve or reject guides who are in the `verification-pending` state directly from the user list.
+    *   **Data Management**: Admins have the ability to delete guide or traveler accounts, and can also selectively delete a traveler's personal information or individual travel requests.
 *   **Traveler Onboarding & Profile**: A multi-step settings area for Travelers to complete their profile, including:
     *   Basic personal information (name, gender, photo).
     *   Address and Contact details.
@@ -24,7 +29,7 @@ We have successfully built out the foundational features of the application:
     2.  **Address Details**: Primary operating address with document proof upload.
     3.  **Contact Details**: Phone and WhatsApp numbers.
     4.  **Disability Expertise**: A detailed form on their experience, language skills, and willingness to assist.
-    5.  **Verification**: Uploading of government ID and qualification documents, which moves their profile to a `verification-pending` state.
+    5.  **Verification**: Uploading of government ID and qualification documents, which moves their profile to a `verification-pending` state for admin review.
 *   **Travel Request Flow for Travelers**: A 5-step process for creating a detailed travel request:
     1.  **Service & Location**: Purpose of the trip (Education, Hospital, Shopping) with conditional sub-fields.
     2.  **Date & Duration**: Selecting the date and time for the service.
@@ -43,11 +48,12 @@ The application follows the Next.js App Router paradigm.
 
 *   `src/app/(auth)`: Contains login and signup pages.
 *   `src/app/(traveler|guide)`: These are the protected route groups for each user role. Each contains a `dashboard`, `profile/settings` area, and role-specific pages.
+*   `src/app/admin`: The protected route group for the admin panel, with sub-routes for managing users.
 *   `src/app/traveler/request/[requestId]`: A dynamic route that handles the creation and viewing of travel requests. It uses client-side logic to create a new draft document in Firestore if the ID is 'new'.
 *   `src/components`: Reusable React components, including a large set of UI components from ShadCN in `src/components/ui` and the new global `Footer`.
 *   `src/lib`: Contains shared logic:
-    *   `actions.ts`: Server Actions for `login`, `signup`, `logout`, and `submitTravelRequest`.
-    *   `auth.ts`: Server-side helper `getUser()` to verify session cookies and retrieve user data.
+    *   `actions.ts`: Server Actions for `login`, `signup`, `logout`, and all admin actions (user management, status updates).
+    *   `auth.ts`: Server-side helper `getUser()` to verify session cookies and retrieve user data, including their `isAdmin` status.
     *   `definitions.ts`: Central TypeScript type definitions (`User`, `TravelRequest`).
     *   `firebase-admin.ts`: Server-side Firebase Admin SDK initialization.
     *   `schemas/travel-request.ts`: Zod schemas for validating the multi-step travel request form.
@@ -74,6 +80,7 @@ The application follows the Next.js App Router paradigm.
 *   **Firestore Database**: The structure is strictly defined in `docs/backend.json`.
     *   `/users/{userId}`: Stores all user data, including their assigned `role`.
     *   `/users/{userId}/guideProfile/{guideProfileId}`: A subcollection containing detailed profile information ONLY for users with the 'Guide' role.
+    *   `/roles_admin/{userId}`: A collection that grants admin privileges. A user's UID in this collection makes them an admin.
     *   `/travelRequests/{requestId}`: Stores all travel requests created by travelers. Security rules ensure a user can only access their own requests.
 *   **Firebase Storage**: Used for file uploads (profile photos, verification documents). Access is restricted by security rules in `storage.rules`.
-*   **Server Actions**: Used for all authentication-related mutations and for submitting the final travel request. This keeps sensitive logic on the server.
+*   **Server Actions**: Used for all authentication-related mutations and for submitting the final travel request. Admin actions like updating a guide's status or deleting user accounts are also handled via secure server actions. This keeps sensitive logic on the server.
