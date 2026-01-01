@@ -20,6 +20,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { respondToTravelRequest } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { User, MapPin } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 function IncomingRequests() {
   const { user, isUserLoading } = useUser();
@@ -101,6 +104,101 @@ function IncomingRequests() {
   );
 }
 
+function RequestTravelerInfo({ travelerId }: { travelerId: string }) {
+    const firestore = useFirestore();
+    const travelerDocRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'users', travelerId);
+    }, [firestore, travelerId]);
+
+    const { data: traveler, isLoading } = useDoc<UserProfile>(travelerDocRef);
+
+    if (isLoading) {
+        return <Skeleton className="h-10 w-32" />;
+    }
+    if (!traveler) {
+        return <p className="text-sm text-muted-foreground">Unknown Traveler</p>;
+    }
+
+    const initials = traveler.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
+
+    return (
+        <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
+                <AvatarImage src={traveler.photoURL} alt={traveler.photoAlt || `Photo of ${traveler.name}`} />
+                <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <span className="font-medium">{traveler.name}</span>
+        </div>
+    );
+}
+
+function ConfirmedRequests() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const confirmedRequestsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'travelRequests'),
+      where('guideId', '==', user.uid),
+      where('status', '==', 'confirmed')
+    );
+  }, [user, firestore]);
+
+  const { data: requests, isLoading } = useCollection<TravelRequest>(confirmedRequestsQuery);
+  
+  if (isLoading || isUserLoading) {
+      return (
+          <div className="space-y-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+          </div>
+      );
+  }
+
+  if (!requests || requests.length === 0) {
+      return (
+          <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
+            <p>Your accepted requests will appear here.</p>
+          </div>
+      );
+  }
+  
+  const getRequestTitle = (request: TravelRequest): string => {
+    const { purposeData } = request;
+    if (!purposeData?.purpose) return 'Untitled Request';
+    let title = `${purposeData.purpose.charAt(0).toUpperCase() + purposeData.purpose.slice(1)}`;
+    if (purposeData.purpose === 'education' && purposeData.subPurposeData?.subPurpose) {
+        title += `: ${purposeData.subPurposeData.subPurpose === 'scribe' ? 'Scribe for Exam' : 'Admission Support'}`;
+    }
+    return title;
+  };
+  
+  return (
+      <div className="space-y-4">
+        {requests.map(request => (
+          <Card key={request.id}>
+              <CardContent className="p-4 grid sm:grid-cols-3 gap-4 items-center">
+                  <div className="col-span-2 space-y-1">
+                      <h3 className="font-semibold">{getRequestTitle(request)}</h3>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}</span>
+                           <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {request.purposeData?.subPurposeData?.collegeAddress?.district || request.purposeData?.subPurposeData?.hospitalAddress?.district || request.purposeData?.subPurposeData?.shoppingArea?.district}</div>
+                      </div>
+                  </div>
+                  <div>
+                      <p className="text-sm text-muted-foreground">Booked by:</p>
+                      <RequestTravelerInfo travelerId={request.travelerId} />
+                  </div>
+              </CardContent>
+          </Card>
+        ))}
+      </div>
+  );
+
+}
+
 
 export default function GuideDashboard() {
   const { user, isUserLoading: isAuthLoading } = useUser();
@@ -135,7 +233,7 @@ export default function GuideDashboard() {
   return (
     <div className="grid gap-8">
       <h1 className="font-headline text-3xl font-bold">
-        {content.welcome.replace('{name}', userProfile?.name?.split(' ')[0] || 'Guide')}
+        {userProfile?.name ? `Welcome back, ${userProfile.name.split(' ')[0]}!` : content.pageTitle}
       </h1>
 
       <IncomingRequests />
@@ -148,13 +246,13 @@ export default function GuideDashboard() {
                 {content.availableRequests.title}
               </CardTitle>
               <CardDescription>
-                {content.availableRequests.description}
+                {content.availableRequests.description} (Feature coming soon)
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                [Available requests will be listed here]
-              </p>
+              <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
+                 <p>A marketplace for available requests will appear here.</p>
+              </div>
             </CardContent>
           </Card>
         </section>
@@ -168,9 +266,7 @@ export default function GuideDashboard() {
               <CardDescription>{content.myRequests.description}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                [Accepted requests will be listed here]
-              </p>
+                <ConfirmedRequests />
             </CardContent>
           </Card>
         </section>
