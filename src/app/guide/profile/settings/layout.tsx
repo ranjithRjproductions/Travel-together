@@ -12,6 +12,7 @@ import {
   Accessibility,
   Sparkles,
   ArrowLeft,
+  ToggleRight,
 } from 'lucide-react';
 
 const guideNavigation = [
@@ -20,6 +21,7 @@ const guideNavigation = [
   { name: 'Contact Details', href: '/guide/profile/settings/contact', icon: Phone },
   { name: 'Disability Expertise', href: '/guide/profile/settings/expertise', icon: Accessibility },
   { name: 'Verification', href: '/guide/profile/settings/verification', icon: Sparkles },
+  { name: 'Availability', href: '/guide/profile/settings/availability', icon: ToggleRight },
 ];
 
 export default function GuideProfileSettingsLayout({

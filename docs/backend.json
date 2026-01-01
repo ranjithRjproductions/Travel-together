@@ -175,8 +175,13 @@
         "onboardingState": {
           "type": "string",
           "description": "Tracks the completion status of the guide's profile.",
-          "enum": ["started", "profile-complete", "verification-pending", "active"],
+          "enum": ["started", "profile-complete", "verification-pending", "active", "rejected"],
           "default": "started"
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Indicates if the guide is currently available to take new requests.",
+          "default": true
         }
       },
       "required": ["address", "contact", "disabilityExpertise", "onboardingState"]
