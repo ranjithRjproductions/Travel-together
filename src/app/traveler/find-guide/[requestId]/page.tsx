@@ -11,7 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Search, UserCheck, MapPin, Star } from 'lucide-react';
+import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 
 function GuideListSkeleton() {
@@ -43,32 +43,44 @@ function GuideExpertiseTags({ guide, request }: { guide: any, request: TravelReq
     if (!guide.guideProfile?.disabilityExpertise || !request) return null;
 
     const expertise = guide.guideProfile.disabilityExpertise;
-    const tags = [];
+    const requestPurpose = request.purposeData;
+    const tags: React.ReactNode[] = [];
 
-    // Check for scribe expertise match
-    if (request.purposeData?.purpose === 'education' && request.purposeData.subPurposeData?.subPurpose === 'scribe') {
-        if (expertise.visionSupport?.willingToScribe === 'yes') {
-            tags.push('Willing to Scribe');
-        }
-    }
-    
     // Check for sign language match
     if (request.travelerData?.disability?.requiresSignLanguageGuide) {
         if (expertise.hearingSupport?.knowsSignLanguage === true) {
-            tags.push('Knows Sign Language');
+            tags.push(
+                <div key="sign-language" className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded-full">
+                    <Star className="h-3 w-3" />
+                    <span>Knows Sign Language</span>
+                </div>
+            );
         }
     }
+    
+    // Check for scribe expertise match and list the subjects
+    if (requestPurpose?.purpose === 'education' && requestPurpose.subPurposeData?.subPurpose === 'scribe') {
+        if (expertise.visionSupport?.willingToScribe === 'yes') {
+            const matchedSubjects = (requestPurpose.subPurposeData.scribeSubjects || []).filter((sub: string) =>
+                (expertise.visionSupport?.scribeSubjects || []).includes(sub)
+            );
+            if (matchedSubjects.length > 0) {
+                 tags.push(
+                    <div key="scribe" className="w-full text-sm">
+                        <p className="font-semibold text-muted-foreground">Can scribe for:</p>
+                        <p className="font-medium capitalize">{matchedSubjects.join(', ').replace(/_/g, ' ')}</p>
+                    </div>
+                );
+            }
+        }
+    }
+
 
     if (tags.length === 0) return null;
 
     return (
         <div className="flex flex-wrap gap-2">
-            {tags.map(tag => (
-                <div key={tag} className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded-full">
-                    <Star className="h-3 w-3" />
-                    <span>{tag}</span>
-                </div>
-            ))}
+            {tags}
         </div>
     );
 }
@@ -95,7 +107,6 @@ export default function FindGuidePage() {
 
     const { data: traveler, isLoading: isTravelerLoading } = useDoc<UserData>(travelerDocRef);
     
-    // The guide matcher hook now encapsulates all the complex logic.
     const { matchedGuides, isLoading: areGuidesLoading } = useGuideMatcher(request, traveler);
     
     const isLoading = isRequestLoading || isTravelerLoading || areGuidesLoading;
@@ -129,10 +140,17 @@ export default function FindGuidePage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <UserIcon className="h-4 w-4" />
+                                        <span>{guide.gender}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-green-600">
+                                        <CheckCircle className="h-4 w-4" />
+                                        <span>Available</span>
+                                    </div>
+                                </div>
                                 <GuideExpertiseTags guide={guide} request={request} />
-                                <p className="text-sm text-muted-foreground line-clamp-3">
-                                    A brief bio about the guide will go here once they complete this section of their profile.
-                                </p>
                             </CardContent>
                             <CardFooter>
                                 <Button className="w-full">
