@@ -1,6 +1,7 @@
 import { AppLogo } from '@/components/app-logo';
 import { UserNav } from '@/components/user-nav';
 import { type User } from '@/lib/definitions';
+import { Footer } from './footer';
 
 export default function AppLayout({
   children,
@@ -22,6 +23,7 @@ export default function AppLayout({
       <main id="main-content" className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         {children}
       </main>
+      <Footer />
     </div>
   );
 }

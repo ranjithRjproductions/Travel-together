@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AppLogo } from '@/components/app-logo';
+import { Footer } from '@/components/footer';
 import { LogIn, UserPlus, ShieldCheck, UserCheck, Accessibility } from 'lucide-react';
 import content from './content/home.json';
 
@@ -92,22 +93,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="py-6 bg-background border-t">
-        <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
-          <p>{content.footer.copyright}</p>
-          <nav aria-label="Footer">
-            <ul className="flex gap-4 mt-4 sm:mt-0">
-              {content.footer.links.map((link) => (
-                <li key={link.href}>
-                  <Button variant="link" asChild className="p-0 h-auto">
-                    <Link href={link.href}>{link.label}</Link>
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </footer>
+      <Footer />
     </>
   );
 }
