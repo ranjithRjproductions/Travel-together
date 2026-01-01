@@ -11,7 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Search, UserCheck } from 'lucide-react';
+import { Search, UserCheck, MapPin, Star } from 'lucide-react';
 import Link from 'next/link';
 
 function GuideListSkeleton() {
@@ -37,6 +37,40 @@ function GuideListSkeleton() {
             ))}
         </div>
     )
+}
+
+function GuideExpertiseTags({ guide, request }: { guide: any, request: TravelRequest | null }) {
+    if (!guide.guideProfile?.disabilityExpertise || !request) return null;
+
+    const expertise = guide.guideProfile.disabilityExpertise;
+    const tags = [];
+
+    // Check for scribe expertise match
+    if (request.purposeData?.purpose === 'education' && request.purposeData.subPurposeData?.subPurpose === 'scribe') {
+        if (expertise.visionSupport?.willingToScribe === 'yes') {
+            tags.push('Willing to Scribe');
+        }
+    }
+    
+    // Check for sign language match
+    if (request.travelerData?.disability?.requiresSignLanguageGuide) {
+        if (expertise.hearingSupport?.knowsSignLanguage === true) {
+            tags.push('Knows Sign Language');
+        }
+    }
+
+    if (tags.length === 0) return null;
+
+    return (
+        <div className="flex flex-wrap gap-2">
+            {tags.map(tag => (
+                <div key={tag} className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded-full">
+                    <Star className="h-3 w-3" />
+                    <span>{tag}</span>
+                </div>
+            ))}
+        </div>
+    );
 }
 
 
@@ -80,17 +114,24 @@ export default function FindGuidePage() {
                     {matchedGuides.map(guide => (
                         <Card key={guide.uid} className="flex flex-col">
                             <CardHeader className="flex-row items-center gap-4">
-                                 <Avatar className="h-12 w-12">
+                                 <Avatar className="h-16 w-16">
                                     <AvatarImage src={guide.photoURL} alt={guide.photoAlt || `Photo of ${guide.name}`} />
                                     <AvatarFallback>{guide.name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
                                 </Avatar>
-                                <div>
+                                <div className="space-y-1">
                                     <CardTitle as="h2" className="text-lg">{guide.name}</CardTitle>
+                                     {guide.guideProfile?.address?.district && (
+                                        <div className="flex items-center text-sm text-muted-foreground">
+                                            <MapPin className="mr-1 h-4 w-4" />
+                                            <span>{guide.guideProfile.address.district}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </CardHeader>
-                            <CardContent className="flex-grow">
+                            <CardContent className="flex-grow space-y-4">
+                                <GuideExpertiseTags guide={guide} request={request} />
                                 <p className="text-sm text-muted-foreground line-clamp-3">
-                                    A brief bio about the guide will go here. They have experience in your requested areas and are ready to help.
+                                    A brief bio about the guide will go here once they complete this section of their profile.
                                 </p>
                             </CardContent>
                             <CardFooter>
