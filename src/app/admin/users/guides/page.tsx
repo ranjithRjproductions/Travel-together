@@ -20,7 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { type User } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye } from 'lucide-react';
+import { ArrowLeft, Eye, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
@@ -40,6 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
 type GuideWithStats = User & {
   id: string;
   onboardingState?: string;
+  isAvailable?: boolean;
   profileCompletion: number;
 };
 
@@ -81,10 +82,12 @@ async function getGuides(): Promise<GuideWithStats[]> {
       const guideProfileSnapshot = await db.collection('users').doc(userDoc.id).collection('guideProfile').limit(1).get();
 
       let onboardingState = 'not_started';
+      let isAvailable = false;
       let guideProfileData: any = null;
       if (!guideProfileSnapshot.empty) {
         guideProfileData = guideProfileSnapshot.docs[0].data();
         onboardingState = guideProfileData.onboardingState || 'unknown';
+        isAvailable = guideProfileData.isAvailable === true; // Default to false if not set
       }
       
       const profileCompletion = calculateGuideProfileCompletion(userData, guideProfileData);
@@ -92,6 +95,7 @@ async function getGuides(): Promise<GuideWithStats[]> {
       return {
         ...userData,
         onboardingState,
+        isAvailable,
         profileCompletion,
       };
     }));
@@ -122,6 +126,28 @@ function StatusBadge({ status }: { status: string }) {
             break;
     }
     return <Badge variant={variant} className="capitalize">{status.replace('-', ' ')}</Badge>;
+}
+
+function AvailabilityStatus({ isAvailable, onboardingState }: { isAvailable?: boolean; onboardingState?: string; }) {
+  if (onboardingState !== 'active') {
+    return <span className="text-sm text-muted-foreground">-</span>;
+  }
+
+  if (isAvailable) {
+    return (
+      <div className="flex items-center gap-2 text-green-600">
+        <CheckCircle className="h-4 w-4" />
+        <span className="text-sm">Available</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <XCircle className="h-4 w-4" />
+      <span className="text-sm">Hidden</span>
+    </div>
+  );
 }
 
 export default async function ManageGuidesPage() {
@@ -155,7 +181,8 @@ export default async function ManageGuidesPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Onboarding</TableHead>
+              <TableHead>Availability</TableHead>
               <TableHead>Profile Completion</TableHead>
               <TableHead className="text-center">Actions</TableHead>
               <TableHead className="text-center">View</TableHead>
@@ -165,7 +192,7 @@ export default async function ManageGuidesPage() {
           <TableBody>
             {guides.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">No guides found.</TableCell>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">No guides found.</TableCell>
                 </TableRow>
             )}
 
@@ -174,6 +201,7 @@ export default async function ManageGuidesPage() {
                 <TableCell className="font-medium">{guide.name}</TableCell>
                 <TableCell>{guide.email}</TableCell>
                 <TableCell><StatusBadge status={guide.onboardingState || 'unknown'} /></TableCell>
+                <TableCell><AvailabilityStatus isAvailable={guide.isAvailable} onboardingState={guide.onboardingState} /></TableCell>
                 <TableCell>
                     <div className="flex items-center gap-2">
                         <Progress value={guide.profileCompletion} className="w-24"/>
@@ -200,6 +228,7 @@ export default async function ManageGuidesPage() {
                 <TableCell className="font-medium">{guide.name}</TableCell>
                 <TableCell>{guide.email}</TableCell>
                 <TableCell><StatusBadge status={guide.onboardingState || 'unknown'} /></TableCell>
+                <TableCell><AvailabilityStatus isAvailable={guide.isAvailable} onboardingState={guide.onboardingState} /></TableCell>
                  <TableCell>
                     <div className="flex items-center gap-2">
                         <Progress value={guide.profileCompletion} className="w-24"/>
