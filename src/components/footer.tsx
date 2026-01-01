@@ -5,9 +5,10 @@ import content from '@/app/content/home.json';
 
 export function Footer() {
   return (
-    <footer className="bg-background border-t mt-auto">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <>
+      <div className="bg-background border-t">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <h3 className="font-semibold text-foreground mb-4">Company</h3>
               <ul className="space-y-2">
@@ -30,11 +31,14 @@ export function Footer() {
                 </ul>
               </nav>
             </div>
-        </div>
-        <div className="mt-8 pt-6 border-t text-center text-sm text-muted-foreground">
-            <p>© 2026 Let's Travel Together, Inc. All rights reserved.</p>
+          </div>
         </div>
       </div>
-    </footer>
+      <footer className="bg-background border-t">
+        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
+            <p>Copyright © 2026 Let's Travel Together, Inc. All rights reserved.</p>
+        </div>
+      </footer>
+    </>
   );
 }
