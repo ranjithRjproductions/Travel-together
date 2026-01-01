@@ -132,10 +132,6 @@ export default async function ManageTravelersPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead className="text-center">Total Requests</TableHead>
-              <TableHead className="text-center">Drafts</TableHead>
-              <TableHead className="text-center">In Progress</TableHead>
-              <TableHead className="text-center">Pending</TableHead>
               <TableHead className="text-center">Profile Completion</TableHead>
               <TableHead className="text-center">View</TableHead>
               <TableHead className="text-center">Delete</TableHead>
@@ -144,7 +140,7 @@ export default async function ManageTravelersPage() {
           <TableBody>
             {travelers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   No travelers found.
                 </TableCell>
               </TableRow>
@@ -153,12 +149,8 @@ export default async function ManageTravelersPage() {
                 <TableRow key={traveler.id}>
                   <TableCell className="font-medium">{traveler.name}</TableCell>
                   <TableCell>{traveler.email}</TableCell>
-                  <TableCell className="text-center">{traveler.requestCount}</TableCell>
-                  <TableCell className="text-center">{traveler.draftCount}</TableCell>
-                  <TableCell className="text-center">{traveler.inProgressCount}</TableCell>
-                  <TableCell className="text-center">{traveler.pendingCount}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                         <Progress value={traveler.profileCompletion} className="w-24"/>
                         <span className="text-xs text-muted-foreground">{traveler.profileCompletion}%</span>
                     </div>
