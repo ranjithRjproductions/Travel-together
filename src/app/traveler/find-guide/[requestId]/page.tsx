@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -101,9 +102,9 @@ export default function FindGuidePage() {
     const { data: request, isLoading: isRequestLoading } = useDoc<TravelRequest>(requestDocRef);
 
     const travelerDocRef = useMemoFirebase(() => {
-        if (!firestore || !authUser) return null;
-        return doc(firestore, 'users', authUser.uid);
-    }, [firestore, authUser]);
+        if (!firestore || !request?.travelerId) return null;
+        return doc(firestore, 'users', request.travelerId);
+    }, [firestore, request?.travelerId]);
 
     const { data: traveler, isLoading: isTravelerLoading } = useDoc<UserData>(travelerDocRef);
     
@@ -113,9 +114,9 @@ export default function FindGuidePage() {
 
     return (
         <div className="container mx-auto py-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Your Matched Guides</h1>
             <p className="text-lg text-muted-foreground mb-8">
-                We've found guides who match your specific needs. Choose the one that's right for you.
+                We’ve matched these guides based on your location, requirements, and preferences.
             </p>
 
             {isLoading ? (
@@ -124,15 +125,24 @@ export default function FindGuidePage() {
                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {matchedGuides.map(guide => (
                         <Card key={guide.uid} className="flex flex-col">
-                            <CardHeader className="flex-row items-center gap-4">
-                                 <Avatar className="h-16 w-16">
+                           <CardHeader className="flex-row items-start gap-4">
+                                <Avatar className="h-16 w-16">
                                     <AvatarImage src={guide.photoURL} alt={guide.photoAlt || `Photo of ${guide.name}`} />
                                     <AvatarFallback>{guide.name.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
                                 </Avatar>
-                                <div className="space-y-1">
+                                <div className="flex-1 space-y-1">
                                     <CardTitle as="h2" className="text-lg">{guide.name}</CardTitle>
+                                     <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-green-600 border-green-300">
+                                            Available
+                                        </Badge>
+                                        <Badge variant="secondary">
+                                            <CheckCircle className="mr-1 h-3 w-3" />
+                                            Verified Guide
+                                        </Badge>
+                                    </div>
                                      {guide.guideProfile?.address?.district && (
-                                        <div className="flex items-center text-sm text-muted-foreground">
+                                        <div className="flex items-center text-sm text-muted-foreground pt-1">
                                             <MapPin className="mr-1 h-4 w-4" />
                                             <span>{guide.guideProfile.address.district}</span>
                                         </div>
@@ -140,14 +150,10 @@ export default function FindGuidePage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
-                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <UserIcon className="h-4 w-4" />
                                         <span>{guide.gender}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-green-600">
-                                        <CheckCircle className="h-4 w-4" />
-                                        <span>Available</span>
                                     </div>
                                 </div>
                                 <GuideExpertiseTags guide={guide} request={request} />
@@ -192,3 +198,5 @@ export default function FindGuidePage() {
         </div>
     );
 }
+
+    
