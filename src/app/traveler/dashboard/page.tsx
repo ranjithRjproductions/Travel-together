@@ -147,8 +147,8 @@ export default function TravelerDashboard() {
             </CardHeader>
             <CardContent className="flex-grow flex items-end">
               <Button asChild size="lg" className="w-full" variant="secondary">
-                <Link href="/traveler/my-requests">
-                  <BookMarked aria-hidden="true" /> View My Requests
+                <Link href="/traveler/my-bookings">
+                  <BookMarked aria-hidden="true" /> View My Bookings
                 </Link>
               </Button>
             </CardContent>
