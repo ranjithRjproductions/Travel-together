@@ -1,14 +1,87 @@
 
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
+import { useMemo } from 'react';
+import { ArrowLeft, Edit, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { type TravelRequest } from '@/lib/definitions';
+import { format } from 'date-fns';
+import Link from 'next/link';
+
+function RequestList({
+  requests,
+  emptyMessage,
+  isLoading
+}: {
+  requests: TravelRequest[] | null;
+  emptyMessage: string;
+  isLoading: boolean;
+}) {
+
+  if (isLoading) {
+      return (
+          <div className="space-y-4">
+              {[...Array(2)].map((_, i) => (
+                  <Card key={i}><CardContent className="p-4"><Skeleton className="h-8 w-full" /></CardContent></Card>
+              ))}
+          </div>
+      );
+  }
+
+  if (!requests || requests.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
+        <p>{emptyMessage}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {requests.map(request => (
+        <Card key={request.id}>
+            <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                 <div className="flex-grow">
+                    <h3 className="font-semibold capitalize">
+                        {request.purposeData?.purpose} Request for {request.purposeData?.subPurposeData?.collegeAddress?.district || request.purposeData?.subPurposeData?.hospitalAddress?.district || request.purposeData?.subPurposeData?.shoppingArea?.district}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                        Submitted on {request.createdAt ? format(new Date(request.createdAt), 'PP') : '...'}
+                    </p>
+                </div>
+                <Button asChild variant="outline">
+                  <Link href={`/traveler/request/${request.id}`}>View & Find Guides</Link>
+                </Button>
+            </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 export default function MyBookingsPage() {
   const router = useRouter();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const pendingRequestsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'travelRequests'),
+      where('travelerId', '==', user.uid),
+      where('status', '==', 'pending')
+    );
+  }, [user, firestore]);
+
+  const { data: pendingRequests, isLoading: pendingLoading } = useCollection<TravelRequest>(pendingRequestsQuery);
+
 
   return (
     <div className="grid gap-6 md:gap-8">
@@ -32,13 +105,11 @@ export default function MyBookingsPage() {
               <TabsTrigger value="past">Past</TabsTrigger>
             </TabsList>
             <TabsContent value="inprogress" className="mt-4">
-              <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
-                <p>
-                  This is where you will find guides that match your submitted
-                  requests.
-                </p>
-                <p className="text-sm">(Feature coming soon)</p>
-              </div>
+              <RequestList 
+                requests={pendingRequests}
+                isLoading={pendingLoading}
+                emptyMessage="You have no requests currently in progress. Submit one to find a guide!"
+              />
             </TabsContent>
             <TabsContent value="upcoming" className="mt-4">
               <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
