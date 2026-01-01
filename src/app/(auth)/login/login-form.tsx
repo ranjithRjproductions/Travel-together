@@ -115,7 +115,7 @@ export function LoginForm() {
     }
     setShowVerifyEmail(false);
     setUserEmail('');
-  }
+}
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

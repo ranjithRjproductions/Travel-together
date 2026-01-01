@@ -153,7 +153,7 @@
     }
   };
 
-    if (verificationEmailSent) {
+  if (verificationEmailSent) {
       return (
           <VerifyEmailCard 
             email={emailForVerification}
