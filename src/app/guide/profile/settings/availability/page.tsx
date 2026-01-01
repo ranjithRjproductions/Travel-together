@@ -69,10 +69,10 @@ export default function GuideAvailabilityPage() {
   }, [guideProfileDocRef, isUserLoading, reset, toast]);
 
   useEffect(() => {
-    if (!guideProfileDocRef || isLoading) return;
+    if (isLoading) return;
 
-    const subscription = control.watch(async (value) => {
-      if (value.isAvailable === undefined) return;
+    const subscription = watch(async (value) => {
+      if (value.isAvailable === undefined || !guideProfileDocRef) return;
       try {
         await setDoc(guideProfileDocRef, { isAvailable: value.isAvailable }, { merge: true });
         toast({
@@ -89,7 +89,7 @@ export default function GuideAvailabilityPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, [guideProfileDocRef, control, toast, isLoading]);
+  }, [guideProfileDocRef, watch, toast, isLoading]);
 
 
   if (isLoading) {
