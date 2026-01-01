@@ -12,14 +12,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
-import { Check, X } from 'lucide-react';
+import { Check, X, Ban } from 'lucide-react';
 import { type User } from '@/lib/definitions';
 import { updateGuideStatus } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
-type ActionType = 'approve' | 'reject';
+type ActionType = 'approve' | 'reject' | 'deactivate' | 'reactivate';
 
-export function ApproveRejectButtons({ guide }: { guide: User & { uid: string } }) {
+export function ManageGuideStatusButtons({ guide }: { guide: User & { uid: string, onboardingState?: string } }) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionType, setActionType] = useState<ActionType | null>(null);
@@ -34,14 +34,19 @@ export function ApproveRejectButtons({ guide }: { guide: User & { uid: string } 
     if (!actionType) return;
 
     setIsSubmitting(true);
-    const newStatus = actionType === 'approve' ? 'active' : 'rejected';
+    let newStatus: 'active' | 'rejected' = 'active'; // default
+    if (actionType === 'approve' || actionType === 'reactivate') {
+      newStatus = 'active';
+    } else if (actionType === 'reject' || actionType === 'deactivate') {
+      newStatus = 'rejected';
+    }
     
     const result = await updateGuideStatus(guide.uid, newStatus);
 
     if (result.success) {
       toast({
-        title: `Guide ${actionType === 'approve' ? 'Approved' : 'Rejected'}`,
-        description: `The status for ${guide.name} has been updated.`,
+        title: `Guide Status Updated`,
+        description: `The status for ${guide.name} has been updated to ${newStatus}.`,
       });
     } else {
       toast({
@@ -55,10 +60,58 @@ export function ApproveRejectButtons({ guide }: { guide: User & { uid: string } 
     setIsAlertOpen(false);
   };
   
-  const title = `Are you sure you want to ${actionType}?`;
-  const description = actionType === 'approve' 
-    ? `This will mark the guide "${guide.name}" as active and allow them to accept requests. This action can be reversed later if needed.`
-    : `This will reject the guide "${guide.name}". They will be notified that their application was not successful. This action is final.`;
+  const getDialogContent = () => {
+    switch (actionType) {
+        case 'approve':
+            return { title: 'Approve this guide?', description: `This will mark the guide "${guide.name}" as active and allow them to accept requests.` };
+        case 'reject':
+            return { title: 'Reject this guide?', description: `This will reject the guide "${guide.name}". They will be notified that their application was not successful.` };
+        case 'deactivate':
+            return { title: 'Deactivate this guide?', description: `This will deactivate the guide "${guide.name}" and prevent them from accepting new requests. They can be re-activated later.` };
+        case 'reactivate':
+            return { title: 'Re-activate this guide?', description: `This will mark the guide "${guide.name}" as active again, allowing them to accept requests.` };
+        default:
+            return { title: 'Confirm Action', description: 'Are you sure you want to proceed?' };
+    }
+  };
+  
+  const { title, description } = getDialogContent();
+  const isDestructiveAction = actionType === 'reject' || actionType === 'deactivate';
+
+  const renderButtons = () => {
+    const status = guide.onboardingState;
+    if (status === 'verification-pending') {
+        return (
+            <div className="flex gap-2">
+                <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => handleOpenDialog('approve')}>
+                    <Check className="h-4 w-4" />
+                    <span className="sr-only">Approve</span>
+                </Button>
+                <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleOpenDialog('reject')}>
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Reject</span>
+                </Button>
+            </div>
+        );
+    }
+     if (status === 'active') {
+        return (
+             <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/5 hover:text-destructive" onClick={() => handleOpenDialog('deactivate')}>
+                <Ban className="mr-2 h-4 w-4" />
+                Deactivate
+            </Button>
+        );
+    }
+     if (status === 'rejected') {
+        return (
+             <Button variant="outline" size="sm" className="text-green-600 hover:bg-green-50 hover:text-green-700" onClick={() => handleOpenDialog('reactivate')}>
+                <Check className="mr-2 h-4 w-4" />
+                Re-activate
+            </Button>
+        );
+    }
+    return null;
+  }
 
   return (
     <>
@@ -73,24 +126,15 @@ export function ApproveRejectButtons({ guide }: { guide: User & { uid: string } 
             <AlertDialogAction 
                 onClick={handleConfirmAction} 
                 disabled={isSubmitting}
-                className={actionType === 'reject' ? 'bg-destructive hover:bg-destructive/90' : ''}
+                className={isDestructiveAction ? 'bg-destructive hover:bg-destructive/90' : ''}
             >
-              {isSubmitting ? 'Submitting...' : `Yes, ${actionType}`}
+              {isSubmitting ? 'Submitting...' : 'Yes, confirm'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <div className="flex gap-2">
-        <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => handleOpenDialog('approve')}>
-            <Check className="h-4 w-4" />
-            <span className="sr-only">Approve</span>
-        </Button>
-        <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleOpenDialog('reject')}>
-            <X className="h-4 w-4" />
-            <span className="sr-only">Reject</span>
-        </Button>
-      </div>
+      
+      {renderButtons()}
     </>
   );
 }

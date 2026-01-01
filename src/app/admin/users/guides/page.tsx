@@ -26,7 +26,7 @@ import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
 import { Progress } from '@/components/ui/progress';
 import { DeleteGuideButton } from './delete-guide-button';
-import { ApproveRejectButtons } from './approve-reject-buttons';
+import { ManageGuideStatusButtons } from './approve-reject-buttons';
 
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
@@ -156,9 +156,9 @@ export default async function ManageGuidesPage() {
               <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Profile Completion</TableHead>
-              <TableHead>Approve/Reject</TableHead>
-              <TableHead>View</TableHead>
-              <TableHead>Delete</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
+              <TableHead className="text-center">View</TableHead>
+              <TableHead className="text-center">Delete</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -179,10 +179,10 @@ export default async function ManageGuidesPage() {
                         <span className="text-xs text-muted-foreground">{guide.profileCompletion}%</span>
                     </div>
                 </TableCell>
-                <TableCell>
-                  {guide.onboardingState === 'verification-pending' ? <ApproveRejectButtons guide={guide} /> : null}
+                <TableCell className="text-center">
+                  <ManageGuideStatusButtons guide={guide} />
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                      <Button asChild variant="outline" size="sm">
                         <Link href={`/admin/users/guides/${guide.id}`}>
                           <Eye className="mr-2 h-4 w-4" />
@@ -190,7 +190,7 @@ export default async function ManageGuidesPage() {
                         </Link>
                       </Button>
                 </TableCell>
-                <TableCell><DeleteGuideButton guide={guide} /></TableCell>
+                <TableCell className="text-center"><DeleteGuideButton guide={guide} /></TableCell>
               </TableRow>
             ))}
 
@@ -205,10 +205,10 @@ export default async function ManageGuidesPage() {
                         <span className="text-xs text-muted-foreground">{guide.profileCompletion}%</span>
                     </div>
                 </TableCell>
-                <TableCell>
-                    {guide.onboardingState === 'verification-pending' ? <ApproveRejectButtons guide={guide} /> : null}
+                <TableCell className="text-center">
+                  <ManageGuideStatusButtons guide={guide} />
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center">
                      <Button asChild variant="outline" size="sm">
                         <Link href={`/admin/users/guides/${guide.id}`}>
                           <Eye className="mr-2 h-4 w-4" />
@@ -216,7 +216,7 @@ export default async function ManageGuidesPage() {
                         </Link>
                       </Button>
                 </TableCell>
-                 <TableCell><DeleteGuideButton guide={guide} /></TableCell>
+                 <TableCell className="text-center"><DeleteGuideButton guide={guide} /></TableCell>
               </TableRow>
             ))}
           </TableBody>
