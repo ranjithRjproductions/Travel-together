@@ -116,6 +116,7 @@ function StatusBadge({ status }: { status: string }) {
         case 'rejected':
             variant = 'destructive';
             break;
+        case 'not_started':
         default:
             variant = 'outline';
             break;
