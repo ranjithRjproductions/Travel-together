@@ -13,12 +13,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { logout } from '@/lib/actions';
-import { User, LogOut, BookMarked, Shield, FileText } from 'lucide-react';
+import { User, LogOut, BookMarked, Shield, FileText, Settings } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
 import { useState } from 'react';
-import { EnableNotificationsButton } from './EnableNotificationsButton';
 
 function LogoutButton() {
   return (
@@ -82,6 +81,12 @@ export function UserNav({ user }: { user?: UserType | null }) {
               <span>Profile</span>
             </Link>
           </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/account">
+                <Settings aria-hidden="true" />
+                <span>Account Settings</span>
+            </Link>
+          </DropdownMenuItem>
            {user.role === 'Traveler' && (
             <>
               <DropdownMenuItem asChild>
@@ -98,13 +103,6 @@ export function UserNav({ user }: { user?: UserType | null }) {
               </DropdownMenuItem>
             </>
           )}
-          {/* This item will only be visible on mobile screens */}
-          <div className="md:hidden">
-             <DropdownMenuSeparator />
-             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
-                <EnableNotificationsButton />
-             </DropdownMenuItem>
-          </div>
         </DropdownMenuGroup>
         {user.isAdmin && (
           <>

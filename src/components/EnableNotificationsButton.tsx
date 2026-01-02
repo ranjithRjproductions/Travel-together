@@ -1,24 +1,52 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BellPlus, BellOff, Loader2 } from 'lucide-react';
+import { BellPlus, BellOff, Loader2, Check } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { getMessaging, getToken } from 'firebase/messaging';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from './ui/button';
 
 export function EnableNotificationsButton() {
     const { firebaseApp, firestore, user } = useFirebase();
     const { toast } = useToast();
-    const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('unsupported');
+    const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isSubscribed, setIsSubscribed] = useState(false);
 
     useEffect(() => {
-        if ('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window) {
-            setPermission(Notification.permission);
+        if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+            setPermission('unsupported');
+            return;
         }
-    }, []);
+        setPermission(Notification.permission);
+        
+        // Check if token already exists for this browser
+        const checkSubscription = async () => {
+            if (!firebaseApp || !user) return;
+            const messaging = getMessaging(firebaseApp);
+            const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+            if (!vapidKey) return;
+            const currentToken = await getToken(messaging, { vapidKey }).catch(() => null);
+            if (currentToken && firestore) {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                    const tokens = userDoc.data().fcmTokens || [];
+                    if (tokens.includes(currentToken)) {
+                        setIsSubscribed(true);
+                    }
+                }
+            }
+        };
+
+        if (Notification.permission === 'granted') {
+             checkSubscription();
+        }
+
+    }, [firebaseApp, user, firestore]);
 
     const handleRequestPermission = async () => {
         if (!firebaseApp || !firestore || !user || permission === 'unsupported') {
@@ -49,6 +77,7 @@ export function EnableNotificationsButton() {
                     await updateDoc(userDocRef, {
                         fcmTokens: arrayUnion(currentToken),
                     });
+                    setIsSubscribed(true);
                     toast({
                         title: 'Notifications Enabled',
                         description: 'You will now receive updates on your requests.',
@@ -75,32 +104,30 @@ export function EnableNotificationsButton() {
         }
     };
     
-    if (permission === 'granted') {
+    if (isSubscribed || permission === 'granted') {
         return (
-            <div className="flex items-center px-2 py-1.5 text-sm text-muted-foreground">
-                <BellPlus className="mr-2 h-4 w-4" />
-                <span>Notifications Enabled</span>
-            </div>
+            <Button variant="secondary" disabled>
+                <Check className="mr-2 h-4 w-4" />
+                Enabled
+            </Button>
         );
     }
     
      if (permission === 'denied') {
         return (
-             <div className="flex items-center px-2 py-1.5 text-sm text-muted-foreground">
+             <Button variant="outline" disabled>
                 <BellOff className="mr-2 h-4 w-4" />
-                <span>Notifications Blocked</span>
-            </div>
+                Blocked
+            </Button>
         );
     }
 
     if (permission === 'unsupported') {
-        return null; // Don't show button if notifications aren't supported
+        return <Button disabled>Unsupported</Button>;
     }
 
     return (
         <Button
-            variant="ghost"
-            className="w-full justify-start"
             onClick={handleRequestPermission}
             disabled={isProcessing}
             aria-live="polite"
@@ -113,7 +140,7 @@ export function EnableNotificationsButton() {
             ) : (
                 <>
                     <BellPlus className="mr-2 h-4 w-4" />
-                    <span>Enable Notifications</span>
+                    <span>Enable</span>
                 </>
             )}
         </Button>
