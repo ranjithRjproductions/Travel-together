@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -17,27 +17,39 @@ import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon } from '
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
+function GuideCardSkeleton() {
+    return (
+        <Card className="flex flex-col">
+           <CardHeader className="flex-row items-start gap-4">
+                <Skeleton className="h-16 w-16 rounded-full" />
+                <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <div className="flex gap-2">
+                        <Skeleton className="h-5 w-20" />
+                        <Skeleton className="h-5 w-24" />
+                    </div>
+                   <Skeleton className="h-4 w-24" />
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-4">
+                 <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                </div>
+            </CardContent>
+            <CardFooter>
+                 <Skeleton className="h-10 w-full" />
+            </CardFooter>
+        </Card>
+    )
+}
+
 function GuideListSkeleton() {
     return (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-                 <Card key={i} className="flex flex-col">
-                    <CardHeader className="flex-row items-center gap-4">
-                        <Skeleton className="h-12 w-12 rounded-full" />
-                        <div className="space-y-2">
-                           <Skeleton className="h-5 w-32" />
-                           <Skeleton className="h-4 w-24" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-grow space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                         <Skeleton className="h-4 w-5/6" />
-                    </CardContent>
-                    <CardFooter>
-                         <Skeleton className="h-10 w-full" />
-                    </CardFooter>
-                </Card>
-            ))}
+            <GuideCardSkeleton />
+            <GuideCardSkeleton />
+            <GuideCardSkeleton />
         </div>
     )
 }
@@ -78,7 +90,6 @@ function GuideExpertiseTags({ guide, request }: { guide: any, request: TravelReq
         }
     }
 
-
     if (tags.length === 0) return null;
 
     return (
@@ -92,7 +103,6 @@ export default function FindGuidePage() {
     const params = useParams();
     const router = useRouter();
     const requestId = params.requestId as string;
-    const { user: authUser } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -149,10 +159,12 @@ export default function FindGuidePage() {
 
     return (
         <div className="container mx-auto py-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Your Matched Guides</h1>
-            <p className="text-lg text-muted-foreground mb-8">
-                We’ve matched these guides based on your location, requirements, and preferences.
-            </p>
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
+                <p className="text-lg text-muted-foreground">
+                    {isLoading ? <Skeleton className="h-6 w-3/4" /> : "We’ve found these guides based on your request's location, gender preference, and expertise."}
+                </p>
+            </div>
 
             {isLoading ? (
                 <GuideListSkeleton />
@@ -202,7 +214,7 @@ export default function FindGuidePage() {
                                     {isSubmitting && selectedGuideId === guide.uid ? 'Notifying...' : (
                                         <>
                                             <UserCheck className="mr-2 h-4 w-4" />
-                                            Select Guide
+                                            Select Guide & Notify
                                         </>
                                     )}
                                 </Button>

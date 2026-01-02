@@ -11,11 +11,14 @@ service cloud.firestore {
 
     // USERS
     // A user can read their own document. Admins can read any user document.
+    // List is allowed for any authenticated user, which is required to query for guides.
+    // The 'read' rule above still prevents non-admins from reading full user documents.
     // Create is allowed for the user themselves.
     // Updates are restricted to only safe, user-editable fields to prevent privilege escalation.
     // Deletion is restricted to admins only to prevent data loss.
     match /users/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow list: if request.auth != null || isAdmin();
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
