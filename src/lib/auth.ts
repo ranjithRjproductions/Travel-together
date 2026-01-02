@@ -1,13 +1,16 @@
 
 import { cookies } from 'next/headers';
 import type { User } from '@/lib/definitions';
-import { auth as adminAuth, db } from '@/lib/firebase-admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
 export async function getUser(): Promise<User | null> {
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) return null;
 
   try {
+    const adminAuth = getAdminAuth();
+    const db = getAdminDb();
+
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
     
     const role = decodedClaims.role as 'Traveler' | 'Guide' | undefined;
@@ -37,7 +40,11 @@ export async function getUser(): Promise<User | null> {
       photoAlt: userData?.photoAlt || undefined,
     } as User;
   } catch (error) {
-    console.error('Auth Error:', error);
+    // console.error('Auth Error:', error);
+    // Hide spammy auth errors in production, but keep for debugging in dev.
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Auth Error:', error);
+    }
     return null;
   }
 }

@@ -3,18 +3,22 @@ import admin from "firebase-admin";
 
 const initializeAdmin = () => {
   if (admin.apps.length > 0) {
-    return;
+    return admin.app();
   }
 
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+  if (!serviceAccountKey) {
     throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not defined. Admin SDK cannot be initialized.");
   }
 
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    const serviceAccount = JSON.parse(serviceAccountKey);
+    // The replace call is necessary to format the private key correctly
+    // when it's stored as a single-line string in an environment variable.
     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 
-    admin.initializeApp({
+    return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
   } catch (error: any) {
@@ -22,11 +26,21 @@ const initializeAdmin = () => {
   }
 };
 
-// Call initialization function
-initializeAdmin();
 
-// Export initialized services
-export const auth = admin.auth();
-export const db = admin.firestore();
-export const messaging = admin.messaging();
+function getAdminApp() {
+  return initializeAdmin();
+}
+
+export function getAdminAuth() {
+  return admin.auth(getAdminApp());
+}
+
+export function getAdminDb() {
+  return admin.firestore(getAdminApp());
+}
+
+export function getAdminMessaging() {
+    return admin.messaging(getAdminApp());
+}
+
 export default admin;

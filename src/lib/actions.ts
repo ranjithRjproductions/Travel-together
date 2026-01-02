@@ -5,7 +5,8 @@ import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import type { User, TravelRequest } from './definitions';
-import admin, { auth as adminAuth, db } from '@/lib/firebase-admin';
+import admin from 'firebase-admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 import { differenceInMinutes, parseISO } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 
@@ -39,6 +40,8 @@ export async function signup(prevState: any, formData: FormData) {
   }
   
   const { uid, name, email, role } = validatedFields.data;
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
 
   try {
     // Set the user's role as a custom claim immediately after creation
@@ -87,6 +90,8 @@ export async function logout() {
     maxAge: 0,
     path: '/',
   });
+  
+  const adminAuth = getAdminAuth();
 
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(
@@ -157,6 +162,8 @@ const calculateCostOnServer = (request: TravelRequest): number => {
 
 
 export async function submitTravelRequest(requestId: string, guideId?: string): Promise<{ success: boolean, message: string }> {
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
   try {
     const sessionCookie = cookies().get('session')?.value;
     if (!sessionCookie) {
@@ -218,6 +225,8 @@ export async function submitTravelRequest(requestId: string, guideId?: string): 
 export async function respondToTravelRequest(requestId: string, response: 'confirmed' | 'declined'): Promise<{ success: boolean, message: string }> {
   'use server';
 
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) {
       return { success: false, message: 'Authentication required.' };
@@ -275,6 +284,9 @@ export async function respondToTravelRequest(requestId: string, response: 'confi
 
 export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected'): Promise<{ success: boolean; message: string }> {
   'use server';
+  
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
 
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
@@ -308,6 +320,9 @@ export async function updateGuideStatus(guideId: string, status: 'active' | 'rej
 
 export async function deleteTravelerAccount(travelerId: string): Promise<{ success: boolean; message: string }> {
   'use server';
+
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
 
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
@@ -360,6 +375,9 @@ export async function deleteTravelerAccount(travelerId: string): Promise<{ succe
 export async function deleteTravelerProfileInfo(travelerId: string): Promise<{ success: boolean; message: string }> {
   'use server';
 
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
+
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) {
@@ -394,6 +412,9 @@ export async function deleteTravelerProfileInfo(travelerId: string): Promise<{ s
 
 export async function deleteTravelRequest(requestId: string): Promise<{ success: boolean; message: string }> {
   'use server';
+
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
 
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
@@ -432,6 +453,9 @@ export async function deleteTravelRequest(requestId: string): Promise<{ success:
 
 export async function deleteGuideAccount(guideId: string): Promise<{ success: boolean; message: string }> {
   'use server';
+
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
 
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;

@@ -1,10 +1,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET!;
+  const db = getAdminDb();
 
   try {
     const text = await req.text();
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
 
       if (!requestId) {
         console.error('Webhook Error: Missing requestId in payment notes');
-        return NextResponse.json({ error: 'Missing requestId' }, { status) : 400 });
+        return NextResponse.json({ error: 'Missing requestId' }, { status: 400 });
       }
 
       // Securely update the document status on the server

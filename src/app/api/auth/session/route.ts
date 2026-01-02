@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth as adminAuth, db } from '@/lib/firebase-admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
 // Disabling caching for this route.
 export const dynamic = 'force-dynamic';
@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
 
     // Set session expiration to 5 days.
     const expiresIn = 60 * 60 * 24 * 5 * 1000;
+    
+    const adminAuth = getAdminAuth();
+    const db = getAdminDb();
     
     // Verify the ID token and get the user's UID.
     const decodedIdToken = await adminAuth.verifyIdToken(idToken);
