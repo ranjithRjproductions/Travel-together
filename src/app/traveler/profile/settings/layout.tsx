@@ -10,13 +10,15 @@ import {
   Phone,
   Accessibility,
   ArrowLeft,
+  Settings,
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Profile Information', href: '/traveler/profile/settings', icon: User },
+  { name: 'Profile Information', href: '/traveler/profile/settings', icon: User, exact: true },
   { name: 'My Address', href: '/traveler/profile/settings/address', icon: MapPin },
   { name: 'Contact Details', href: '/traveler/profile/settings/contact', icon: Phone },
   { name: 'Disability Disclosure', href: '/traveler/profile/settings/disability', icon: Accessibility },
+  { name: 'Account Settings', href: '/traveler/profile/settings/account', icon: Settings },
 ];
 
 export default function ProfileSettingsLayout({
@@ -26,24 +28,27 @@ export default function ProfileSettingsLayout({
 }) {
   const pathname = usePathname();
   
-  const currentPage = navigation.find(item => item.href === pathname);
+  const currentPage = navigation.find(item => pathname.startsWith(item.href)) || navigation[0];
 
   return (
     <div className="grid md:grid-cols-[250px_1fr] gap-8 items-start">
       <nav className="hidden md:flex flex-col gap-2" aria-label="Profile Settings">
-        {navigation.map((item) => (
-          <Button
-            key={item.name}
-            variant={pathname === item.href ? 'default' : 'ghost'}
-            asChild
-            className="justify-start"
-          >
-            <Link href={item.href}>
-              <item.icon className="mr-2 h-4 w-4" />
-              {item.name}
-            </Link>
-          </Button>
-        ))}
+        {navigation.map((item) => {
+           const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+           return (
+              <Button
+                key={item.name}
+                variant={isActive ? 'default' : 'ghost'}
+                asChild
+                className="justify-start"
+              >
+                <Link href={item.href}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.name}
+                </Link>
+              </Button>
+           )
+        })}
          <Button variant="outline" asChild className="justify-start mt-4">
             <Link href="/traveler/dashboard">
                 <ArrowLeft className="mr-2 h-4 w-4" />

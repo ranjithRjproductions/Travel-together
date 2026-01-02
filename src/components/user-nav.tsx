@@ -87,13 +87,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
           <DropdownMenuItem asChild>
             <Link href={profileUrl}>
               <User aria-hidden="true" />
-              <span>Profile</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/account">
-                <Settings aria-hidden="true" />
-                <span>Account Settings</span>
+              <span>Profile Settings</span>
             </Link>
           </DropdownMenuItem>
            {user.role === 'Traveler' && (

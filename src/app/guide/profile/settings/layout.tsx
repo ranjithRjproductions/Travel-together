@@ -13,6 +13,7 @@ import {
   Sparkles,
   ArrowLeft,
   ToggleRight,
+  Settings,
 } from 'lucide-react';
 
 const guideNavigation = [
@@ -22,6 +23,7 @@ const guideNavigation = [
   { name: 'Disability Expertise', href: '/guide/profile/settings/expertise', icon: Accessibility },
   { name: 'Verification', href: '/guide/profile/settings/verification', icon: Sparkles },
   { name: 'Availability', href: '/guide/profile/settings/availability', icon: ToggleRight },
+  { name: 'Account Settings', href: '/guide/profile/settings/account', icon: Settings },
 ];
 
 export default function GuideProfileSettingsLayout({
@@ -31,11 +33,9 @@ export default function GuideProfileSettingsLayout({
 }) {
   const pathname = usePathname();
   
-  // Find the best match for the current page.
-  // This logic prioritizes more specific paths over less specific ones.
   const currentPage = guideNavigation
-    .slice() // Create a copy to avoid mutating the original array
-    .sort((a, b) => b.href.length - a.href.length) // Sort by href length, descending
+    .slice() 
+    .sort((a, b) => b.href.length - a.href.length)
     .find(item => pathname.startsWith(item.href));
 
   return (
