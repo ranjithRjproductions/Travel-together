@@ -472,5 +472,3 @@ export async function deleteGuideAccount(guideId: string): Promise<{ success: bo
     return { success: false, message: 'An unexpected error occurred during account deletion.' };
   }
 }
-
-    
