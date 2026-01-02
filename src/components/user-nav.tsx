@@ -18,6 +18,7 @@ import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
 import { useState } from 'react';
+import { EnableNotificationsButton } from './EnableNotificationsButton';
 
 function LogoutButton() {
   return (
@@ -97,6 +98,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
               </DropdownMenuItem>
             </>
           )}
+          <EnableNotificationsButton />
         </DropdownMenuGroup>
         {user.isAdmin && (
           <>
