@@ -88,11 +88,14 @@ export type TravelRequest = {
   
   estimatedCost?: number;
   
-  // Fields to track traveler's data at the time of request
+  // Fields to track user data at the time of request
   travelerData?: Partial<User>;
+  guideData?: Partial<User>;
   
   step1Complete: boolean;
   step2Complete: boolean;
   step3Complete: boolean;
   step4Complete: boolean;
 };
+
+    

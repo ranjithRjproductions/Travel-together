@@ -17,19 +17,11 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
-function GuideInfo({ guideId }: { guideId: string }) {
-    const firestore = useFirestore();
-    const guideDocRef = useMemoFirebase(() => {
-        if (!firestore || !guideId) return null;
-        return doc(firestore, 'users', guideId);
-    }, [firestore, guideId]);
-
-    const { data: guide, isLoading } = useDoc<UserData>(guideDocRef);
-
-    if (isLoading) return <Skeleton className="h-5 w-24" />;
-    if (!guide) return <span className="text-muted-foreground">Guide not found</span>;
-
-    return <span className="font-semibold">{guide.name}</span>;
+function GuideInfo({ guideData }: { guideData?: Partial<UserData> }) {
+    if (!guideData) {
+        return <Skeleton className="h-5 w-24" />;
+    }
+    return <span className="font-semibold">{guideData.name}</span>;
 }
 
 function RequestList({
@@ -161,7 +153,7 @@ function UpcomingRequestList({
                     <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                          <div className="flex-grow">
                             <h3 className="font-semibold capitalize flex items-center gap-2">
-                                {request.purposeData?.purpose} with {request.guideId ? <GuideInfo guideId={request.guideId} /> : '...'}
+                                {request.purposeData?.purpose} with <GuideInfo guideData={request.guideData} />
                             </h3>
                              <p className="text-sm text-muted-foreground">
                                 {request.requestedDate ? format(new Date(request.requestedDate), 'PPPP') : 'Date not set'}
@@ -256,3 +248,5 @@ export default function MyBookingsPage() {
     </div>
   );
 }
+
+    

@@ -234,16 +234,29 @@ export async function respondToTravelRequest(requestId: string, response: 'confi
       }
 
       if (response === 'confirmed') {
-          await requestDocRef.update({ status: 'confirmed' });
+          const guideDoc = await db.collection('users').doc(guideId).get();
+          if (!guideDoc.exists) {
+            throw new Error("Could not find the guide's profile to confirm the request.");
+          }
+          const guideData = guideDoc.data() as User;
+          const guideDataToEmbed: Partial<User> = {
+            name: guideData.name,
+            photoURL: guideData.photoURL,
+            photoAlt: guideData.photoAlt,
+            contact: guideData.contact,
+          };
+          await requestDocRef.update({ status: 'confirmed', guideData: guideDataToEmbed });
       } else {
           // If declined, set status back to 'pending' and remove the guideId so traveler can choose another.
           await requestDocRef.update({ 
               status: 'pending', 
-              guideId: admin.firestore.FieldValue.delete() 
+              guideId: admin.firestore.FieldValue.delete(),
+              guideData: admin.firestore.FieldValue.delete(),
           });
       }
 
       revalidatePath('/guide/dashboard');
+      revalidatePath('/traveler/my-bookings');
 
       return { success: true, message: `Request has been successfully ${response}.` };
 
@@ -459,3 +472,5 @@ export async function deleteGuideAccount(guideId: string): Promise<{ success: bo
     return { success: false, message: 'An unexpected error occurred during account deletion.' };
   }
 }
+
+    
