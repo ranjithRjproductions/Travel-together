@@ -5,8 +5,9 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
   register: true,
   skipWaiting: true,
-  // Ensure the service worker is enabled in development for testing
-  disable: process.env.NODE_ENV === 'development' ? false : true,
+  // Force the service worker to be enabled in all environments to ensure
+  // push notifications can be tested reliably.
+  disable: false, 
 });
 
 const nextConfig: NextConfig = {
