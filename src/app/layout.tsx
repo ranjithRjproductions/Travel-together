@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import homeContent from './content/home.json';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: homeContent.meta.title,
@@ -25,6 +26,10 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased min-h-screen bg-background text-base">
+        <Script
+          id="razorpay-checkout-js"
+          src="https://checkout.razorpay.com/v1/checkout.js"
+        />
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:m-2 bg-background text-foreground border rounded-md">
           Skip to main content
         </a>

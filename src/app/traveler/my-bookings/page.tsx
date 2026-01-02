@@ -112,26 +112,66 @@ function UpcomingRequestList({
   requests: TravelRequest[] | null;
   isLoading: boolean;
 }) {
+    const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const handlePayment = async (requestId: string) => {
-        if (!firestore) return;
-        const requestRef = doc(firestore, 'travelRequests', requestId);
-        try {
-            await updateDoc(requestRef, { status: 'paid' });
+    const handlePayment = async (request: TravelRequest) => {
+        if (!firestore || !user || !request.estimatedCost) return;
+
+        const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+        if (!razorpayKeyId) {
+            console.error("Razorpay Key ID is not configured.");
             toast({
-                title: 'Payment Successful!',
-                description: 'Your booking is now fully confirmed.',
+                title: "Payment Error",
+                description: "Payment gateway is not configured. Please contact support.",
+                variant: 'destructive'
             });
-        } catch (error) {
-            console.error('Payment simulation failed:', error);
-            toast({
-                title: 'Payment Failed',
-                description: 'Could not process payment. Please try again.',
-                variant: 'destructive',
-            });
+            return;
         }
+
+        const options = {
+            key: razorpayKeyId,
+            amount: request.estimatedCost * 100, // Amount in paise
+            currency: "INR",
+            name: "Let's Travel Together",
+            description: `Payment for ${request.purposeData?.purpose} request`,
+            image: "/logo.png", // URL to your app logo
+            order_id: "", // Optional: Can be used if you create orders on your server
+            handler: async function (response: any) {
+                const requestRef = doc(firestore, 'travelRequests', request.id);
+                try {
+                    await updateDoc(requestRef, { status: 'paid' });
+                    toast({
+                        title: 'Payment Successful!',
+                        description: 'Your booking is now fully confirmed.',
+                    });
+                } catch (error) {
+                     console.error('Firestore update failed after payment:', error);
+                    toast({
+                        title: 'Update Failed',
+                        description: 'Payment was successful but we failed to update your booking. Please contact support.',
+                        variant: 'destructive',
+                    });
+                }
+            },
+            prefill: {
+                name: user.displayName || "",
+                email: user.email || "",
+                contact: "", // You can prefill contact from user profile if available
+            },
+            notes: {
+                requestId: request.id,
+                travelerId: request.travelerId,
+            },
+            theme: {
+                color: "#3b82f6" // Primary color
+            }
+        };
+        
+        // @ts-ignore
+        const rzp = new window.Razorpay(options);
+        rzp.open();
     };
 
     if (isLoading) {
@@ -161,7 +201,7 @@ function UpcomingRequestList({
                         </div>
                          <div className="flex items-center gap-4">
                             {request.status === 'confirmed' ? (
-                                <Button onClick={() => handlePayment(request.id)}>Pay Now (₹{request.estimatedCost?.toFixed(2)})</Button>
+                                <Button onClick={() => handlePayment(request)}>Pay Now (₹{request.estimatedCost?.toFixed(2)})</Button>
                             ) : (
                                 <Badge variant="default" className="bg-green-600">Paid & Confirmed</Badge>
                             )}
@@ -248,5 +288,3 @@ export default function MyBookingsPage() {
     </div>
   );
 }
-
-    
