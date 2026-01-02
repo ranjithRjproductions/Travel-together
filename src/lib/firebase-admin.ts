@@ -1,6 +1,4 @@
 
-'use server';
-
 import admin from "firebase-admin";
 
 if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
