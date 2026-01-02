@@ -243,7 +243,7 @@ export async function respondToTravelRequest(requestId: string, response: 'confi
             name: guideData.name,
             photoURL: guideData.photoURL,
             photoAlt: guideData.photoAlt,
-            contact: guideData.contact,
+            // contact: guideData.contact, // This was causing the security rule violation
           };
           await requestDocRef.update({ status: 'confirmed', guideData: guideDataToEmbed });
       } else {
