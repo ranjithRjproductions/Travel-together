@@ -8,6 +8,7 @@ export type User = {
   isAdmin?: boolean;
   photoURL?: string;
   photoAlt?: string;
+  fcmTokens?: string[];
   address?: {
     addressLine1: string;
     addressLine2: string;

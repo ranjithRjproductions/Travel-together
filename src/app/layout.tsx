@@ -4,6 +4,7 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import homeContent from './content/home.json';
 import Script from 'next/script';
+import { NotificationProvider } from '@/components/NotificationProvider';
 
 export const metadata: Metadata = {
   title: homeContent.meta.title,
@@ -24,6 +25,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
           rel="stylesheet"
         />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
       </head>
       <body className="font-body antialiased min-h-screen bg-background text-base">
         <Script
@@ -34,7 +37,9 @@ export default function RootLayout({
           Skip to main content
         </a>
         <FirebaseClientProvider>
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
         </FirebaseClientProvider>
         <Toaster />
       </body>

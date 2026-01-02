@@ -22,7 +22,7 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['name', 'photoURL', 'photoAlt', 'gender', 'address', 'contact', 'disability']);
+          .hasOnly(['name', 'photoURL', 'photoAlt', 'gender', 'address', 'contact', 'disability', 'fcmTokens']);
       allow delete: if request.auth != null && isAdmin();
     }
     
