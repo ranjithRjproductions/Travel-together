@@ -26,7 +26,7 @@ export function Footer() {
       </div>
       <footer className="bg-background border-t">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-            <p>Copyright © 2026 Let's Travel Together, Inc. All rights reserved.</p>
+            <p>Copyright © 2024 Let's Travel Together, Inc. All rights reserved.</p>
         </div>
       </footer>
     </>

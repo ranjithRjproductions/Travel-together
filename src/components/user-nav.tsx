@@ -98,7 +98,13 @@ export function UserNav({ user }: { user?: UserType | null }) {
               </DropdownMenuItem>
             </>
           )}
-          <EnableNotificationsButton />
+          {/* The a11y fix: This item will only be visible on mobile screens */}
+          <div className="md:hidden">
+             <DropdownMenuSeparator />
+             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                <EnableNotificationsButton />
+             </DropdownMenuItem>
+          </div>
         </DropdownMenuGroup>
         {user.isAdmin && (
           <>

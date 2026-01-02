@@ -1,29 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { BellPlus, BellOff, Loader2 } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useFirebase } from '@/firebase';
 import { getMessaging, getToken } from 'firebase/messaging';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from './ui/button';
 
 export function EnableNotificationsButton() {
-    const isMobile = useIsMobile();
     const { firebaseApp, firestore, user } = useFirebase();
     const { toast } = useToast();
-    const [permission, setPermission] = useState<NotificationPermission | null>(null);
+    const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('unsupported');
     const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
-        if ('Notification' in window) {
+        if ('Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window) {
             setPermission(Notification.permission);
         }
     }, []);
 
     const handleRequestPermission = async () => {
-        if (!firebaseApp || !firestore || !user || !('Notification' in window) || !('serviceWorker' in navigator)) {
+        if (!firebaseApp || !firestore || !user || permission === 'unsupported') {
             toast({
                 variant: 'destructive',
                 title: 'Unsupported Browser',
@@ -40,7 +38,11 @@ export function EnableNotificationsButton() {
 
             if (currentPermission === 'granted') {
                 const messaging = getMessaging(firebaseApp);
-                const currentToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY });
+                const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+                if (!vapidKey) {
+                    throw new Error("VAPID key not configured.");
+                }
+                const currentToken = await getToken(messaging, { vapidKey });
 
                 if (currentToken) {
                     const userDocRef = doc(firestore, 'users', user.uid);
@@ -61,45 +63,59 @@ export function EnableNotificationsButton() {
                     description: 'You have denied notification permissions. Please enable them in your browser settings if you change your mind.',
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error requesting notification permission:', error);
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: 'Could not enable notifications. Please try again.',
+                description: error.message || 'Could not enable notifications. Please try again.',
             });
         } finally {
             setIsProcessing(false);
         }
     };
     
-    // Only render on mobile devices
-    if (!isMobile) {
-        return null;
-    }
-
     if (permission === 'granted') {
         return (
-            <DropdownMenuItem disabled>
-                <BellPlus />
+            <div className="flex items-center px-2 py-1.5 text-sm text-muted-foreground">
+                <BellPlus className="mr-2 h-4 w-4" />
                 <span>Notifications Enabled</span>
-            </DropdownMenuItem>
+            </div>
         );
     }
     
      if (permission === 'denied') {
         return (
-             <DropdownMenuItem disabled>
-                <BellOff />
+             <div className="flex items-center px-2 py-1.5 text-sm text-muted-foreground">
+                <BellOff className="mr-2 h-4 w-4" />
                 <span>Notifications Blocked</span>
-            </DropdownMenuItem>
+            </div>
         );
     }
 
+    if (permission === 'unsupported') {
+        return null; // Don't show button if notifications aren't supported
+    }
+
     return (
-        <DropdownMenuItem onClick={handleRequestPermission} disabled={isProcessing}>
-            {isProcessing ? <Loader2 className="animate-spin" /> : <BellPlus />}
-            <span>Enable Notifications</span>
-        </DropdownMenuItem>
+        <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={handleRequestPermission}
+            disabled={isProcessing}
+            aria-live="polite"
+        >
+            {isProcessing ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Processing...</span>
+                </>
+            ) : (
+                <>
+                    <BellPlus className="mr-2 h-4 w-4" />
+                    <span>Enable Notifications</span>
+                </>
+            )}
+        </Button>
     );
 }
