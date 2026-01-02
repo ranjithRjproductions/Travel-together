@@ -1,3 +1,6 @@
+
+'use server';
+
 import admin from "firebase-admin";
 
 if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
@@ -5,15 +8,16 @@ if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
 }
 
 let serviceAccount;
-
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-
-  // Fix multiline private key issue
-  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+  // The private_key is often stored with escaped newlines in environment variables.
+  // This line correctly replaces those escaped newlines with actual newline characters.
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 } catch (error) {
-  throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_KEY format");
+  console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", error);
+  throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_KEY format. Please ensure it is a valid, single-line JSON string.");
 }
+
 
 if (!admin.apps.length) {
   admin.initializeApp({
