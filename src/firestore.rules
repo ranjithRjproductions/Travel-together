@@ -18,19 +18,20 @@ service cloud.firestore {
     // Deletion is restricted to admins only to prevent data loss.
     match /users/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow list: if request.auth != null || isAdmin();
+      allow list: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['name', 'photoURL', 'photoAlt', 'gender', 'address', 'contact', 'disability']);
+          .hasOnly(['name', 'photoURL', 'photoAlt', 'gender', 'address', 'contact', 'disability', 'fcmTokens']);
       allow delete: if request.auth != null && isAdmin();
     }
     
     // GUIDE PROFILE (Subcollection of users)
-    // Only the owner of the user profile can write their guide sub-profile.
-    // Admins can also read any guide profile.
+    // Anyone can read a guide's professional profile to make booking decisions.
+    // Only the guide themselves can write to their own profile.
     match /users/{userId}/guideProfile/{guideProfileId} {
-       allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+       allow read: if true;
+       allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
     // TRAVEL REQUESTS
@@ -91,7 +92,7 @@ service cloud.firestore {
           resource.data.travelerId == request.auth.uid &&
           resource.data.status == 'confirmed' &&
           request.resource.data.status == 'paid' &&
-          request.resource.data.keys().hasOnly(['status'])
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
         )
       );
     }
