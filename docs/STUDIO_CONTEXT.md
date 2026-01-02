@@ -37,9 +37,14 @@ We have successfully built out the foundational features of the application:
     4.  **Meeting Point**: Where to meet the guide.
     5.  **Review & Submit**: A final summary where the request is submitted, its status changed to `pending`, and cost is calculated.
 *   **Traveler "My Requests" Page**: A dashboard for travelers to view their requests, separated into "Drafts" and "Upcoming" tabs, with options to continue editing or delete drafts.
+*   **Guide Matching & Selection**: After submitting a request, travelers are shown a list of guides filtered by location, gender, and expertise. They can select a guide to notify them.
+*   **My Bookings Page & Payment Integration**:
+    *   Travelers can view the status of their in-progress and upcoming bookings.
+    *   **Live Razorpay Integration**: When a guide confirms a booking, a "Pay Now" button appears. Clicking this button opens the actual Razorpay checkout modal. Upon successful payment, the request's status is securely updated to `paid` in Firestore.
+    *   **Re-Search for Guides**: If a traveler's request is awaiting a guide's response, a "Find Another Guide" button is available, allowing them to re-initiate the search and select a different guide.
 *   **UI & Styling**: The frontend is built with Next.js, React, ShadCN UI components, and Tailwind CSS. The UI is clean, modern, and focus has been placed on fixing semantic HTML issues to prevent hydration errors.
 *   **Global Accessible Footer**: A reusable footer component has been implemented across the entire application. It features two distinct parts for accessibility:
-    *   A navigation section for sitewide links (About, Blogs, Contact, Privacy, etc.) wrapped in a `div` with a `role="group"`.
+    *   A navigation section for sitewide links (About, Blogs, Contact, etc.) wrapped in a `div` with a `role="group"`.
     *   A separate `<footer>` element containing only the copyright notice, ensuring it serves as the unique `contentinfo` landmark for each page.
 
 ## 3. Project Structure Overview
@@ -52,18 +57,21 @@ The application follows the Next.js App Router paradigm.
 *   `src/app/traveler/request/[requestId]`: A dynamic route that handles the creation and viewing of travel requests. It uses client-side logic to create a new draft document in Firestore if the ID is 'new'.
 *   `src/components`: Reusable React components, including a large set of UI components from ShadCN in `src/components/ui` and the new global `Footer`.
 *   `src/lib`: Contains shared logic:
-    *   `actions.ts`: Server Actions for `login`, `signup`, `logout`, and all admin actions (user management, status updates).
+    *   `actions/`: Contains logically separated Server Actions for `auth`, `admin`, and `requests`. This clean separation prevents server-only code from being bundled with client components.
     *   `auth.ts`: Server-side helper `getUser()` to verify session cookies and retrieve user data, including their `isAdmin` status.
     *   `definitions.ts`: Central TypeScript type definitions (`User`, `TravelRequest`).
-    *   `firebase-admin.ts`: Server-side Firebase Admin SDK initialization.
+    *   `firebase-admin.ts`: Server-side Firebase Admin SDK initialization. This file is now correctly isolated from client-side code.
     *   `schemas/travel-request.ts`: Zod schemas for validating the multi-step travel request form.
 *   `src/firebase`: Client-side Firebase setup, including the core provider (`provider.tsx`), hooks (`use-doc`, `use-collection`, `use-user`), and error handling infrastructure.
+*   `src/middleware.ts`: Lightweight middleware that only handles redirects for logged-in/logged-out states, without attempting to access server-side logic.
 *   `docs/backend.json`: The authoritative blueprint for our Firestore data structure and entities. This MUST be kept in sync with application logic.
 *   `firestore.rules` & `storage.rules`: Security rules for our backend services.
+*   `.env.local`: Contains environment variables for secret keys, such as the Firebase Service Account and Razorpay Key ID.
 
 ## 4. Strict Validation & Criteria (Key Directives)
 
-*   **Semantic HTML**: **NO NESTING of heading tags (e.g., `<h1>` inside `<h3>`)**. Use the `as` prop on components like `CardTitle` to change the rendered tag to prevent hydration errors. A page must not have more than one `contentinfo` landmark. This has been a recurring issue and must be avoided.
+*   **Server/Client Code Separation**: **DO NOT** import files using server-only code (like the Firebase Admin SDK) into client components. This has been a recurring issue and was solved by splitting Server Actions into separate files under `src/lib/actions/`. Middleware must remain lightweight and not import `auth.ts`.
+*   **Semantic HTML**: **NO NESTING of heading tags (e.g., `<h1>` inside `<h3>`)**. Use the `as` prop on components like `CardTitle` to change the rendered tag to prevent hydration errors. A page must not have more than one `contentinfo` landmark.
 *   **Accessibility First**: Forms must be fully accessible.
     *   Use `aria-required`, `aria-invalid`, and `aria-describedby` where appropriate.
     *   Ensure all form controls are properly linked to their labels (`htmlFor` and `id`).
@@ -76,11 +84,12 @@ The application follows the Next.js App Router paradigm.
 
 ## 5. Backend Logic Summary
 
-*   **Authentication**: Managed by Firebase. A session cookie (`session`) is set via a Server Action (`login`) containing the user's role as a custom claim. This is the source of truth for the user's role during a session.
+*   **Authentication**: Managed by Firebase. A session cookie (`session`) is set via a Server Action (`login`). User roles and admin status are verified on the server within layouts and Server Actions.
 *   **Firestore Database**: The structure is strictly defined in `docs/backend.json`.
     *   `/users/{userId}`: Stores all user data, including their assigned `role`.
     *   `/users/{userId}/guideProfile/{guideProfileId}`: A subcollection containing detailed profile information ONLY for users with the 'Guide' role.
     *   `/roles_admin/{userId}`: A collection that grants admin privileges. A user's UID in this collection makes them an admin.
-    *   `/travelRequests/{requestId}`: Stores all travel requests created by travelers. Security rules ensure a user can only access their own requests.
+    *   `/travelRequests/{requestId}`: Stores all travel requests. Security rules have been refined to handle the full lifecycle from `draft` to `paid`.
 *   **Firebase Storage**: Used for file uploads (profile photos, verification documents). Access is restricted by security rules in `storage.rules`.
-*   **Server Actions**: Used for all authentication-related mutations and for submitting the final travel request. Admin actions like updating a guide's status or deleting user accounts are also handled via secure server actions. This keeps sensitive logic on the server.
+*   **Server Actions**: Used for all authentication mutations, admin actions, and travel request submissions. They are now logically separated into different files under `src/lib/actions/` to prevent environment-specific errors.
+*   **Payments (Razorpay)**: The client-side `my-bookings` page triggers the Razorpay checkout. The payment amount is calculated and passed from the client. A server-side webhook is used to securely verify the payment status and update the Firestore `travelRequests` document to `paid`.
