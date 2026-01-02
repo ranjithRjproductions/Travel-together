@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
@@ -94,8 +94,14 @@ function RequestList({
                 </div>
                 <div className="flex items-center gap-4">
                     {showStatus && getStatusBadge(request.status)}
-                    <Button asChild variant="outline">
+                    <Button asChild variant="secondary">
                       <Link href={`/traveler/request/${request.id}`}>View Details</Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href={`/traveler/find-guide/${request.id}`}>
+                            <Search className="mr-2 h-4 w-4" />
+                            Find Another Guide
+                        </Link>
                     </Button>
                 </div>
             </CardContent>
