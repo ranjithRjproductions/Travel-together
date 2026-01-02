@@ -39,12 +39,21 @@ export function UserNav({ user }: { user?: UserType | null }) {
     return <Skeleton className="h-10 w-10 rounded-full" />;
   }
 
-  const initials = user.name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
-    
+  const getInitials = (name?: string, email?: string) => {
+    if (name) {
+      return name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase();
+    }
+    if (email) {
+      return email[0].toUpperCase();
+    }
+    return '?';
+  };
+
+  const initials = getInitials(user.name, user.email);
   const photoAltText = user.photoAlt || `Profile picture of ${user.name}`;
   const profileUrl = user.role === 'Guide' ? '/guide/profile/settings' : '/traveler/profile/settings';
   
