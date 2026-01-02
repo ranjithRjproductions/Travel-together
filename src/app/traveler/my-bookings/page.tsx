@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
@@ -224,6 +225,7 @@ export default function MyBookingsPage() {
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
+  const [previousInProgress, setPreviousInProgress] = useState<TravelRequest[]>([]);
 
   const inProgressRequestsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -246,6 +248,22 @@ export default function MyBookingsPage() {
   }, [user, firestore]);
 
   const { data: upcomingRequests, isLoading: upcomingLoading } = useCollection<TravelRequest>(upcomingRequestsQuery);
+
+  useEffect(() => {
+    if (inProgressLoading || !inProgressRequests) return;
+
+    // Check if a request that was 'guide-selected' is now 'pending'
+    const declinedRequest = previousInProgress.find(prev => 
+      prev.status === 'guide-selected' &&
+      inProgressRequests.some(current => current.id === prev.id && current.status === 'pending')
+    );
+
+    if (declinedRequest) {
+      router.push(`/traveler/find-guide/${declinedRequest.id}`);
+    }
+
+    setPreviousInProgress(inProgressRequests);
+  }, [inProgressRequests, inProgressLoading, previousInProgress, router]);
 
 
   return (
@@ -294,3 +312,4 @@ export default function MyBookingsPage() {
     </div>
   );
 }
+
