@@ -161,9 +161,9 @@ export default function FindGuidePage() {
         <div className="container mx-auto py-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
-                <p className="text-lg text-muted-foreground">
+                <div className="text-lg text-muted-foreground">
                     {isLoading ? <Skeleton className="h-6 w-3/4" /> : "We’ve found these guides based on your request's location, gender preference, and expertise."}
-                </p>
+                </div>
             </div>
 
             {isLoading ? (
