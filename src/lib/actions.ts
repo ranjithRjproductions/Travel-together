@@ -156,7 +156,7 @@ const calculateCostOnServer = (request: TravelRequest): number => {
 };
 
 
-export async function submitTravelRequest(requestId: string): Promise<{ success: boolean, message: string }> {
+export async function submitTravelRequest(requestId: string, guideId?: string): Promise<{ success: boolean, message: string }> {
   try {
     const sessionCookie = cookies().get('session')?.value;
     if (!sessionCookie) {
@@ -185,7 +185,6 @@ export async function submitTravelRequest(requestId: string): Promise<{ success:
       throw new Error('Permission denied.');
     }
     
-    // Calculate cost and prepare data for embedding
     const estimatedCost = calculateCostOnServer(request);
     const travelerDataToEmbed: Partial<User> = {
       name: userData.name,
@@ -194,12 +193,20 @@ export async function submitTravelRequest(requestId: string): Promise<{ success:
       photoAlt: userData.photoAlt,
       disability: userData.disability,
     };
-
-    await requestDocRef.update({
+    
+    const dataToUpdate: any = {
       status: 'pending',
       estimatedCost: estimatedCost,
-      travelerData: travelerDataToEmbed, // Embed traveler data
-    });
+      travelerData: travelerDataToEmbed,
+    };
+
+    if (guideId) {
+      dataToUpdate.guideId = guideId;
+      dataToUpdate.status = 'guide-selected';
+    }
+
+
+    await requestDocRef.update(dataToUpdate);
 
     return { success: true, message: 'Request submitted successfully.' };
   } catch (error: any) {

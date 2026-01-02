@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { submitTravelRequest } from '@/lib/actions';
 
 function GuideCardSkeleton() {
     return (
@@ -132,24 +133,19 @@ export default function FindGuidePage() {
         setSelectedGuideId(guideId);
         setIsSubmitting(true);
 
-        try {
-            await updateDoc(requestDocRef, {
-                guideId: guideId,
-                status: 'guide-selected'
-            });
+        const result = await submitTravelRequest(requestDocRef.id, guideId);
 
-            toast({
+        if (result.success) {
+             toast({
                 title: "Guide Selected!",
                 description: "The guide has been notified. You can track the confirmation status in 'My Bookings'."
             });
             router.push('/traveler/my-bookings');
-
-        } catch (error) {
-            console.error("Error selecting guide:", error);
-            toast({
+        } else {
+             toast({
                 variant: 'destructive',
                 title: "Something went wrong",
-                description: "Could not select the guide. Please try again."
+                description: result.message || "Could not select the guide. Please try again."
             });
             setIsSubmitting(false);
             setSelectedGuideId(null);
