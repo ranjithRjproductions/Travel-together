@@ -143,36 +143,26 @@ function UpcomingRequestList({
             currency: "INR",
             name: "Let's Travel Together",
             description: `Payment for ${request.purposeData?.purpose} request`,
-            image: "/logo.png", // URL to your app logo
-            order_id: "", // Optional: Can be used if you create orders on your server
-            handler: async function (response: any) {
-                const requestRef = doc(firestore, 'travelRequests', request.id);
-                try {
-                    await updateDoc(requestRef, { status: 'paid' });
-                    toast({
-                        title: 'Payment Successful!',
-                        description: 'Your booking is now fully confirmed.',
-                    });
-                } catch (error) {
-                     console.error('Firestore update failed after payment:', error);
-                    toast({
-                        title: 'Update Failed',
-                        description: 'Payment was successful but we failed to update your booking. Please contact support.',
-                        variant: 'destructive',
-                    });
-                }
+            image: "/logo.png",
+            handler: function (response: any) {
+                // The webhook will handle the status update.
+                // We just show a confirmation to the user here.
+                 toast({
+                    title: 'Payment Submitted!',
+                    description: 'Your payment is being processed. The booking status will update shortly.',
+                });
             },
             prefill: {
                 name: user.displayName || "",
                 email: user.email || "",
-                contact: "", // You can prefill contact from user profile if available
+                contact: "", 
             },
             notes: {
                 requestId: request.id,
                 travelerId: request.travelerId,
             },
             theme: {
-                color: "#3b82f6" // Primary color
+                color: "#3b82f6" 
             }
         };
         
