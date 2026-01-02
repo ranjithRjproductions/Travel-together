@@ -27,10 +27,11 @@ service cloud.firestore {
     }
     
     // GUIDE PROFILE (Subcollection of users)
-    // Only the owner of the user profile can write their guide sub-profile.
-    // Admins can also read any guide profile.
+    // Anyone can read a guide's professional profile to make booking decisions.
+    // Only the guide themselves can write to their own profile.
     match /users/{userId}/guideProfile/{guideProfileId} {
-       allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+       allow read: if true;
+       allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
     // TRAVEL REQUESTS
