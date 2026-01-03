@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
+import admin from 'firebase-admin';
 
 export async function POST(req: NextRequest) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -43,7 +44,10 @@ export async function POST(req: NextRequest) {
 
       // Securely update the document status on the server
       const requestDocRef = db.collection('travelRequests').doc(requestId);
-      await requestDocRef.update({ status: 'paid' });
+      await requestDocRef.update({ 
+          status: 'paid',
+          paidAt: admin.firestore.FieldValue.serverTimestamp() // Add paid timestamp
+      });
       
       console.log(`Successfully verified and updated request: ${requestId}`);
     }

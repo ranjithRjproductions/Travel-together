@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -205,6 +206,7 @@ export async function submitTravelRequest(requestId: string, guideId?: string): 
       status: 'pending',
       estimatedCost: estimatedCost,
       travelerData: travelerDataToEmbed,
+      submittedAt: admin.firestore.FieldValue.serverTimestamp(), // Add submitted timestamp
     };
 
     if (guideId) {
@@ -261,7 +263,11 @@ export async function respondToTravelRequest(requestId: string, response: 'confi
             photoURL: guideData.photoURL,
             photoAlt: guideData.photoAlt,
           };
-          await requestDocRef.update({ status: 'confirmed', guideData: guideDataToEmbed });
+          await requestDocRef.update({ 
+              status: 'confirmed', 
+              guideData: guideDataToEmbed,
+              acceptedAt: admin.firestore.FieldValue.serverTimestamp() // Add accepted timestamp
+          });
       } else {
           // If declined, set status back to 'pending' and remove the guideId so traveler can choose another.
           await requestDocRef.update({ 

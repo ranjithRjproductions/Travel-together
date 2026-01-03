@@ -53,7 +53,12 @@ export type TravelRequest = {
   travelerId: string;
   guideId?: string;
   status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'paid' | 'completed' | 'cancelled';
-  createdAt: any; // Can be a server timestamp or a string
+  
+  // Timestamps
+  createdAt: any; // Initially created as a draft
+  submittedAt?: any; // Submitted to find a guide
+  acceptedAt?: any; // Guide confirmed
+  paidAt?: any; // Payment successful
   
   purposeData?: {
     purpose?: 'education' | 'hospital' | 'shopping';
