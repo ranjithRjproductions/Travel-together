@@ -159,7 +159,7 @@ export default function FindGuidePage() {
         }
         const purposeText = request.purposeData.purpose.replace('-', ' ');
         const dateText = format(parseISO(request.requestedDate), 'PPP');
-        return `Available for ${purposeText} on ${dateText}`;
+        return `Available on ${dateText} for ${purposeText} support`;
     }
 
 
