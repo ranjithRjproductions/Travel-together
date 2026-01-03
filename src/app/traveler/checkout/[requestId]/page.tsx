@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, CreditCard } from 'lucide-react';
+import { ArrowLeft, CreditCard, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 
 function CheckoutPageSkeleton() {
@@ -83,6 +83,27 @@ export default function CheckoutPage() {
         }
         return title;
     };
+    
+    const getLocationInfo = (request: TravelRequest) => {
+        const { purposeData } = request;
+        if (!purposeData) return null;
+
+        switch (purposeData.purpose) {
+        case 'education':
+            return { name: purposeData.subPurposeData?.collegeName, district: purposeData.subPurposeData?.collegeAddress?.district };
+        case 'hospital':
+            return { name: purposeData.subPurposeData?.hospitalName, district: purposeData.subPurposeData?.hospitalAddress?.district };
+        case 'shopping':
+            if (purposeData.subPurposeData?.shopType === 'particular') {
+                return { name: purposeData.subPurposeData?.shopName, district: purposeData.subPurposeData?.shopAddress?.district };
+            }
+            return { name: purposeData.subPurposeData?.shoppingArea?.area, district: purposeData.subPurposeData?.shoppingArea?.district };
+        default:
+            return null;
+        }
+  };
+
+  const locationInfo = getLocationInfo(request);
 
     return (
         <div className="max-w-2xl mx-auto">
@@ -102,6 +123,12 @@ export default function CheckoutPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    {locationInfo && (
+                         <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</p>
+                            <p className="font-semibold">{locationInfo.name}, {locationInfo.district}</p>
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Guide</p>
                         <p className="font-semibold">{request.guideData?.name || 'Guide not assigned'}</p>
