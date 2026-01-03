@@ -62,6 +62,13 @@ export type TravelRequest = {
   
   tripPin?: string; // 4-digit PIN for service verification
 
+  // Email idempotency flags
+  emailNotified?: {
+    guideSelected?: boolean;
+    travelerConfirmed?: boolean;
+    travelerPaid?: boolean;
+  };
+
   purposeData?: {
     purpose?: 'education' | 'hospital' | 'shopping';
     subPurposeData?: any; 
