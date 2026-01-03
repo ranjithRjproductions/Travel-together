@@ -3,7 +3,7 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { addDays, format, parseISO } from 'date-fns';
+import { addDays, format, parseISO, startOfToday } from 'date-fns';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -83,12 +83,12 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
     <Card>
         <CardHeader>
             <CardTitle>Step 2: Date & Duration</CardTitle>
-            <CardDescription>When do you need the guide? Bookings must be at least 5 days in advance.</CardDescription>
+            <CardDescription>When do you need the guide? You can now select today's date for testing.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleStep2Save)} className="space-y-6">
-                    <FormField control={form.control} name="requestedDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Trip</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>{field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < addDays(new Date(), 5) } initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name="requestedDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Trip</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>{field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < startOfToday() } initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name="startTime" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} readOnly={isHospitalPrebooked} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="endTime" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} readOnly={isHospitalPrebooked} /></FormControl><FormMessage /></FormItem>)} />
