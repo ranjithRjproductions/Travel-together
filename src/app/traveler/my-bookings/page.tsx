@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, KeyRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -167,7 +167,16 @@ function UpcomingRequestList({
                                     <Link href={`/traveler/checkout/${request.id}`}>Pay Now (₹{request.estimatedCost?.toFixed(2)})</Link>
                                 </Button>
                             ) : (
-                                <Badge variant="default" className="bg-green-600">Paid & Confirmed</Badge>
+                               <div className="text-right">
+                                    <Badge variant="default" className="bg-green-600 mb-2">Paid & Confirmed</Badge>
+                                    {request.tripPin && (
+                                        <div className="flex items-center justify-end gap-2 text-sm">
+                                            <KeyRound className="h-4 w-4 text-muted-foreground" />
+                                            <span>Your Trip PIN:</span>
+                                            <span className="font-bold text-lg tracking-wider">{request.tripPin}</span>
+                                        </div>
+                                    )}
+                               </div>
                             )}
                         </div>
                     </CardContent>
