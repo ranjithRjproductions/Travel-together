@@ -144,10 +144,14 @@ function UpcomingRequestList({
             name: "Let's Travel Together",
             description: `Payment for ${request.purposeData?.purpose} request`,
             image: "/logo.png",
-            handler: function (response: any) {
-                // This is now handled by the secure webhook. 
-                // We just show a confirmation to the user here.
-                 toast({
+            handler: async function (response: any) {
+                // This is the temporary code for local testing.
+                // It insecurely updates the status on the client.
+                // This MUST be removed before deploying to production.
+                const requestDocRef = doc(firestore, 'travelRequests', request.id);
+                await updateDoc(requestDocRef, { status: 'paid' });
+                
+                toast({
                     title: 'Payment Submitted!',
                     description: 'Your payment is being processed. The status will update shortly.',
                 });
