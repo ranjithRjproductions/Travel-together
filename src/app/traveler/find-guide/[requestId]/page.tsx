@@ -13,10 +13,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon } from 'lucide-react';
+import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { submitTravelRequest } from '@/lib/actions';
+import { format, parseISO } from 'date-fns';
 
 function GuideCardSkeleton() {
     return (
@@ -152,6 +153,15 @@ export default function FindGuidePage() {
         }
     }
 
+    const getAvailabilityText = () => {
+        if (!request || !request.purposeData?.purpose || !request.requestedDate) {
+            return "Available";
+        }
+        const purposeText = request.purposeData.purpose.replace('-', ' ');
+        const dateText = format(parseISO(request.requestedDate), 'PPP');
+        return `Available for ${purposeText} on ${dateText}`;
+    }
+
 
     return (
         <div className="container mx-auto py-8">
@@ -176,9 +186,6 @@ export default function FindGuidePage() {
                                 <div className="flex-1 space-y-1">
                                     <CardTitle as="h2" className="text-lg">{guide.name}</CardTitle>
                                      <div className="flex items-center gap-2">
-                                        <Badge variant="outline" className="text-green-600 border-green-300">
-                                            Available
-                                        </Badge>
                                         <Badge variant="secondary">
                                             <CheckCircle className="mr-1 h-3 w-3" />
                                             Verified Guide
@@ -193,7 +200,13 @@ export default function FindGuidePage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
-                                 <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div className="p-3 bg-primary/5 rounded-md text-primary-foreground">
+                                    <p className="font-semibold text-sm flex items-center gap-2">
+                                        <CalendarDays className="h-4 w-4 text-primary" />
+                                        <span className="text-primary">{getAvailabilityText()}</span>
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <UserIcon className="h-4 w-4" />
                                         <span>{guide.gender}</span>
