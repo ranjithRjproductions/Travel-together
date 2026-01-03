@@ -1,7 +1,7 @@
 
 'use server';
 
-import { db } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { notFound } from 'next/navigation';
 import { type User, type TravelRequest } from '@/lib/definitions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +20,7 @@ import homeContent from '@/app/content/home.json';
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
 export async function generateMetadata({ params }: { params: { userId: string } }): Promise<Metadata> {
+  const db = getAdminDb();
   const userDoc = await db.collection('users').doc(params.userId).get();
   const userName = userDoc.exists ? userDoc.data()?.name : 'Traveler';
   return {
@@ -41,6 +42,7 @@ type ServerTravelRequest = Omit<TravelRequest, 'createdAt'> & {
 
 
 async function getTravelerDetails(userId: string) {
+    const db = getAdminDb();
     const userDocRef = db.collection('users').doc(userId);
     const requestsQuery = db.collection('travelRequests').where('travelerId', '==', userId);
 
@@ -257,3 +259,5 @@ export default async function TravelerDetailPage({ params }: { params: { userId:
     </div>
   );
 }
+
+    

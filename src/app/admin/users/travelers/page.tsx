@@ -1,7 +1,7 @@
 
 'use server';
 
-import { db } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import {
   Table,
   TableBody,
@@ -60,6 +60,7 @@ const calculateProfileCompletion = (user: User): number => {
 
 
 async function getTravelers(): Promise<TravelerWithStats[]> {
+  const db = getAdminDb();
   try {
     const usersSnapshot = await db.collection('users').where('role', '==', 'Traveler').get();
     if (usersSnapshot.empty) {
@@ -175,3 +176,5 @@ export default async function ManageTravelersPage() {
     </Card>
   );
 }
+
+    

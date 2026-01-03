@@ -1,7 +1,7 @@
 
 'use server';
 
-import { db } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import {
   Table,
   TableBody,
@@ -71,6 +71,7 @@ const calculateGuideProfileCompletion = (user: User, guideProfile: any): number 
 
 
 async function getGuides(): Promise<GuideWithStats[]> {
+  const db = getAdminDb();
   try {
     const usersSnapshot = await db.collection('users').where('role', '==', 'Guide').get();
     if (usersSnapshot.empty) {
@@ -255,3 +256,5 @@ export default async function ManageGuidesPage() {
     </Card>
   );
 }
+
+    

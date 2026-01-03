@@ -1,7 +1,7 @@
 
 'use server';
 
-import { db } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { notFound } from 'next/navigation';
 import { type User } from '@/lib/definitions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,6 +16,7 @@ import homeContent from '@/app/content/home.json';
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
 export async function generateMetadata({ params }: { params: { guideId: string } }): Promise<Metadata> {
+  const db = getAdminDb();
   const userDoc = await db.collection('users').doc(params.guideId).get();
   const userName = userDoc.exists ? userDoc.data()?.name : 'Guide';
   return {
@@ -24,6 +25,7 @@ export async function generateMetadata({ params }: { params: { guideId: string }
 }
 
 async function getGuideDetails(guideId: string) {
+    const db = getAdminDb();
     const userDocRef = db.collection('users').doc(guideId);
     const guideProfileDocRef = userDocRef.collection('guideProfile').doc('guide-profile-doc');
 
@@ -189,3 +191,5 @@ export default async function GuideDetailPage({ params }: { params: { guideId: s
     </div>
   );
 }
+
+    
