@@ -144,23 +144,13 @@ function UpcomingRequestList({
             name: "Let's Travel Together",
             description: `Payment for ${request.purposeData?.purpose} request`,
             image: "/logo.png",
-            handler: async function (response: any) {
-                // This is the temporary client-side update for local testing.
-                // In production, this logic would be removed and handled by a secure webhook.
-                try {
-                    const requestDocRef = doc(firestore, 'travelRequests', request.id);
-                    await updateDoc(requestDocRef, { status: 'paid' });
-                    toast({
-                        title: 'Payment Submitted!',
-                        description: 'Your payment was successful and your booking is confirmed.',
-                    });
-                } catch (error) {
-                    toast({
-                        title: 'Update Failed',
-                        description: 'Your payment was successful, but we could not update the booking status. Please contact support.',
-                        variant: 'destructive'
-                    });
-                }
+            handler: function (response: any) {
+                // This is now handled by the secure webhook. 
+                // We just show a confirmation to the user here.
+                 toast({
+                    title: 'Payment Submitted!',
+                    description: 'Your payment is being processed. The status will update shortly.',
+                });
             },
             prefill: {
                 name: user.displayName || "",

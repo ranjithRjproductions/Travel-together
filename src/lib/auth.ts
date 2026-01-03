@@ -16,19 +16,30 @@ export async function getUser(): Promise<User | null> {
     const role = decodedClaims.role as 'Traveler' | 'Guide' | undefined;
 
     if (!role || (role !== 'Traveler' && role !== 'Guide')) {
+        // If role claim is missing or invalid, we must not proceed.
+        // It indicates a problem with the session cookie or user setup.
+        console.warn(`Invalid or missing role for UID: ${decodedClaims.uid}`);
         return null;
     }
 
     const userDoc = await db.collection('users').doc(decodedClaims.uid).get();
     if (!userDoc.exists) {
+        // If the user document doesn't exist, the claims in the cookie are stale.
+        console.warn(`User document not found for UID: ${decodedClaims.uid}`);
         return null;
     }
-
-    // Check for admin privileges
+    
+    const userData = userDoc.data();
+    
+    // Server-side check for admin privileges, ignoring any client-sent claims
     const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
     const isAdmin = adminDoc.exists;
-
-    const userData = userDoc.data();
+    
+    // Ensure the role in the database matches the role in the session cookie.
+    if (userData?.role !== role) {
+        console.warn(`Role mismatch for UID: ${decodedClaims.uid}. Cookie: ${role}, DB: ${userData?.role}`);
+        return null;
+    }
 
     return {
       uid: decodedClaims.uid,
@@ -40,10 +51,8 @@ export async function getUser(): Promise<User | null> {
       photoAlt: userData?.photoAlt || undefined,
     } as User;
   } catch (error) {
-    // console.error('Auth Error:', error);
-    // Hide spammy auth errors in production, but keep for debugging in dev.
     if (process.env.NODE_ENV !== 'production') {
-      console.error('Auth Error:', error);
+      console.error('Auth Error in getUser:', error);
     }
     return null;
   }

@@ -4,7 +4,12 @@ import { getAdminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET!;
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error('Webhook Error: RAZORPAY_WEBHOOK_SECRET is not defined.');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   const db = getAdminDb();
 
   try {

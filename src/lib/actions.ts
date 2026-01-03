@@ -255,11 +255,11 @@ export async function respondToTravelRequest(requestId: string, response: 'confi
             throw new Error("Could not find the guide's profile to confirm the request.");
           }
           const guideData = guideDoc.data() as User;
+          // Only embed non-sensitive, public-facing information
           const guideDataToEmbed: Partial<User> = {
             name: guideData.name,
             photoURL: guideData.photoURL,
             photoAlt: guideData.photoAlt,
-            // contact: guideData.contact, // This was causing the security rule violation
           };
           await requestDocRef.update({ status: 'confirmed', guideData: guideDataToEmbed });
       } else {
