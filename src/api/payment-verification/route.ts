@@ -42,14 +42,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Missing requestId' }, { status: 400 });
       }
 
-      // Securely update the document status on the server
+      // Generate a random 4-digit PIN
+      const tripPin = Math.floor(1000 + Math.random() * 9000).toString();
+
+      // Securely update the document status and add the PIN on the server
       const requestDocRef = db.collection('travelRequests').doc(requestId);
       await requestDocRef.update({ 
           status: 'paid',
-          paidAt: admin.firestore.FieldValue.serverTimestamp() // Add paid timestamp
+          paidAt: admin.firestore.FieldValue.serverTimestamp(), // Add paid timestamp
+          tripPin: tripPin // Add the generated Trip PIN
       });
       
-      console.log(`Successfully verified and updated request: ${requestId}`);
+      console.log(`Successfully verified, updated request: ${requestId}, and generated Trip PIN.`);
     }
 
     return NextResponse.json({ status: 'ok' });

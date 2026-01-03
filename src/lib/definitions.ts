@@ -60,6 +60,8 @@ export type TravelRequest = {
   acceptedAt?: any; // Guide confirmed
   paidAt?: any; // Payment successful
   
+  tripPin?: string; // 4-digit PIN for service verification
+
   purposeData?: {
     purpose?: 'education' | 'hospital' | 'shopping';
     subPurposeData?: any; 
