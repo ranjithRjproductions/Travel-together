@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { type TravelRequest } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ArrowLeft, CreditCard, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+
+declare const Razorpay: any;
 
 function CheckoutPageSkeleton() {
     return (
@@ -51,6 +54,7 @@ export default function CheckoutPage() {
     const requestId = params.requestId as string;
     const firestore = useFirestore();
     const { user, isUserLoading } = useUser();
+    const { toast } = useToast();
 
     const requestDocRef = useMemo(() => {
         if (!firestore || !requestId) return null;
@@ -60,6 +64,66 @@ export default function CheckoutPage() {
     const { data: request, isLoading: isRequestLoading } = useDoc<TravelRequest>(requestDocRef);
 
     const isLoading = isUserLoading || isRequestLoading;
+    
+    const handlePayment = async () => {
+        if (!request || !user || !requestDocRef) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not load payment details. Please try again.",
+            });
+            return;
+        }
+
+        const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+        if (!razorpayKeyId) {
+            toast({
+                variant: "destructive",
+                title: "Configuration Error",
+                description: "Payment gateway is not configured.",
+            });
+            return;
+        }
+
+        const options = {
+            key: razorpayKeyId,
+            amount: request.estimatedCost ? request.estimatedCost * 100 : 0,
+            currency: "INR",
+            name: "Let's Travel Together",
+            description: `Payment for Request ID: ${request.id}`,
+            image: "/logo.png",
+            handler: async function (response: any) {
+                // This is the temporary, insecure client-side update for local testing.
+                try {
+                    await updateDoc(requestDocRef, { status: 'paid' });
+                    toast({
+                        title: "Payment Successful!",
+                        description: "Your booking is confirmed. Redirecting...",
+                    });
+                    router.push('/traveler/my-bookings');
+                } catch (error) {
+                    console.error("Error updating document status:", error);
+                    toast({
+                        variant: "destructive",
+                        title: "Update Failed",
+                        description: "Payment was successful but we couldn't update your booking status. Please contact support.",
+                    });
+                }
+            },
+            prefill: {
+                name: user.displayName || "Traveler",
+                email: user.email || "",
+            },
+            notes: {
+                requestId: request.id,
+            },
+            theme: {
+                color: "#3b82f6",
+            },
+        };
+        const rzp = new Razorpay(options);
+        rzp.open();
+    }
 
     if (isLoading) {
         return <CheckoutPageSkeleton />;
@@ -101,9 +165,9 @@ export default function CheckoutPage() {
         default:
             return null;
         }
-  };
+    };
 
-  const locationInfo = getLocationInfo(request);
+    const locationInfo = getLocationInfo(request);
 
     return (
         <div className="max-w-2xl mx-auto">
@@ -151,7 +215,7 @@ export default function CheckoutPage() {
                         </AlertDescription>
                     </Alert>
 
-                     <Button size="lg" className="w-full">
+                     <Button size="lg" className="w-full" onClick={handlePayment}>
                         Proceed to Payment
                     </Button>
                 </CardContent>
