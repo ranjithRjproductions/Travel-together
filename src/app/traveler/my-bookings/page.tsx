@@ -4,8 +4,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -16,6 +16,17 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AriaLive } from '@/components/ui/aria-live';
 
 function GuideInfo({ guideData }: { guideData?: Partial<UserData> }) {
     if (!guideData) {
@@ -29,11 +40,13 @@ function RequestList({
   emptyMessage,
   isLoading,
   showStatus,
+  onDelete,
 }: {
   requests: TravelRequest[] | null;
   emptyMessage: string;
   isLoading: boolean;
   showStatus?: boolean;
+  onDelete: (requestId: string) => void;
 }) {
 
   if (isLoading) {
@@ -94,14 +107,18 @@ function RequestList({
                 </div>
                 <div className="flex items-center gap-4">
                     {showStatus && getStatusBadge(request.status)}
-                    <Button asChild variant="secondary">
+                    <Button asChild variant="secondary" size="sm">
                       <Link href={`/traveler/request/${request.id}`}>View Details</Link>
                     </Button>
-                    <Button asChild variant="outline">
+                    <Button asChild variant="outline" size="sm">
                         <Link href={`/traveler/find-guide/${request.id}`}>
                             <Search className="mr-2 h-4 w-4" />
                             Find Another Guide
                         </Link>
+                    </Button>
+                     <Button variant="destructive" size="sm" onClick={() => onDelete(request.id)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
                     </Button>
                 </div>
             </CardContent>
@@ -120,7 +137,7 @@ function UpcomingRequestList({
 }) {
 
     if (isLoading) {
-        return <RequestList isLoading={true} requests={null} emptyMessage="" />;
+        return <RequestList isLoading={true} requests={null} emptyMessage="" onDelete={() => {}} />;
     }
 
     if (!requests || requests.length === 0) {
@@ -165,7 +182,12 @@ export default function MyBookingsPage() {
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [previousInProgress, setPreviousInProgress] = useState<TravelRequest[]>([]);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [ariaLiveMessage, setAriaLiveMessage] = useState('');
 
   const inProgressRequestsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -205,9 +227,62 @@ export default function MyBookingsPage() {
     setPreviousInProgress(inProgressRequests);
   }, [inProgressRequests, inProgressLoading, previousInProgress, router]);
 
+  const handleDeleteClick = (requestId: string) => {
+    setRequestToDelete(requestId);
+    setIsAlertOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!requestToDelete || !firestore) return;
+    setIsDeleting(true);
+
+    const docRef = doc(firestore, 'travelRequests', requestToDelete);
+    try {
+        await deleteDoc(docRef);
+        toast({
+            title: "Request Deleted",
+            description: "Your travel request has been successfully deleted.",
+        });
+        setAriaLiveMessage('Request successfully deleted.');
+    } catch (serverError) {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not delete the request. Please try again.',
+        });
+        setAriaLiveMessage('Error: Could not delete the request.');
+    } finally {
+        setIsDeleting(false);
+        setIsAlertOpen(false);
+        setRequestToDelete(null);
+    }
+  };
 
   return (
     <div className="grid gap-6 md:gap-8">
+      <AriaLive message={ariaLiveMessage} />
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this travel request. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting ? 'Deleting...' : 'Yes, delete request'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="font-headline text-3xl font-bold">My Bookings</h1>
         <Button
@@ -236,6 +311,7 @@ export default function MyBookingsPage() {
                 isLoading={inProgressLoading}
                 emptyMessage="Requests that are awaiting guide acceptance will appear here."
                 showStatus={true}
+                onDelete={handleDeleteClick}
               />
             </TabsContent>
             <TabsContent value="past" className="mt-4">
