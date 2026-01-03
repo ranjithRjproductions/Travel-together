@@ -424,25 +424,34 @@ export async function deleteTravelRequest(requestId: string): Promise<{ success:
 
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
-    if (!adminDoc.exists) {
-      return { success: false, message: 'Permission denied. Not an admin.' };
-    }
-
-    // 2. Delete the travel request document
+    
     const requestDocRef = db.collection('travelRequests').doc(requestId);
     const requestDoc = await requestDocRef.get();
+    
     if (!requestDoc.exists) {
-      return { success: false, message: 'Request not found.' };
+        return { success: false, message: 'Request not found.' };
     }
-    const travelerId = requestDoc.data()?.travelerId;
+    
+    const requestData = requestDoc.data();
+    const isOwner = requestData?.travelerId === decodedClaims.uid;
+    
+    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    const isAdmin = adminDoc.exists;
+
+    if (!isOwner && !isAdmin) {
+        return { success: false, message: 'Permission denied. Not authorized to delete this request.' };
+    }
 
     await requestDocRef.delete();
 
-    // 3. Revalidate the traveler detail page to refresh the list
-    if (travelerId) {
-        revalidatePath(`/admin/users/travelers/${travelerId}`);
+    // Revalidate paths for admin and traveler views
+    if (requestData?.travelerId) {
+        revalidatePath(`/admin/users/travelers/${requestData.travelerId}`);
     }
+    if (requestData?.guideId) {
+        revalidatePath(`/admin/users/guides/${requestData.guideId}`);
+    }
+    revalidatePath('/traveler/my-requests');
 
     return { success: true, message: 'Travel request deleted successfully.' };
   } catch (error: any) {

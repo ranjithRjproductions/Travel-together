@@ -10,10 +10,12 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, ShieldCheck, Languages, CheckCircle, Car, PenLine, View } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, ShieldCheck, Languages, CheckCircle, Car, PenLine, View, Trash2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
 import { format } from 'date-fns';
+import { DeleteRequestButton } from './delete-request-button';
+
 
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
@@ -173,6 +175,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                                         <Button asChild size="sm" variant="outline">
                                             <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
                                         </Button>
+                                        <DeleteRequestButton requestId={request.id} />
                                     </div>
                                 </div>
                             );
@@ -292,5 +295,3 @@ export default async function GuideDetailPage({ params }: { params: { guideId: s
     </div>
   );
 }
-
-    
