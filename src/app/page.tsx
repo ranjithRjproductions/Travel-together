@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -6,8 +7,24 @@ import { AppLogo } from '@/components/app-logo';
 import { Footer } from '@/components/footer';
 import { LogIn, UserPlus, ShieldCheck, UserCheck, Accessibility } from 'lucide-react';
 import content from './content/home.json';
+import { getUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
-export default function Home() {
+export default async function Home() {
+  const user = await getUser();
+
+  if (user) {
+    if (user.isAdmin) {
+      redirect('/admin');
+    }
+    if (user.role === 'Guide') {
+      redirect('/guide/dashboard');
+    }
+    if (user.role === 'Traveler') {
+      redirect('/traveler/dashboard');
+    }
+  }
+
   const heroImage = PlaceHolderImages.find((img) => img.id === 'landing-hero');
   const featureIcons = [
     <Accessibility key="a11y" aria-hidden="true" />,
