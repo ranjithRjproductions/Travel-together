@@ -2,8 +2,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
-// Force Node.js runtime to ensure Firebase Admin SDK compatibility.
+// 🔴 REQUIRED: firebase-admin needs Node.js runtime
 export const runtime = 'nodejs';
+
+// Disable caching for this dynamic route
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
@@ -43,7 +45,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ status: 'success', role, isAdmin }, { status: 200 });
 
     // Set the session cookie on the response.
-    // secure: true should only be used in production (HTTPS).
+    // secure: true is only used in production (HTTPS).
     response.cookies.set({
       name: 'session',
       value: sessionCookie,
