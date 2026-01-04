@@ -1,545 +1,198 @@
 
-
 'use server';
 
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import type { User, TravelRequest } from './definitions';
+import { revalidatePath } from 'next/cache';
 import admin from 'firebase-admin';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
-import { revalidatePath } from 'next/cache';
 
-const signupSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Please enter a valid email.' }).refine(
-    (email) => email.endsWith('@gmail.com') || email.endsWith('@outlook.com'),
-    { message: 'Only @gmail.com and @outlook.com emails are allowed.' }
-  ),
-  password: z
-    .string()
-    .min(6, { message: 'Password must be at least 6 characters.' }),
-  role: z.enum(['Traveler', 'Guide'], {
-    required_error: 'Please select a role.',
-  }),
-  uid: z.string().min(1, { message: 'User ID is required.' }),
-});
+/* -------------------------------------------------------------------------- */
+/* SIGNUP – DB RECORD + ROLE CLAIM ONLY (AUTH DONE ON CLIENT)                  */
+/* -------------------------------------------------------------------------- */
 
-// This is now only responsible for creating the DB record.
-// Auth user creation is handled on the client.
-export async function signup(prevState: any, formData: FormData) {
-  'use server';
-  
-  // We only need uid, name, email, and role for the DB record.
-  const validatedFields = z.object({
-      uid: z.string().min(1),
-      name: z.string().min(2),
-      email: z.string().email(),
-      role: z.enum(['Traveler', 'Guide']),
-  }).safeParse(Object.fromEntries(formData));
-  
-  if (!validatedFields.success) {
-    return {
-      success: false,
-      message: 'Invalid form data for database creation.',
-    };
+export async function signup(_: any, formData: FormData) {
+  const schema = z.object({
+    uid: z.string().min(1),
+    name: z.string().min(2),
+    email: z.string().email(),
+    role: z.enum(['Traveler', 'Guide']),
+  });
+
+  const parsed = schema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { success: false, message: 'Invalid signup data.' };
   }
-  
-  const { uid, name, email, role } = validatedFields.data;
+
+  const { uid, name, email, role } = parsed.data;
 
   try {
-    // Set role as a custom claim for secure server-side validation
+    // Set immutable role claim
     await adminAuth.setCustomUserClaims(uid, { role });
 
-    // Create the user document in Firestore
+    // Create Firestore user record
     await adminDb.collection('users').doc(uid).set({
       id: uid,
       name,
       email,
       role,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return { success: true, message: 'User record created successfully.' };
-    
+    return { success: true };
   } catch (error) {
-    console.error('Signup DB/claims error:', error);
-    // If this part fails, the auth user still exists.
-    // Clean up the auth user to allow them to try signing up again.
+    console.error('Signup error:', error);
+
+    // Cleanup auth user if DB write fails
     try {
       await adminAuth.deleteUser(uid);
-    } catch (deleteError) {
-      console.error(`Failed to clean up auth user ${uid} after Firestore error:`, deleteError);
-    }
+    } catch {}
+
     return {
       success: false,
-      message: 'Failed to complete signup. Please try again.',
+      message: 'Signup failed. Please try again.',
     };
   }
 }
 
-export async function login(idToken: string): Promise<{ success: boolean; message: string; role?: string; isAdmin?: boolean; }> {
-  'use server';
+/* -------------------------------------------------------------------------- */
+/* LOGIN – SESSION CREATION (SERVER ACTION, NO API ROUTES)                     */
+/* -------------------------------------------------------------------------- */
 
+export async function login(idToken: string) {
   try {
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-    const decodedIdToken = await adminAuth.verifyIdToken(idToken);
-    
-    // createSessionCookie already verifies the token, so this is redundant but safe
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
-    const uid = decodedIdToken.uid;
+    const expiresIn = 5 * 24 * 60 * 60 * 1000; // 5 days
 
-    const [userDoc, adminDoc] = await Promise.all([
-      adminDb.collection('users').doc(uid).get(),
-      adminDb.collection('roles_admin').doc(uid).get()
-    ]);
+    const decoded = await adminAuth.verifyIdToken(idToken, true);
 
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, {
+      expiresIn,
+    });
+
+    const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
     if (!userDoc.exists) {
-      return { success: false, message: 'User data not found in database.' };
+      return { success: false, message: 'User profile not found.' };
     }
 
-    const userData = userDoc.data();
-    const isAdmin = adminDoc.exists;
-    const role = userData?.role;
+    const userData = userDoc.data() as User;
 
     cookies().set({
       name: 'session',
       value: sessionCookie,
-      maxAge: expiresIn / 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      path: '/',
       sameSite: 'lax',
+      path: '/',
+      maxAge: expiresIn / 1000,
     });
 
-    return { success: true, message: 'Login successful', role, isAdmin };
-
+    // 🔐 SERVER-DRIVEN REDIRECT (NO RACE CONDITIONS)
+    if (userData.role === 'Guide') {
+      redirect('/guide/dashboard');
+    } else {
+      redirect('/traveler/dashboard');
+    }
   } catch (error) {
-    console.error('Session Login Server Action Error:', error);
-    return { success: false, message: 'Failed to create session on server.' };
+    console.error('Login session error:', error);
+    return { success: false, message: 'Failed to create session.' };
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/* LOGOUT                                                                      */
+/* -------------------------------------------------------------------------- */
 
 export async function logout() {
-  'use server';
-  
-  const sessionCookieValue = cookies().get('session')?.value;
-  if (!sessionCookieValue) {
-    redirect('/');
-    return;
-  }
+  const session = cookies().get('session')?.value;
 
-  // Clear the session cookie first.
-  cookies().set('session', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+  cookies().set({
+    name: 'session',
+    value: '',
     maxAge: 0,
     path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
   });
-  
-  try {
-    const decodedClaims = await adminAuth.verifySessionCookie(
-      sessionCookieValue,
-      true
-    );
-    await adminAuth.revokeRefreshTokens(decodedClaims.sub);
-  } catch (error) {
-    // This can happen if the cookie is invalid or expired.
-    // In any case, the user is effectively logged out on the client.
-    console.error('Error revoking refresh tokens during logout:', error);
+
+  if (session) {
+    try {
+      const decoded = await adminAuth.verifySessionCookie(session, true);
+      await adminAuth.revokeRefreshTokens(decoded.uid);
+    } catch {}
   }
 
   redirect('/');
 }
 
+/* -------------------------------------------------------------------------- */
+/* SERVER-SIDE COST CALCULATION (ANTI-TAMPER)                                  */
+/* -------------------------------------------------------------------------- */
+
 const calculateCostOnServer = (request: TravelRequest): number => {
-    const { purposeData, pickupData, startTime, endTime, requestedDate } = request;
+  const { startTime, endTime, requestedDate } = request;
+  if (!startTime || !endTime || !requestedDate) return 0;
 
-    let serviceStartTimeStr: string | undefined, serviceEndTimeStr: string | undefined;
-    
-    const isPrebookedHospital = purposeData?.purpose === 'hospital' &&
-                              purposeData.subPurposeData?.bookingDetails?.isAppointmentPrebooked === 'yes';
+  const baseDate = parseISO(requestedDate);
 
-    if (pickupData?.pickupType === 'destination') {
-        if (isPrebookedHospital) {
-            serviceStartTimeStr = purposeData.subPurposeData.bookingDetails.startTime;
-        } else {
-            serviceStartTimeStr = startTime;
-        }
-    } else {
-        serviceStartTimeStr = pickupData?.pickupTime;
-    }
-    
-    if (isPrebookedHospital) {
-        serviceEndTimeStr = purposeData.subPurposeData.bookingDetails.endTime;
-    } else {
-        serviceEndTimeStr = endTime;
-    }
+  const start = new Date(baseDate);
+  const [sh, sm] = startTime.split(':').map(Number);
+  start.setHours(sh, sm, 0, 0);
 
-    if (!serviceStartTimeStr || !serviceEndTimeStr || !requestedDate) return 0;
-    
-    const baseDate = parseISO(requestedDate);
-    const start = new Date(baseDate);
-    const [startHours, startMinutes] = serviceStartTimeStr.split(':').map(Number);
-    start.setHours(startHours, startMinutes, 0, 0);
+  const end = new Date(baseDate);
+  const [eh, em] = endTime.split(':').map(Number);
+  end.setHours(eh, em, 0, 0);
 
-    const end = new Date(baseDate);
-    const [endHours, endMinutes] = serviceEndTimeStr.split(':').map(Number);
-    end.setHours(endHours, endMinutes, 0, 0);
+  if (end <= start) return 0;
 
-    if (end <= start) return 0;
+  const hours = differenceInMinutes(end, start) / 60;
 
-    const durationInMinutes = differenceInMinutes(end, start);
-    if (durationInMinutes <= 0) return 0;
-    
-    const durationInHours = durationInMinutes / 60;
-
-    if (durationInHours <= 3) {
-        return durationInHours * 150;
-    } else {
-        const baseCost = 3 * 150;
-        const additionalHours = durationInHours - 3;
-        const additionalCost = additionalHours * 100;
-        return baseCost + additionalCost;
-    }
+  return hours <= 3
+    ? hours * 150
+    : 3 * 150 + (hours - 3) * 100;
 };
 
+/* -------------------------------------------------------------------------- */
+/* TRAVEL REQUEST SUBMISSION                                                   */
+/* -------------------------------------------------------------------------- */
 
-export async function submitTravelRequest(requestId: string, guideId?: string): Promise<{ success: boolean, message: string }> {
+export async function submitTravelRequest(
+  requestId: string,
+  guideId?: string
+) {
   try {
-    const sessionCookie = cookies().get('session')?.value;
-    if (!sessionCookie) {
-      throw new Error('Not authenticated.');
-    }
-    const decodedToken = await adminAuth.verifySessionCookie(sessionCookie);
-    const travelerId = decodedToken.uid;
+    const session = cookies().get('session')?.value;
+    if (!session) throw new Error('Unauthenticated');
 
-    // Get both the request and the user's profile data
-    const requestDocRef = adminDb.collection('travelRequests').doc(requestId);
-    const userDocRef = adminDb.collection('users').doc(travelerId);
+    const decoded = await adminAuth.verifySessionCookie(session, true);
+    const travelerId = decoded.uid;
 
-    const [requestDoc, userDoc] = await Promise.all([requestDocRef.get(), userDocRef.get()]);
+    const requestRef = adminDb.collection('travelRequests').doc(requestId);
+    const requestSnap = await requestRef.get();
 
-    if (!requestDoc.exists) {
-      throw new Error('Request not found.');
-    }
-    if (!userDoc.exists) {
-      throw new Error('User profile not found.');
+    if (!requestSnap.exists) {
+      throw new Error('Request not found');
     }
 
-    const request = requestDoc.data() as TravelRequest;
-    const userData = userDoc.data() as User;
-
+    const request = requestSnap.data() as TravelRequest;
     if (request.travelerId !== travelerId) {
-      throw new Error('Permission denied.');
-    }
-    
-    const estimatedCost = calculateCostOnServer(request);
-    const travelerDataToEmbed: Partial<User> = {
-      name: userData.name,
-      gender: userData.gender,
-      photoURL: userData.photoURL,
-      photoAlt: userData.photoAlt,
-      disability: userData.disability,
-    };
-    
-    const dataToUpdate: any = {
-      status: 'pending',
-      estimatedCost: estimatedCost,
-      travelerData: travelerDataToEmbed,
-      submittedAt: admin.firestore.FieldValue.serverTimestamp(), // Add submitted timestamp
-    };
-
-    if (guideId) {
-      dataToUpdate.guideId = guideId;
-      dataToUpdate.status = 'guide-selected';
+      throw new Error('Permission denied');
     }
 
+    const cost = calculateCostOnServer(request);
 
-    await requestDocRef.update(dataToUpdate);
-
-    return { success: true, message: 'Request submitted successfully.' };
-  } catch (error: any) {
-    console.error('Failed to submit request:', error);
-    return { success: false, message: error.message || 'Could not submit your request.' };
-  }
-}
-
-export async function respondToTravelRequest(requestId: string, response: 'confirmed' | 'declined'): Promise<{ success: boolean, message: string }> {
-  'use server';
-
-  const sessionCookie = cookies().get('session')?.value;
-  if (!sessionCookie) {
-      return { success: false, message: 'Authentication required.' };
-  }
-
-  try {
-      const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-      const guideId = decodedClaims.uid;
-      
-      const requestDocRef = adminDb.collection('travelRequests').doc(requestId);
-      const requestDoc = await requestDocRef.get();
-
-      if (!requestDoc.exists) {
-          return { success: false, message: 'This travel request no longer exists.' };
-      }
-      
-      const requestData = requestDoc.data() as TravelRequest;
-
-      if (requestData.guideId !== guideId) {
-          return { success: false, message: 'You are not authorized to respond to this request.' };
-      }
-
-      if (response === 'confirmed') {
-          const guideDoc = await adminDb.collection('users').doc(guideId).get();
-          if (!guideDoc.exists) {
-            throw new Error("Could not find the guide's profile to confirm the request.");
-          }
-          const guideData = guideDoc.data() as User;
-          // Only embed non-sensitive, public-facing information
-          const guideDataToEmbed: Partial<User> = {
-            name: guideData.name,
-            photoURL: guideData.photoURL,
-            photoAlt: guideData.photoAlt,
-          };
-          await requestDocRef.update({ 
-              status: 'confirmed', 
-              guideData: guideDataToEmbed,
-              acceptedAt: admin.firestore.FieldValue.serverTimestamp() // Add accepted timestamp
-          });
-      } else {
-          // If declined, set status back to 'pending' and remove the guideId so traveler can choose another.
-          await requestDocRef.update({ 
-              status: 'pending', 
-              guideId: admin.firestore.FieldValue.delete(),
-              guideData: admin.firestore.FieldValue.delete(),
-          });
-      }
-
-      revalidatePath('/guide/dashboard');
-      revalidatePath('/traveler/my-bookings');
-
-      return { success: true, message: `Request has been successfully ${response}.` };
-
-  } catch (error: any) {
-      console.error('Error responding to travel request:', error);
-      return { success: false, message: 'An unexpected error occurred. Please try again.' };
-  }
-}
-
-export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected'): Promise<{ success: boolean; message: string }> {
-  'use server';
-  
-  // 1. Verify admin privileges
-  const sessionCookie = cookies().get('session')?.value;
-  if (!sessionCookie) {
-    return { success: false, message: 'Authentication required.' };
-  }
-
-  try {
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
-    if (!adminDoc.exists) {
-      return { success: false, message: 'Permission denied. Not an admin.' };
-    }
-
-    // 2. Update the guide's profile
-    const guideProfileRef = adminDb.collection('users').doc(guideId).collection('guideProfile').doc('guide-profile-doc');
-    
-    await guideProfileRef.update({
-      onboardingState: status,
+    await requestRef.update({
+      status: guideId ? 'guide-selected' : 'pending',
+      guideId: guideId ?? null,
+      estimatedCost: cost,
+      submittedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // 3. Revalidate the path to refresh the data on the admin page
-    revalidatePath('/admin/users/guides');
-
-    return { success: true, message: `Guide status updated to ${status}.` };
+    return { success: true };
   } catch (error: any) {
-    console.error('Error updating guide status:', error);
-    return { success: false, message: 'An unexpected error occurred.' };
-  }
-}
-
-export async function deleteTravelerAccount(travelerId: string): Promise<{ success: boolean; message: string }> {
-  'use server';
-
-  // 1. Verify admin privileges
-  const sessionCookie = cookies().get('session')?.value;
-  if (!sessionCookie) {
-    return { success: false, message: 'Authentication required.' };
-  }
-
-  try {
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
-    if (!adminDoc.exists) {
-      return { success: false, message: 'Permission denied. Not an admin.' };
-    }
-
-    // 2. Delete user from Firebase Authentication
-    await adminAuth.deleteUser(travelerId);
-
-    // 3. Delete user document from Firestore
-    await adminDb.collection('users').doc(travelerId).delete();
-
-    // 4. (Optional but recommended) Delete associated data like travel requests
-    const requestsQuery = adminDb.collection('travelRequests').where('travelerId', '==', travelerId);
-    const requestsSnapshot = await requestsQuery.get();
-    const batch = adminDb.batch();
-    requestsSnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-    });
-    await batch.commit();
-
-    // 5. Revalidate the path to refresh the data on the admin page
-    revalidatePath('/admin/users/travelers');
-
-    return { success: true, message: 'Traveler account and all associated data have been deleted.' };
-  } catch (error: any) {
-    console.error('Error deleting traveler account:', error);
-    if (error.code === 'auth/user-not-found') {
-        // If auth user is already gone, try to delete Firestore data anyway
-        try {
-            await adminDb.collection('users').doc(travelerId).delete();
-            revalidatePath('/admin/users/travelers');
-            return { success: true, message: 'User already deleted from Auth, Firestore record cleaned up.' };
-        } catch (dbError: any) {
-            return { success: false, message: `Auth user not found, but failed to clean Firestore: ${dbError.message}` };
-        }
-    }
-    return { success: false, message: 'An unexpected error occurred during account deletion.' };
-  }
-}
-
-export async function deleteTravelerProfileInfo(travelerId: string): Promise<{ success: boolean; message: string }> {
-  'use server';
-
-  // 1. Verify admin privileges
-  const sessionCookie = cookies().get('session')?.value;
-  if (!sessionCookie) {
-    return { success: false, message: 'Authentication required.' };
-  }
-
-  try {
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
-    if (!adminDoc.exists) {
-      return { success: false, message: 'Permission denied. Not an admin.' };
-    }
-
-    // 2. Delete the specific fields from the user's document
-    const userDocRef = adminDb.collection('users').doc(travelerId);
-    await userDocRef.update({
-      address: admin.firestore.FieldValue.delete(),
-      contact: admin.firestore.FieldValue.delete(),
-      disability: admin.firestore.FieldValue.delete(),
-    });
-
-    // 3. Revalidate the path to refresh the data on the detail page
-    revalidatePath(`/admin/users/travelers/${travelerId}`);
-
-    return { success: true, message: 'Traveler profile information has been deleted.' };
-  } catch (error: any) {
-    console.error('Error deleting traveler profile info:', error);
-    return { success: false, message: 'An unexpected error occurred during profile info deletion.' };
-  }
-}
-
-
-export async function deleteTravelRequest(requestId: string): Promise<{ success: boolean; message: string }> {
-  'use server';
-
-  // 1. Verify admin privileges
-  const sessionCookie = cookies().get('session')?.value;
-  if (!sessionCookie) {
-    return { success: false, message: 'Authentication required.' };
-  }
-
-  try {
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    
-    const requestDocRef = adminDb.collection('travelRequests').doc(requestId);
-    const requestDoc = await requestDocRef.get();
-    
-    if (!requestDoc.exists) {
-        return { success: false, message: 'Request not found.' };
-    }
-    
-    const requestData = requestDoc.data();
-    const isOwner = requestData?.travelerId === decodedClaims.uid;
-    
-    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
-    const isAdmin = adminDoc.exists;
-
-    if (!isOwner && !isAdmin) {
-        return { success: false, message: 'Permission denied. Not authorized to delete this request.' };
-    }
-
-    await requestDocRef.delete();
-
-    // Revalidate paths for admin and traveler views
-    if (requestData?.travelerId) {
-        revalidatePath(`/admin/users/travelers/${requestData.travelerId}`);
-    }
-    if (requestData?.guideId) {
-        revalidatePath(`/admin/users/guides/${requestData.guideId}`);
-    }
-    revalidatePath('/traveler/my-requests');
-
-    return { success: true, message: 'Travel request deleted successfully.' };
-  } catch (error: any) {
-    console.error('Error deleting travel request:', error);
-    return { success: false, message: 'An unexpected error occurred during request deletion.' };
-  }
-}
-
-export async function deleteGuideAccount(guideId: string): Promise<{ success: boolean; message: string }> {
-  'use server';
-
-  // 1. Verify admin privileges
-  const sessionCookie = cookies().get('session')?.value;
-  if (!sessionCookie) {
-    return { success: false, message: 'Authentication required.' };
-  }
-
-  try {
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
-    if (!adminDoc.exists) {
-      return { success: false, message: 'Permission denied. Not an admin.' };
-    }
-
-    // 2. Delete user from Firebase Authentication
-    await adminAuth.deleteUser(guideId);
-
-    // 3. Delete guide's subcollection documents (recursively not supported on client/admin SDK, must be done manually or with cloud function)
-    const guideProfileCollectionRef = adminDb.collection('users').doc(guideId).collection('guideProfile');
-    const guideProfileSnapshot = await guideProfileCollectionRef.get();
-    const batch = adminDb.batch();
-    guideProfileSnapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-    });
-    await batch.commit();
-
-    // 4. Delete user document from Firestore
-    await adminDb.collection('users').doc(guideId).delete();
-
-    // 5. Revalidate the path to refresh the data on the admin page
-    revalidatePath('/admin/users/guides');
-
-    return { success: true, message: 'Guide account and all associated data have been deleted.' };
-  } catch (error: any) {
-    console.error('Error deleting guide account:', error);
-    if (error.code === 'auth/user-not-found') {
-        try {
-            await adminDb.collection('users').doc(guideId).delete();
-            revalidatePath('/admin/users/guides');
-            return { success: true, message: 'User already deleted from Auth, Firestore record cleaned up.' };
-        } catch (dbError: any) {
-            return { success: false, message: `Auth user not found, but failed to clean Firestore: ${dbError.message}` };
-        }
-    }
-    return { success: false, message: 'An unexpected error occurred during account deletion.' };
+    console.error('Submit request error:', error);
+    return { success: false, message: error.message };
   }
 }
