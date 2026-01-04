@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useUser, useDoc, useFirestore } from '@/firebase';
+import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import content from '@/app/content/traveler-dashboard.json';
@@ -36,7 +36,7 @@ export default function TravelerDashboard() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
 
-  const userDocRef = useMemo(() => {
+  const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
