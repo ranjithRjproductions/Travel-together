@@ -34,13 +34,22 @@ export async function signup(_: any, formData: FormData) {
     await adminAuth.setCustomUserClaims(uid, { role });
 
     // Create Firestore user record
-    await adminDb.collection('users').doc(uid).set({
+    const userPayload: any = {
       id: uid,
       name,
       email,
       role,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    };
+
+    await adminDb.collection('users').doc(uid).set(userPayload);
+    
+    // Check if the user is the special admin user and grant claims
+    if (email === 'admin@gmail.com') {
+        await adminAuth.setCustomUserClaims(uid, { role: 'Admin', isAdmin: true });
+        await adminDb.collection('roles_admin').doc(uid).set({ isAdmin: true });
+    }
+
 
     return { success: true };
   } catch (error) {
@@ -78,6 +87,11 @@ export async function login(idToken: string) {
     }
 
     const userData = userDoc.data() as User;
+    
+    // Check for admin role separately for security
+    const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
+    const isAdmin = adminDoc.exists;
+
 
     cookies().set({
       name: 'session',
@@ -88,13 +102,10 @@ export async function login(idToken: string) {
       path: '/',
       maxAge: expiresIn / 1000,
     });
+    
+    // Return role for client-side to decide redirection
+    return { success: true, role: isAdmin ? 'Admin' : userData.role };
 
-    // 🔐 SERVER-DRIVEN REDIRECT (NO RACE CONDITIONS)
-    if (userData.role === 'Guide') {
-      redirect('/guide/dashboard');
-    } else {
-      redirect('/traveler/dashboard');
-    }
   } catch (error) {
     console.error('Login session error:', error);
     return { success: false, message: 'Failed to create session.' };
@@ -126,6 +137,119 @@ export async function logout() {
 
   redirect('/');
 }
+
+
+export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected') {
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        const decoded = await adminAuth.verifySessionCookie(session, true);
+
+        // Verify user is admin
+        const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
+        if (!adminDoc.exists) throw new Error('Unauthorized');
+        
+        const guideProfileRef = adminDb.collection('users').doc(guideId).collection('guideProfile').doc('guide-profile-doc');
+
+        await guideProfileRef.update({ onboardingState: status });
+
+        revalidatePath('/admin/users/guides');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
+
+export async function deleteTravelerAccount(travelerId: string) {
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        const decoded = await adminAuth.verifySessionCookie(session, true);
+        const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
+        if (!adminDoc.exists) throw new Error('Unauthorized');
+
+        // Delete user from Auth
+        await adminAuth.deleteUser(travelerId);
+        // Delete user document from Firestore
+        await adminDb.collection('users').doc(travelerId).delete();
+
+        // Optional: Delete all associated travel requests
+        const requestsQuery = adminDb.collection('travelRequests').where('travelerId', '==', travelerId);
+        const requestsSnapshot = await requestsQuery.get();
+        const batch = adminDb.batch();
+        requestsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        
+        revalidatePath('/admin/users/travelers');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
+export async function deleteGuideAccount(guideId: string) {
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        const decoded = await adminAuth.verifySessionCookie(session, true);
+        const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
+        if (!adminDoc.exists) throw new Error('Unauthorized');
+
+        await adminAuth.deleteUser(guideId);
+        
+        const guideProfileRef = adminDb.collection('users').doc(guideId).collection('guideProfile').doc('guide-profile-doc');
+        await guideProfileRef.delete().catch(() => {}); // Fails silently if no profile
+        
+        await adminDb.collection('users').doc(guideId).delete();
+
+        revalidatePath('/admin/users/guides');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
+export async function deleteTravelerProfileInfo(travelerId: string) {
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        const decoded = await adminAuth.verifySessionCookie(session, true);
+        const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
+        if (!adminDoc.exists) throw new Error('Unauthorized');
+        
+        const userRef = adminDb.collection('users').doc(travelerId);
+        await userRef.update({
+            address: admin.firestore.FieldValue.delete(),
+            contact: admin.firestore.FieldValue.delete(),
+            disability: admin.firestore.FieldValue.delete(),
+        });
+
+        revalidatePath(`/admin/users/travelers/${travelerId}`);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
+export async function deleteTravelRequest(requestId: string) {
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        const decoded = await adminAuth.verifySessionCookie(session, true);
+        const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
+        if (!adminDoc.exists) throw new Error('Unauthorized');
+        
+        await adminDb.collection('travelRequests').doc(requestId).delete();
+        
+        revalidatePath('/admin/users/travelers');
+        revalidatePath('/admin/users/guides');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
 
 /* -------------------------------------------------------------------------- */
 /* SERVER-SIDE COST CALCULATION (ANTI-TAMPER)                                  */
@@ -182,17 +306,82 @@ export async function submitTravelRequest(
     }
 
     const cost = calculateCostOnServer(request);
-
-    await requestRef.update({
+    
+    // Fetch traveler data to embed in the request
+    const travelerDoc = await adminDb.collection('users').doc(travelerId).get();
+    const travelerData = travelerDoc.data();
+    
+    let updateData: any = {
       status: guideId ? 'guide-selected' : 'pending',
       guideId: guideId ?? null,
       estimatedCost: cost,
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      travelerData: {
+          name: travelerData?.name,
+          email: travelerData?.email,
+          disability: travelerData?.disability,
+      }
+    };
+    
+    // If a guide is selected, embed their data too
+    if (guideId) {
+        const guideDoc = await adminDb.collection('users').doc(guideId).get();
+        const guideData = guideDoc.data();
+        updateData.guideData = {
+            name: guideData?.name,
+            email: guideData?.email,
+        }
+    }
 
+    await requestRef.update(updateData);
+
+    revalidatePath(`/traveler/find-guide/${requestId}`);
+    revalidatePath(`/traveler/my-bookings`);
     return { success: true };
   } catch (error: any) {
     console.error('Submit request error:', error);
     return { success: false, message: error.message };
   }
 }
+
+export async function respondToTravelRequest(
+    requestId: string,
+    response: 'confirmed' | 'declined'
+) {
+  try {
+    const session = cookies().get('session')?.value;
+    if (!session) throw new Error('Unauthenticated');
+
+    const decoded = await adminAuth.verifySessionCookie(session, true);
+    const guideId = decoded.uid;
+
+    const requestRef = adminDb.collection('travelRequests').doc(requestId);
+    const requestSnap = await requestRef.get();
+     if (!requestSnap.exists) throw new Error('Request not found');
+
+    const request = requestSnap.data() as TravelRequest;
+    if (request.guideId !== guideId) throw new Error('Permission denied');
+    
+    if (response === 'confirmed') {
+        await requestRef.update({ 
+            status: 'confirmed',
+            acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    } else { // Declined
+         await requestRef.update({ 
+            status: 'pending',
+            guideId: admin.firestore.FieldValue.delete(), // Remove the guideId
+            guideData: admin.firestore.FieldValue.delete(), // Remove the guide data
+        });
+    }
+
+    revalidatePath('/guide/dashboard');
+    revalidatePath('/traveler/my-bookings');
+    return { success: true };
+  } catch(e: any) {
+    return { success: false, message: e.message };
+  }
+}
+
+
+    
