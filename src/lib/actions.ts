@@ -26,17 +26,23 @@ const signupSchema = z.object({
   uid: z.string().min(1, { message: 'User ID is required.' }),
 });
 
-// This is now only responsible for creating the DB record and setting claims.
-// The client handles the redirect.
+// This is now only responsible for creating the DB record.
+// Auth user creation is handled on the client.
 export async function signup(prevState: any, formData: FormData) {
   'use server';
   
-  const validatedFields = signupSchema.safeParse(Object.fromEntries(formData));
+  // We only need uid, name, email, and role for the DB record.
+  const validatedFields = z.object({
+      uid: z.string().min(1),
+      name: z.string().min(2),
+      email: z.string().email(),
+      role: z.enum(['Traveler', 'Guide']),
+  }).safeParse(Object.fromEntries(formData));
   
   if (!validatedFields.success) {
     return {
       success: false,
-      message: 'Invalid form data. Please check your inputs.',
+      message: 'Invalid form data for database creation.',
     };
   }
   
@@ -45,7 +51,7 @@ export async function signup(prevState: any, formData: FormData) {
   const db = getAdminDb();
 
   try {
-    // Set the user's role as a custom claim immediately after creation
+    // Set role as a custom claim for secure server-side validation
     await adminAuth.setCustomUserClaims(uid, { role });
 
     // Create the user document in Firestore
@@ -59,9 +65,9 @@ export async function signup(prevState: any, formData: FormData) {
     return { success: true, message: 'User record created successfully.' };
     
   } catch (error) {
-    console.error('Signup process error:', error);
-    // In case of Firestore error, we should ideally delete the Auth user
-    // to allow them to try signing up again.
+    console.error('Signup DB/claims error:', error);
+    // If this part fails, the auth user still exists.
+    // Clean up the auth user to allow them to try signing up again.
     try {
       await adminAuth.deleteUser(uid);
     } catch (deleteError) {
@@ -71,6 +77,51 @@ export async function signup(prevState: any, formData: FormData) {
       success: false,
       message: 'Failed to complete signup. Please try again.',
     };
+  }
+}
+
+export async function login(idToken: string): Promise<{ success: boolean; message: string; role?: string; isAdmin?: boolean; }> {
+  'use server';
+
+  const adminAuth = getAdminAuth();
+  const db = getAdminDb();
+
+  try {
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+    const decodedIdToken = await adminAuth.verifyIdToken(idToken);
+    
+    // createSessionCookie already verifies the token, so this is redundant but safe
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    const uid = decodedIdToken.uid;
+
+    const [userDoc, adminDoc] = await Promise.all([
+      db.collection('users').doc(uid).get(),
+      db.collection('roles_admin').doc(uid).get()
+    ]);
+
+    if (!userDoc.exists) {
+      return { success: false, message: 'User data not found in database.' };
+    }
+
+    const userData = userDoc.data();
+    const isAdmin = adminDoc.exists;
+    const role = userData?.role;
+
+    cookies().set({
+      name: 'session',
+      value: sessionCookie,
+      maxAge: expiresIn / 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      sameSite: 'lax',
+    });
+
+    return { success: true, message: 'Login successful', role, isAdmin };
+
+  } catch (error) {
+    console.error('Session Login Server Action Error:', error);
+    return { success: false, message: 'Failed to create session on server.' };
   }
 }
 
@@ -518,3 +569,4 @@ export async function deleteGuideAccount(guideId: string): Promise<{ success: bo
     return { success: false, message: 'An unexpected error occurred during account deletion.' };
   }
 }
+

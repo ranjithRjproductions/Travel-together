@@ -23,6 +23,7 @@ import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import content from '@/app/content/login.json';
 import Link from 'next/link';
+import { login } from '@/lib/actions';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
@@ -137,32 +138,29 @@ export function LoginForm() {
       const user = userCredential.user;
       
       if (!user.emailVerified) {
+          // If email is not verified, sign out the user to prevent inconsistent states
+          await signOut(auth);
           setShowVerifyEmail(true);
           setIsSubmitting(false);
           return;
       }
 
       const idToken = await user.getIdToken();
+      const result = await login(idToken);
 
-      const res = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (res.ok) {
-        const { role } = await res.json();
-        
-        // This is the corrected logic. It no longer checks for `isAdmin`.
-        if (role === 'Guide') {
-          router.push('/guide/dashboard');
+      if (result.success) {
+        // The server action now handles the redirect, but we can refresh the page
+        // to ensure the client state is updated, or trust the server redirect.
+        // For a smoother experience, we can manually redirect based on the role.
+        if (result.role === 'Guide') {
+            router.push('/guide/dashboard');
+        } else if (result.role === 'Admin') {
+            router.push('/admin');
         } else {
-          router.push('/traveler/dashboard');
+            router.push('/traveler/dashboard');
         }
       } else {
-        throw new Error('Failed to create session.');
+        throw new Error(result.message || 'Failed to create session.');
       }
     } catch (err: any) {
       console.error('Login Error:', err);
@@ -173,7 +171,7 @@ export function LoginForm() {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password.');
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        setError(err.message || 'An unexpected error occurred. Please try again.');
       }
       setIsSubmitting(false);
     }
@@ -223,14 +221,14 @@ export function LoginForm() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">{content.passwordLabel}</Label>
-               {/* <Button
+               <Button
                 type="button"
                 variant="link"
                 className="p-0 h-auto text-sm"
                 onClick={() => router.push('/forgot-password')}
               >
                 Forgot password?
-              </Button> */}
+              </Button>
             </div>
             <Input
               id="password"
