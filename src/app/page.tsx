@@ -15,6 +15,7 @@ import { redirect } from 'next/navigation';
 export default async function Home() {
   const user = await getUser();
 
+  // If a user session is found, redirect them to their correct dashboard.
   if (user) {
     if (user.isAdmin) {
       redirect('/admin');
@@ -27,6 +28,7 @@ export default async function Home() {
     }
   }
 
+  // If no user session, render the public home page.
   const heroImage = PlaceHolderImages.find((img) => img.id === 'landing-hero');
   const featureIcons = [
     <Accessibility key="a11y" aria-hidden="true" />,
