@@ -29,6 +29,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+function DashboardSkeleton() {
+  return (
+    <div className="grid gap-6 md:gap-8">
+      <Skeleton className="h-10 w-64" />
+      <div className="grid gap-6 md:grid-cols-2">
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-48 w-full" />
+      </div>
+    </div>
+  );
+}
+
 export default function TravelerDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -58,7 +70,6 @@ export default function TravelerDashboard() {
     if (!profile.address.isDefault) {
         return { complete: false, reason: 'Please make sure at least one address is set as your primary/default address.' };
     }
-    // Check that disability has been at least visited/answered. The 'disability' property will exist even if they chose not to disclose.
     if (!profile.hasOwnProperty('disability')) {
         return { complete: false, reason: 'Please complete the disability disclosure section.' };
     }
@@ -76,28 +87,26 @@ export default function TravelerDashboard() {
     }
   };
 
-  // Wait for auth to resolve first
-  if (isUserLoading) {
-    return (
-      <div className="grid gap-6 md:gap-8">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid gap-6 md:grid-cols-2">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
-      </div>
-    );
+  const isLoading = isUserLoading || isProfileLoading;
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
   }
 
   // Redirect unauthenticated users
   if (!user) {
     router.replace('/login');
-    return null;
+    return <DashboardSkeleton />; // Render skeleton while redirecting
+  }
+  
+  // This can happen briefly between auth load and profile load
+  if (!userProfile) {
+    return <DashboardSkeleton />;
   }
 
   return (
     <>
-    <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Complete Your Profile</AlertDialogTitle>
@@ -118,11 +127,7 @@ export default function TravelerDashboard() {
 
       <div className="grid gap-6 md:gap-8">
         <h1 className="font-headline text-3xl font-bold">
-          {isProfileLoading ? (
-            <Skeleton className="h-10 w-64" />
-          ) : (
-            <span>Welcome back, {userProfile?.name?.split(' ')[0]}!</span>
-          )}
+          <span>Welcome back, {userProfile.name?.split(' ')[0]}!</span>
         </h1>
 
         <div className="grid gap-6 md:grid-cols-2">
