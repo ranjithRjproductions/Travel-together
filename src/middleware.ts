@@ -9,25 +9,25 @@ export async function middleware(request: NextRequest) {
 
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
   const isPublicRoute = pathname === '/';
+  const isProtectedRoute = !isAuthRoute && !isPublicRoute;
 
-  // If user has a session cookie
+  // Case 1: User has a session cookie
   if (sessionCookie) {
-    // If they are on an auth route or the homepage, we can't know their role here,
-    // so we'll let the page-level layouts handle the redirect to the correct dashboard.
-    // However, for simplicity and to prevent flashes of content, we can redirect to a default dashboard
-    // and let the layout correct it if needed.
-    if (isAuthRoute || isPublicRoute) {
+    // If they are on an auth route (e.g., /login), redirect them away to a default dashboard.
+    // The page-level layouts will then handle role-specific redirects if necessary (e.g., to /admin or /guide).
+    if (isAuthRoute) {
       return NextResponse.redirect(new URL('/traveler/dashboard', request.url));
     }
   } 
-  // If user does NOT have a session cookie
+  // Case 2: User does NOT have a session cookie
   else {
-    // If they try to access any protected route, redirect to login
-    if (!isAuthRoute && !isPublicRoute) {
+    // If they try to access any protected route, redirect them to the login page.
+    if (isProtectedRoute) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
+  // If none of the above conditions are met, allow the request to proceed.
   return NextResponse.next();
 }
 
