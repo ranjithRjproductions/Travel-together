@@ -2,7 +2,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
-// Disabling caching for this route.
+// Force Node.js runtime to ensure Firebase Admin SDK compatibility.
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
@@ -19,10 +20,12 @@ export async function POST(request: NextRequest) {
     const adminAuth = getAdminAuth();
     const db = getAdminDb();
     
-    // Verify the ID token and get the user's UID.
-    const decodedIdToken = await adminAuth.verifyIdToken(idToken);
-    const uid = decodedIdToken.uid;
+    // createSessionCookie already verifies the token.
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
 
+    const decodedIdToken = await adminAuth.verifySessionCookie(sessionCookie);
+    const uid = decodedIdToken.uid;
+    
     // Check for admin privileges and get user role in parallel
     const [userDoc, adminDoc] = await Promise.all([
         db.collection('users').doc(uid).get(),
@@ -37,20 +40,19 @@ export async function POST(request: NextRequest) {
     const isAdmin = adminDoc.exists;
     const role = userData?.role;
 
-    // The session cookie will be exchanged for an ID token and refreshed automatically.
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    const response = NextResponse.json({ status: 'success', role, isAdmin }, { status: 200 });
 
-    const options = {
+    // Set the session cookie on the response.
+    // secure: true should only be used in production (HTTPS).
+    response.cookies.set({
       name: 'session',
       value: sessionCookie,
-      maxAge: expiresIn,
+      maxAge: expiresIn / 1000, // maxAge is in seconds
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
-    };
-
-    const response = NextResponse.json({ status: 'success', role, isAdmin }, { status: 200 });
-    response.cookies.set(options);
+      sameSite: 'lax',
+    });
     
     return response;
 
