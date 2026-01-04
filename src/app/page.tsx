@@ -12,10 +12,6 @@ import content from './content/home.json';
 import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
-// This is the critical change to ensure the page is never cached
-// and the session check runs on every visit.
-export const dynamic = 'force-dynamic';
-
 export default async function Home() {
   const user = await getUser();
 
