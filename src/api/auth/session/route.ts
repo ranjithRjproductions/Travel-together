@@ -1,6 +1,7 @@
 
+
 import { type NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
 // 🔴 REQUIRED: firebase-admin needs Node.js runtime
 export const runtime = 'nodejs';
@@ -19,9 +20,6 @@ export async function POST(request: NextRequest) {
     // Set session expiration to 5 days.
     const expiresIn = 60 * 60 * 24 * 5 * 1000;
     
-    const adminAuth = getAdminAuth();
-    const db = getAdminDb();
-    
     // createSessionCookie already verifies the token.
     const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
 
@@ -30,8 +28,8 @@ export async function POST(request: NextRequest) {
     
     // Check for admin privileges and get user role in parallel
     const [userDoc, adminDoc] = await Promise.all([
-        db.collection('users').doc(uid).get(),
-        db.collection('roles_admin').doc(uid).get()
+        adminDb.collection('users').doc(uid).get(),
+        adminDb.collection('roles_admin').doc(uid).get()
     ]);
 
     if (!userDoc.exists) {

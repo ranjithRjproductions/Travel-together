@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import type { User, TravelRequest } from './definitions';
 import admin from 'firebase-admin';
-import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { differenceInMinutes, parseISO } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 
@@ -47,15 +47,13 @@ export async function signup(prevState: any, formData: FormData) {
   }
   
   const { uid, name, email, role } = validatedFields.data;
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
 
   try {
     // Set role as a custom claim for secure server-side validation
     await adminAuth.setCustomUserClaims(uid, { role });
 
     // Create the user document in Firestore
-    await db.collection('users').doc(uid).set({
+    await adminDb.collection('users').doc(uid).set({
       id: uid,
       name,
       email,
@@ -83,9 +81,6 @@ export async function signup(prevState: any, formData: FormData) {
 export async function login(idToken: string): Promise<{ success: boolean; message: string; role?: string; isAdmin?: boolean; }> {
   'use server';
 
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
-
   try {
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
     const decodedIdToken = await adminAuth.verifyIdToken(idToken);
@@ -95,8 +90,8 @@ export async function login(idToken: string): Promise<{ success: boolean; messag
     const uid = decodedIdToken.uid;
 
     const [userDoc, adminDoc] = await Promise.all([
-      db.collection('users').doc(uid).get(),
-      db.collection('roles_admin').doc(uid).get()
+      adminDb.collection('users').doc(uid).get(),
+      adminDb.collection('roles_admin').doc(uid).get()
     ]);
 
     if (!userDoc.exists) {
@@ -143,8 +138,6 @@ export async function logout() {
     path: '/',
   });
   
-  const adminAuth = getAdminAuth();
-
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(
       sessionCookieValue,
@@ -214,8 +207,6 @@ const calculateCostOnServer = (request: TravelRequest): number => {
 
 
 export async function submitTravelRequest(requestId: string, guideId?: string): Promise<{ success: boolean, message: string }> {
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
   try {
     const sessionCookie = cookies().get('session')?.value;
     if (!sessionCookie) {
@@ -225,8 +216,8 @@ export async function submitTravelRequest(requestId: string, guideId?: string): 
     const travelerId = decodedToken.uid;
 
     // Get both the request and the user's profile data
-    const requestDocRef = db.collection('travelRequests').doc(requestId);
-    const userDocRef = db.collection('users').doc(travelerId);
+    const requestDocRef = adminDb.collection('travelRequests').doc(requestId);
+    const userDocRef = adminDb.collection('users').doc(travelerId);
 
     const [requestDoc, userDoc] = await Promise.all([requestDocRef.get(), userDocRef.get()]);
 
@@ -278,8 +269,6 @@ export async function submitTravelRequest(requestId: string, guideId?: string): 
 export async function respondToTravelRequest(requestId: string, response: 'confirmed' | 'declined'): Promise<{ success: boolean, message: string }> {
   'use server';
 
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) {
       return { success: false, message: 'Authentication required.' };
@@ -289,7 +278,7 @@ export async function respondToTravelRequest(requestId: string, response: 'confi
       const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
       const guideId = decodedClaims.uid;
       
-      const requestDocRef = db.collection('travelRequests').doc(requestId);
+      const requestDocRef = adminDb.collection('travelRequests').doc(requestId);
       const requestDoc = await requestDocRef.get();
 
       if (!requestDoc.exists) {
@@ -303,7 +292,7 @@ export async function respondToTravelRequest(requestId: string, response: 'confi
       }
 
       if (response === 'confirmed') {
-          const guideDoc = await db.collection('users').doc(guideId).get();
+          const guideDoc = await adminDb.collection('users').doc(guideId).get();
           if (!guideDoc.exists) {
             throw new Error("Could not find the guide's profile to confirm the request.");
           }
@@ -342,9 +331,6 @@ export async function respondToTravelRequest(requestId: string, response: 'confi
 export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected'): Promise<{ success: boolean; message: string }> {
   'use server';
   
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
-
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) {
@@ -353,13 +339,13 @@ export async function updateGuideStatus(guideId: string, status: 'active' | 'rej
 
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
     if (!adminDoc.exists) {
       return { success: false, message: 'Permission denied. Not an admin.' };
     }
 
     // 2. Update the guide's profile
-    const guideProfileRef = db.collection('users').doc(guideId).collection('guideProfile').doc('guide-profile-doc');
+    const guideProfileRef = adminDb.collection('users').doc(guideId).collection('guideProfile').doc('guide-profile-doc');
     
     await guideProfileRef.update({
       onboardingState: status,
@@ -378,9 +364,6 @@ export async function updateGuideStatus(guideId: string, status: 'active' | 'rej
 export async function deleteTravelerAccount(travelerId: string): Promise<{ success: boolean; message: string }> {
   'use server';
 
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
-
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) {
@@ -389,7 +372,7 @@ export async function deleteTravelerAccount(travelerId: string): Promise<{ succe
 
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
     if (!adminDoc.exists) {
       return { success: false, message: 'Permission denied. Not an admin.' };
     }
@@ -398,12 +381,12 @@ export async function deleteTravelerAccount(travelerId: string): Promise<{ succe
     await adminAuth.deleteUser(travelerId);
 
     // 3. Delete user document from Firestore
-    await db.collection('users').doc(travelerId).delete();
+    await adminDb.collection('users').doc(travelerId).delete();
 
     // 4. (Optional but recommended) Delete associated data like travel requests
-    const requestsQuery = db.collection('travelRequests').where('travelerId', '==', travelerId);
+    const requestsQuery = adminDb.collection('travelRequests').where('travelerId', '==', travelerId);
     const requestsSnapshot = await requestsQuery.get();
-    const batch = db.batch();
+    const batch = adminDb.batch();
     requestsSnapshot.docs.forEach(doc => {
         batch.delete(doc.ref);
     });
@@ -418,7 +401,7 @@ export async function deleteTravelerAccount(travelerId: string): Promise<{ succe
     if (error.code === 'auth/user-not-found') {
         // If auth user is already gone, try to delete Firestore data anyway
         try {
-            await db.collection('users').doc(travelerId).delete();
+            await adminDb.collection('users').doc(travelerId).delete();
             revalidatePath('/admin/users/travelers');
             return { success: true, message: 'User already deleted from Auth, Firestore record cleaned up.' };
         } catch (dbError: any) {
@@ -432,9 +415,6 @@ export async function deleteTravelerAccount(travelerId: string): Promise<{ succe
 export async function deleteTravelerProfileInfo(travelerId: string): Promise<{ success: boolean; message: string }> {
   'use server';
 
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
-
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) {
@@ -443,13 +423,13 @@ export async function deleteTravelerProfileInfo(travelerId: string): Promise<{ s
 
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
     if (!adminDoc.exists) {
       return { success: false, message: 'Permission denied. Not an admin.' };
     }
 
     // 2. Delete the specific fields from the user's document
-    const userDocRef = db.collection('users').doc(travelerId);
+    const userDocRef = adminDb.collection('users').doc(travelerId);
     await userDocRef.update({
       address: admin.firestore.FieldValue.delete(),
       contact: admin.firestore.FieldValue.delete(),
@@ -470,9 +450,6 @@ export async function deleteTravelerProfileInfo(travelerId: string): Promise<{ s
 export async function deleteTravelRequest(requestId: string): Promise<{ success: boolean; message: string }> {
   'use server';
 
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
-
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) {
@@ -482,7 +459,7 @@ export async function deleteTravelRequest(requestId: string): Promise<{ success:
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
     
-    const requestDocRef = db.collection('travelRequests').doc(requestId);
+    const requestDocRef = adminDb.collection('travelRequests').doc(requestId);
     const requestDoc = await requestDocRef.get();
     
     if (!requestDoc.exists) {
@@ -492,7 +469,7 @@ export async function deleteTravelRequest(requestId: string): Promise<{ success:
     const requestData = requestDoc.data();
     const isOwner = requestData?.travelerId === decodedClaims.uid;
     
-    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
     const isAdmin = adminDoc.exists;
 
     if (!isOwner && !isAdmin) {
@@ -520,9 +497,6 @@ export async function deleteTravelRequest(requestId: string): Promise<{ success:
 export async function deleteGuideAccount(guideId: string): Promise<{ success: boolean; message: string }> {
   'use server';
 
-  const adminAuth = getAdminAuth();
-  const db = getAdminDb();
-
   // 1. Verify admin privileges
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) {
@@ -531,7 +505,7 @@ export async function deleteGuideAccount(guideId: string): Promise<{ success: bo
 
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
     if (!adminDoc.exists) {
       return { success: false, message: 'Permission denied. Not an admin.' };
     }
@@ -540,16 +514,16 @@ export async function deleteGuideAccount(guideId: string): Promise<{ success: bo
     await adminAuth.deleteUser(guideId);
 
     // 3. Delete guide's subcollection documents (recursively not supported on client/admin SDK, must be done manually or with cloud function)
-    const guideProfileCollectionRef = db.collection('users').doc(guideId).collection('guideProfile');
+    const guideProfileCollectionRef = adminDb.collection('users').doc(guideId).collection('guideProfile');
     const guideProfileSnapshot = await guideProfileCollectionRef.get();
-    const batch = db.batch();
+    const batch = adminDb.batch();
     guideProfileSnapshot.docs.forEach(doc => {
         batch.delete(doc.ref);
     });
     await batch.commit();
 
     // 4. Delete user document from Firestore
-    await db.collection('users').doc(guideId).delete();
+    await adminDb.collection('users').doc(guideId).delete();
 
     // 5. Revalidate the path to refresh the data on the admin page
     revalidatePath('/admin/users/guides');
@@ -559,7 +533,7 @@ export async function deleteGuideAccount(guideId: string): Promise<{ success: bo
     console.error('Error deleting guide account:', error);
     if (error.code === 'auth/user-not-found') {
         try {
-            await db.collection('users').doc(guideId).delete();
+            await adminDb.collection('users').doc(guideId).delete();
             revalidatePath('/admin/users/guides');
             return { success: true, message: 'User already deleted from Auth, Firestore record cleaned up.' };
         } catch (dbError: any) {
@@ -569,4 +543,3 @@ export async function deleteGuideAccount(guideId: string): Promise<{ success: bo
     return { success: false, message: 'An unexpected error occurred during account deletion.' };
   }
 }
-

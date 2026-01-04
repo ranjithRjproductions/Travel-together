@@ -1,16 +1,13 @@
 
 import { cookies } from 'next/headers';
 import type { User } from '@/lib/definitions';
-import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
 export async function getUser(): Promise<User | null> {
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) return null;
 
   try {
-    const adminAuth = getAdminAuth();
-    const db = getAdminDb();
-
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
     
     const role = decodedClaims.role as 'Traveler' | 'Guide' | undefined;
@@ -22,7 +19,7 @@ export async function getUser(): Promise<User | null> {
         return null;
     }
 
-    const userDoc = await db.collection('users').doc(decodedClaims.uid).get();
+    const userDoc = await adminDb.collection('users').doc(decodedClaims.uid).get();
     if (!userDoc.exists) {
         // If the user document doesn't exist, the claims in the cookie are stale.
         console.warn(`User document not found for UID: ${decodedClaims.uid}`);
@@ -32,7 +29,7 @@ export async function getUser(): Promise<User | null> {
     const userData = userDoc.data();
     
     // Server-side check for admin privileges, ignoring any client-sent claims
-    const adminDoc = await db.collection('roles_admin').doc(decodedClaims.uid).get();
+    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
     const isAdmin = adminDoc.exists;
     
     // Ensure the role in the database matches the role in the session cookie.

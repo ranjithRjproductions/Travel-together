@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 import admin from 'firebase-admin';
 
@@ -10,8 +10,6 @@ export async function POST(req: NextRequest) {
     console.error('Webhook Error: RAZORPAY_WEBHOOK_SECRET is not defined.');
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
-
-  const db = getAdminDb();
 
   try {
     const text = await req.text();
@@ -46,7 +44,7 @@ export async function POST(req: NextRequest) {
       const tripPin = Math.floor(1000 + Math.random() * 9000).toString();
 
       // Securely update the document status and add the PIN on the server
-      const requestDocRef = db.collection('travelRequests').doc(requestId);
+      const requestDocRef = adminDb.collection('travelRequests').doc(requestId);
       await requestDocRef.update({ 
           status: 'paid',
           paidAt: admin.firestore.FieldValue.serverTimestamp(), // Add paid timestamp
