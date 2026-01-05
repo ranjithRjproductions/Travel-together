@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, KeyRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -192,7 +192,6 @@ export default function MyBookingsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [previousInProgress, setPreviousInProgress] = useState<TravelRequest[]>([]);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -219,22 +218,6 @@ export default function MyBookingsPage() {
   }, [user, firestore]);
 
   const { data: upcomingRequests, isLoading: upcomingLoading } = useCollection<TravelRequest>(upcomingRequestsQuery);
-
-  useEffect(() => {
-    if (inProgressLoading || !inProgressRequests) return;
-
-    // Check if a request that was 'guide-selected' is now 'pending'
-    const declinedRequest = previousInProgress.find(prev => 
-      prev.status === 'guide-selected' &&
-      inProgressRequests.some(current => current.id === prev.id && current.status === 'pending')
-    );
-
-    if (declinedRequest) {
-      router.push(`/traveler/find-guide/${declinedRequest.id}`);
-    }
-
-    setPreviousInProgress(inProgressRequests);
-  }, [inProgressRequests, inProgressLoading, previousInProgress, router]);
 
   const handleDeleteClick = (requestId: string) => {
     setRequestToDelete(requestId);
