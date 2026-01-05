@@ -23,7 +23,6 @@ import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import content from '@/app/content/login.json';
 import Link from 'next/link';
-import { loginAction } from '@/lib/actions';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
@@ -138,29 +137,48 @@ export function LoginForm() {
       const user = userCredential.user;
       
       if (!user.emailVerified) {
-          // If email is not verified, sign out the user to prevent inconsistent states
           await signOut(auth);
           setShowVerifyEmail(true);
+          setIsSubmitting(false);
           return;
       }
 
       const idToken = await user.getIdToken();
       
-      // The server action handles the redirect. We just await its completion.
-      // If it fails, it will throw an error caught by the block below.
-      // The `finally` block will run regardless of success or failure.
-      await loginAction(idToken);
-      
-    } catch (err: any) {
-      // Don't set state for NEXT_REDIRECT errors, as they are not user-facing errors.
-      if ((err as Error).message.includes('NEXT_REDIRECT')) {
-        // The redirect is being handled, so we don't need to do anything else.
-        // The `finally` block will still execute.
-        return;
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(async () => {
+            // If .json() fails, it means the response is not JSON (likely HTML)
+            const textResponse = await response.text();
+            console.error("Non-JSON response from /api/auth/session:", textResponse);
+            throw new Error(`Server returned an unexpected response. Status: ${response.status}`);
+        });
+        throw new Error(errorBody.error || 'Failed to create session.');
       }
       
+      const data = await response.json();
+      
+      if (data.success) {
+        let redirectUrl = '/traveler/dashboard';
+        if(data.isAdmin) {
+          redirectUrl = '/admin'
+        } else if (data.role === 'Guide') {
+            redirectUrl = '/guide/dashboard';
+        }
+        router.push(redirectUrl);
+      } else {
+        throw new Error(data.error || 'Login failed.');
+      }
+
+    } catch (err: any) {
       console.error('Login Error:', err);
-      // Clean up any temporary auth state if login fails for other reasons
       if (auth.currentUser) {
         await signOut(auth);
       }
@@ -169,14 +187,11 @@ export function LoginForm() {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         errorMessage = 'Invalid email or password.';
       } else if (err.message) {
-        // Use the message from the thrown error in the server action
         errorMessage = err.message;
       }
       
       setError(errorMessage);
     } finally {
-        // This ensures that the submitting state is only cleared after the
-        // server action has completed (or failed).
         setIsSubmitting(false);
     }
   };

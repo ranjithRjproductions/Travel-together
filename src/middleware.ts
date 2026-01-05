@@ -4,6 +4,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Explicitly bypass all API routes to prevent interference.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   // Check for the session cookie.
   const session = req.cookies.get('session')?.value;
   const isAuth = !!session;
@@ -35,6 +40,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // This matcher ensures the middleware runs on all routes except for static assets and API routes.
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logo.png|manifest.json).*)'],
+  // This matcher ensures the middleware runs on all routes except for static assets.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|logo.png|manifest.json).*)'],
 };

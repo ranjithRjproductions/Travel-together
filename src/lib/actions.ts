@@ -29,7 +29,8 @@ export async function signup(_: any, formData: FormData) {
   const { uid, name, email, role } = parsed.data;
 
   try {
-    // Create Firestore user record
+    // This server action is still problematic and should be moved to an API route.
+    // For now, we are focusing on the login flow.
     const userPayload: any = {
       id: uid,
       name,
@@ -38,18 +39,15 @@ export async function signup(_: any, formData: FormData) {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Special handling for the admin user, still storing role in DB
     if (email === 'admin@gmail.com') {
       await adminDb.collection('roles_admin').doc(uid).set({ isAdmin: true });
     }
 
-    // Create user document in Firestore, this is the source of truth for role
     await adminDb.collection('users').doc(uid).set(userPayload);
 
     return { success: true };
   } catch (error) {
     console.error('Signup error:', error);
-    // Cleanup auth user if DB write fails
     try {
       await adminAuth.deleteUser(uid);
     } catch (cleanupError) {
@@ -64,53 +62,6 @@ export async function signup(_: any, formData: FormData) {
 
 
 /* -------------------------------------------------------------------------- */
-/* LOGIN – SESSION CREATION & ROLE-BASED REDIRECT FROM FIRESTORE              */
-/* -------------------------------------------------------------------------- */
-export async function loginAction(idToken: string) {
-  let redirectUrl = '';
-  try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    const { uid } = decodedToken;
-
-    // Read role from Firestore
-    const userDoc = await adminDb.collection('users').doc(uid).get();
-    if (!userDoc.exists) {
-      throw new Error('User document not found in Firestore.');
-    }
-    const userData = userDoc.data() as User;
-    const role = userData.role;
-
-    // Create session cookie
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
-
-    cookies().set('session', sessionCookie, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: expiresIn,
-      path: '/',
-    });
-    
-    // Determine redirect URL
-    if (role === 'Admin') {
-      redirectUrl = '/admin';
-    } else if (role === 'Guide') {
-      redirectUrl = '/guide/dashboard';
-    } else {
-      redirectUrl = '/traveler/dashboard';
-    }
-
-  } catch (error: any) {
-    console.error("Login action failed:", error.message);
-    // Let client handle displaying the error
-    throw new Error(error.message || 'Failed to create session.');
-  }
-  
-  // Perform the redirect outside the try...catch block
-  redirect(redirectUrl);
-}
-
-/* -------------------------------------------------------------------------- */
 /* LOGOUT                                                                     */
 /* -------------------------------------------------------------------------- */
 export async function logoutAction() {
@@ -118,11 +69,9 @@ export async function logoutAction() {
   const sessionCookie = cookieStore.get('session') || cookieStore.get('__session');
 
   if (sessionCookie) {
-    // Expire the cookie by setting maxAge to 0
     cookieStore.set(sessionCookie.name, '', { maxAge: 0, path: '/' });
   }
 
-  // After clearing the cookie, redirect to the login page.
   redirect('/login?message=You have been logged out.');
 }
 
@@ -136,7 +85,6 @@ export async function updateGuideStatus(guideId: string, status: 'active' | 'rej
         if (!session) throw new Error('Unauthenticated');
         const decoded = await adminAuth.verifySessionCookie(session, true);
 
-        // Verify user is admin
         const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
         if (!adminDoc.exists) throw new Error('Unauthorized');
         
@@ -160,12 +108,9 @@ export async function deleteTravelerAccount(travelerId: string) {
         const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
         if (!adminDoc.exists) throw new Error('Unauthorized');
 
-        // Delete user from Auth
         await adminAuth.deleteUser(travelerId);
-        // Delete user document from Firestore
         await adminDb.collection('users').doc(travelerId).delete();
 
-        // Optional: Delete all associated travel requests
         const requestsQuery = adminDb.collection('travelRequests').where('travelerId', '==', travelerId);
         const requestsSnapshot = await requestsQuery.get();
         const batch = adminDb.batch();
@@ -190,7 +135,7 @@ export async function deleteGuideAccount(guideId: string) {
         await adminAuth.deleteUser(guideId);
         
         const guideProfileRef = adminDb.collection('users').doc(guideId).collection('guideProfile').doc('guide-profile-doc');
-        await guideProfileRef.delete().catch(() => {}); // Fails silently if no profile
+        await guideProfileRef.delete().catch(() => {});
         
         await adminDb.collection('users').doc(guideId).delete();
 
