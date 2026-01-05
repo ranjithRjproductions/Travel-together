@@ -1,7 +1,7 @@
 
 import AppLayout from '@/components/app-layout';
 import { getUser } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 export default async function TravelerLayout({
   children,
@@ -17,9 +17,16 @@ export default async function TravelerLayout({
   } 
   
   // This is the strict validation. If the user's role is not 'Traveler',
-  // this layout will render a 404 Not Found page. It does not redirect.
+  // redirect them to their correct dashboard.
   if (user.role !== 'Traveler') {
-    notFound();
+    if (user.role === 'Guide') {
+      redirect('/guide/dashboard');
+    } else if (user.isAdmin) {
+      redirect('/admin');
+    } else {
+      // Fallback for unknown roles
+      redirect('/login');
+    }
   }
 
   // If the role is correct, render the layout with the user's data.

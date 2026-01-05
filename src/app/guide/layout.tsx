@@ -1,7 +1,7 @@
 
 import AppLayout from '@/components/app-layout';
 import { getUser } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 export default async function GuideLayout({
   children,
@@ -15,10 +15,17 @@ export default async function GuideLayout({
     redirect('/login');
   } 
   
-  // Strict validation: if the user is not a Guide, render a 404 page.
-  // This prevents rendering of the wrong dashboard and stops redirect loops.
+  // Strict validation: if the user is not a Guide, redirect them
+  // to their correct dashboard.
   if (user.role !== 'Guide') {
-    notFound();
+     if (user.role === 'Traveler') {
+      redirect('/traveler/dashboard');
+    } else if (user.isAdmin) {
+      redirect('/admin');
+    } else {
+      // Fallback for unknown roles
+      redirect('/login');
+    }
   }
 
   // If the role is correct, render the layout.

@@ -1,7 +1,7 @@
 
 import AppLayout from '@/components/app-layout';
 import { getUser } from '@/lib/auth';
-import { redirect, notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 export default async function AdminLayout({
   children,
@@ -15,10 +15,17 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
-  // Strict validation: if the user is not an admin, render a 404 page.
-  // This is the secure way to protect this route.
+  // Strict validation: if the user is not an admin, redirect them
+  // to their correct dashboard.
   if (!user.isAdmin) {
-    notFound();
+    if (user.role === 'Traveler') {
+      redirect('/traveler/dashboard');
+    } else if (user.role === 'Guide') {
+      redirect('/guide/dashboard');
+    } else {
+      // Fallback for unknown roles
+      redirect('/login');
+    }
   }
 
   // If the user is an admin, render the admin-specific layout.
