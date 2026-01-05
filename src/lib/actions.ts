@@ -111,30 +111,28 @@ export async function login(idToken: string) {
 /* LOGOUT                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export async function logout() {
-  const sessionCookie = cookies().get('session')?.value;
+export async function logoutAction() {
+  const cookieStore = cookies();
+  const sessionCookie = cookieStore.get('session');
   
-  // 1. Clear the session cookie
-  cookies().set({
+  // Invalidate the session on Firebase. This is the authoritative step.
+  if (sessionCookie) {
+      try {
+        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie.value, true);
+        await adminAuth.revokeRefreshTokens(decodedClaims.sub);
+      } catch (error) {
+        // Session cookie is invalid or expired.
+        // This is an expected error and can be ignored.
+      }
+  }
+
+  // Clear the session cookie from the browser
+  cookieStore.set({
     name: 'session',
     value: '',
     maxAge: 0,
     path: '/',
   });
-
-  // 2. Invalidate the session on Firebase
-  if (sessionCookie) {
-    try {
-      const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-      await adminAuth.revokeRefreshTokens(decodedClaims.sub);
-    } catch (error) {
-      // The session cookie is invalid or expired.
-      // This is an expected error and can be ignored.
-    }
-  }
-
-  // 3. Redirect to the homepage
-  redirect('/');
 }
 
 

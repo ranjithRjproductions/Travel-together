@@ -12,23 +12,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { logout } from '@/lib/actions';
+import { logoutAction } from '@/lib/actions';
 import { User, LogOut, BookMarked, Shield, FileText, Settings } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
 import { useState } from 'react';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 function LogoutButton() {
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    // First, clear the server-side session cookie.
+    await logoutAction();
+    // Then, sign out the client-side Firebase instance.
+    await signOut(auth);
+    // Finally, perform a hard navigation to the homepage.
+    router.replace('/');
+  };
+
   return (
-    <form action={logout} className="w-full">
-      <button type="submit" className="w-full text-left">
-        <DropdownMenuItem className="cursor-pointer">
-          <LogOut aria-hidden="true" />
-          <span>Log out</span>
-        </DropdownMenuItem>
-      </button>
-    </form>
+    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+      <LogOut aria-hidden="true" />
+      <span>Log out</span>
+    </DropdownMenuItem>
   );
 }
 
