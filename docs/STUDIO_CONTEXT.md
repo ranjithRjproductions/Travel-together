@@ -63,7 +63,7 @@ The application follows the Next.js App Router paradigm.
     *   `actions.ts`: Server Actions for auth, admin functions, and travel request submissions.
     *   `auth.ts`: Server-side `getUser()` helper to verify session cookies and retrieve user data, including `isAdmin` status.
     *   `definitions.ts`: Central TypeScript type definitions (`User`, `TravelRequest`).
-    *   `firebase-admin.ts`: Server-side Firebase Admin SDK initialization, with hardcoded service account credentials to ensure reliability.
+    *   `firebase-admin.ts`: Server-side Firebase Admin SDK initialization.
     *   `schemas/travel-request.ts`: Zod schemas for validating the multi-step travel request form.
 *   `src/firebase`: Client-side Firebase setup, including the core provider (`provider.tsx`), hooks (`use-doc`, `use-collection`, `useUser`), and error handling.
 *   `src/middleware.ts`: Lightweight middleware that only handles redirects for logged-in/logged-out states.
