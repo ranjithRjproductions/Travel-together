@@ -1,36 +1,35 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
-import { getUser } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const user = await getUser();
 
-  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
+  const sessionCookie =
+    request.cookies.get('__session') ||
+    request.cookies.get('session');
+
+  const isLoggedIn = Boolean(sessionCookie);
+
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/forgot-password');
+
   const isPublicRoute = pathname === '/';
 
-  // If user is logged in
-  if (user) {
-    // If they are on an auth route or the homepage, redirect them to their appropriate dashboard
-    if (isAuthRoute || isPublicRoute) {
-      let redirectUrl = '/traveler/dashboard'; // Default
-      if (user.isAdmin) {
-        redirectUrl = '/admin';
-      } else if (user.role === 'Guide') {
-        redirectUrl = '/guide/dashboard';
-      }
-      return NextResponse.redirect(new URL(redirectUrl, request.url));
-    }
-  } 
-  // If user is NOT logged in
-  else {
-    // If they try to access a protected route, redirect to login
-    const isProtectedRoute = !isAuthRoute && !isPublicRoute;
-    if (isProtectedRoute) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
+  // If user is logged in, redirect them away from public/auth pages to their dashboard.
+  // The `getUser` function on the server will handle the role-specific redirect from there.
+  if (isLoggedIn && (isAuthRoute || isPublicRoute)) {
+    // Redirect to a neutral path that protected layouts will resolve.
+    // Let's use /traveler/dashboard as the default and let the layouts handle final role-based redirects.
+    // This avoids needing a generic /dashboard page.
+    return NextResponse.redirect(new URL('/traveler/dashboard', request.url));
+  }
+
+  // Not logged-in users cannot access protected routes.
+  if (!isLoggedIn && !isAuthRoute && !isPublicRoute) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();
