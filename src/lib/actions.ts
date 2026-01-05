@@ -72,10 +72,17 @@ export async function signup(_: any, formData: FormData) {
 /* -------------------------------------------------------------------------- */
 
 export async function login(idToken: string) {
+  let redirectUrl = '/traveler/dashboard'; // Default redirect
   try {
     const expiresIn = 5 * 24 * 60 * 60 * 1000; // 5 days
 
     const decoded = await adminAuth.verifyIdToken(idToken, true);
+    
+    if (decoded.role === 'Guide') {
+      redirectUrl = '/guide/dashboard';
+    } else if (decoded.role === 'Admin') {
+       redirectUrl = '/admin';
+    }
 
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn,
@@ -90,14 +97,15 @@ export async function login(idToken: string) {
       path: '/',
       maxAge: expiresIn / 1000,
     });
-    
-    // This action now completes without redirecting.
-    // The client-side form will handle the redirect after this promise resolves.
+
   } catch (error: any) {
     console.error('Login session error:', error);
     // Re-throw the error to be caught by the client form
     throw new Error(error.message || 'Failed to create session.');
   }
+  
+  // This redirect now happens outside the try...catch block
+  redirect(redirectUrl);
 }
 
 
