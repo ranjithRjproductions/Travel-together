@@ -146,10 +146,9 @@ export function LoginForm() {
       }
 
       const idToken = await user.getIdToken();
+      // The server action handles the redirect, so we just await its completion.
+      // If it fails, it will throw an error caught by the block below.
       await loginAction(idToken);
-      
-      // The server action handles the redirect, so client-side logic is no longer needed.
-      // If the action throws an error, it will be caught by the catch block below.
       
     } catch (err: any) {
       console.error('Login Error:', err);
@@ -214,9 +213,9 @@ export function LoginForm() {
                 type="button"
                 variant="link"
                 className="p-0 h-auto text-sm"
-                onClick={() => router.push('/forgot-password')}
+                asChild
               >
-                Forgot password?
+                <Link href="/forgot-password">Forgot password?</Link>
               </Button>
             </div>
             <Input

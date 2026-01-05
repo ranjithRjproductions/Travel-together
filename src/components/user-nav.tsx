@@ -13,40 +13,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { logoutAction } from '@/lib/actions';
-import { User, LogOut, BookMarked, Shield, FileText, Settings } from 'lucide-react';
+import { User, LogOut, BookMarked, Shield, FileText } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
 import { useState } from 'react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
-
-function LogoutButton() {
-  const auth = useAuth();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    // First, clear the server-side session cookie by calling the server action.
-    await logoutAction();
-    // Then, sign out the client-side Firebase instance to clear local auth state.
-    await signOut(auth);
-    // Finally, perform a hard navigation to the homepage to ensure a clean state.
-    router.replace('/');
-    router.refresh();
-  };
-
-  return (
-    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-      <LogOut aria-hidden="true" />
-      <span>Log out</span>
-    </DropdownMenuItem>
-  );
-}
 
 function LogoutForm() {
     return (
-        <form action={logoutAction}>
+        <form action={logoutAction} className="w-full">
             <button type="submit" className="w-full">
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
                     <LogOut aria-hidden="true" />

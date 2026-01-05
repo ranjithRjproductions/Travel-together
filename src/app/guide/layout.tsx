@@ -10,15 +10,17 @@ export default async function GuideLayout({
 }) {
   const user = await getUser();
 
+  // If there's no session, redirect to login.
   if (!user) {
     redirect('/login');
   } 
   
-  // A layout MUST only protect its own routes. It must not redirect to other roles.
-  // If the user is not a guide, this route is not found for them.
+  // Strict validation: if the user is not a Guide, render a 404 page.
+  // This prevents rendering of the wrong dashboard and stops redirect loops.
   if (user.role !== 'Guide') {
     notFound();
   }
 
+  // If the role is correct, render the layout.
   return <AppLayout user={user}>{children}</AppLayout>;
 }

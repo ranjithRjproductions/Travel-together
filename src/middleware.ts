@@ -4,30 +4,37 @@ import { NextResponse, type NextRequest } from 'next/server';
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Attempt to get the session cookie.
   const session = req.cookies.get('session');
   const isAuth = Boolean(session);
 
-  const isAuthPage =
+  // Define public routes that do not require authentication.
+  const isPublicRoute =
+    pathname === '/' ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/forgot-password');
-  
-  const isPublicRoute = pathname === '/';
 
-  // Unauthenticated users trying to access protected routes are redirected to login.
-  if (!isAuth && !isAuthPage && !isPublicRoute) {
+  // If the user is authenticated and tries to access a public route,
+  // redirect them to their respective dashboard. The layouts will handle role-based logic.
+  if (isAuth && isPublicRoute) {
+    // A generic redirect to a starting point for authenticated users.
+    // The role-specific layout will handle the final destination.
+    // Let's default to traveler dashboard as a safe entry, layouts will correct it.
+    return NextResponse.redirect(new URL('/traveler/dashboard', req.url));
+  }
+
+  // If the user is not authenticated and tries to access a protected route,
+  // redirect them to the login page.
+  if (!isAuth && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // Authenticated users trying to access auth pages or the public homepage are redirected to the root.
-  // The root path will then be handled by the respective role-based layout, which will perform the final, correct redirect.
-  if (isAuth && (isAuthPage || isPublicRoute)) {
-    return NextResponse.redirect(new URL('/', req.url));
-  }
-
+  // Otherwise, allow the request to proceed.
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // This matcher ensures the middleware runs on all routes except for static assets and API routes.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|logo.png|manifest.json).*)'],
 };

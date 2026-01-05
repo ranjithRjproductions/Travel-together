@@ -11,7 +11,7 @@ import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
 /* -------------------------------------------------------------------------- */
-/* SIGNUP – DB RECORD + ROLE CLAIM ONLY (AUTH DONE ON CLIENT)                  */
+/* SIGNUP – DB RECORD + ROLE CLAIM (AUTH DONE ON CLIENT)                      */
 /* -------------------------------------------------------------------------- */
 
 export async function signup(_: any, formData: FormData) {
@@ -30,8 +30,7 @@ export async function signup(_: any, formData: FormData) {
   const { uid, name, email, role } = parsed.data;
 
   try {
-    // Set immutable role claim
-    await adminAuth.setCustomUserClaims(uid, { role });
+    let claims = { role };
 
     // Create Firestore user record
     const userPayload: any = {
@@ -42,13 +41,18 @@ export async function signup(_: any, formData: FormData) {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    await adminDb.collection('users').doc(uid).set(userPayload);
-    
-    // Check if the user is the special admin user and grant claims
+    // Special handling for the admin user
     if (email === 'admin@gmail.com') {
-        await adminAuth.setCustomUserClaims(uid, { role: 'Admin', isAdmin: true });
-        await adminDb.collection('roles_admin').doc(uid).set({ isAdmin: true });
+      claims = { role: 'Admin', isAdmin: true } as any;
+      userPayload.role = 'Admin';
+      await adminDb.collection('roles_admin').doc(uid).set({ isAdmin: true });
     }
+
+    // Set immutable role claim
+    await adminAuth.setCustomUserClaims(uid, claims);
+    
+    // Create user document in Firestore
+    await adminDb.collection('users').doc(uid).set(userPayload);
 
 
     return { success: true };
@@ -68,55 +72,67 @@ export async function signup(_: any, formData: FormData) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* LOGIN – SESSION CREATION (SERVER ACTION, NO API ROUTES)                     */
+/* LOGIN – SESSION CREATION                                                   */
 /* -------------------------------------------------------------------------- */
 
 export async function loginAction(idToken: string) {
-  const decoded = await adminAuth.verifyIdToken(idToken);
+  try {
+    const decoded = await adminAuth.verifyIdToken(idToken);
 
-  const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-    expiresIn: 60 * 60 * 24 * 5 * 1000, // 5 days
-  });
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, {
+      expiresIn: 60 * 60 * 24 * 5 * 1000, // 5 days
+    });
 
-  cookies().set('session', sessionCookie, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-  });
-  
-  if (decoded.role === 'Admin') {
-    redirect('/admin');
+    cookies().set('session', sessionCookie, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+    
+    // This is now the single source of truth for post-login redirection.
+    if (decoded.role === 'Admin') {
+      redirect('/admin');
+    } else if (decoded.role === 'Guide') {
+      redirect('/guide/dashboard');
+    } else {
+      redirect('/traveler/dashboard');
+    }
+
+  } catch (error: any) {
+    console.error("Login action failed:", error.message);
+    // In case of error, we can't redirect, so we let the client handle the error message.
+    return { success: false, message: error.message };
   }
-
-  if (decoded.role === 'Guide') {
-    redirect('/guide/dashboard');
-  }
-
-  redirect('/traveler/dashboard');
 }
 
 
 /* -------------------------------------------------------------------------- */
-/* LOGOUT                                                                      */
+/* LOGOUT                                                                     */
 /* -------------------------------------------------------------------------- */
 
 export async function logoutAction() {
   const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('session') || cookieStore.get('__session');
-  
-  if (sessionCookie) {
+  const sessionCookieName = 'session';
+  const sessionValue = cookieStore.get(sessionCookieName);
+
+  // Invalidate the session cookie
+  if (sessionValue) {
     cookieStore.set({
-      name: sessionCookie.name,
-      value: '',
-      path: '/',
-      maxAge: 0,
+        name: sessionCookieName,
+        value: '',
+        path: '/',
+        maxAge: 0,
     });
   }
-  
-  redirect('/login');
+
+  // After clearing the cookie, redirect to the login page.
+  redirect('/login?message=You have been logged out.');
 }
 
+/* -------------------------------------------------------------------------- */
+/* OTHER ACTIONS (UNCHANGED)                                                  */
+/* -------------------------------------------------------------------------- */
 
 export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected') {
     try {
@@ -230,10 +246,6 @@ export async function deleteTravelRequest(requestId: string) {
 }
 
 
-/* -------------------------------------------------------------------------- */
-/* SERVER-SIDE COST CALCULATION (ANTI-TAMPER)                                  */
-/* -------------------------------------------------------------------------- */
-
 const calculateCostOnServer = (request: TravelRequest): number => {
   const { startTime, endTime, requestedDate } = request;
   if (!startTime || !endTime || !requestedDate) return 0;
@@ -256,10 +268,6 @@ const calculateCostOnServer = (request: TravelRequest): number => {
     ? hours * 150
     : 3 * 150 + (hours - 3) * 100;
 };
-
-/* -------------------------------------------------------------------------- */
-/* TRAVEL REQUEST SUBMISSION                                                   */
-/* -------------------------------------------------------------------------- */
 
 export async function submitTravelRequest(
   requestId: string,
@@ -286,7 +294,6 @@ export async function submitTravelRequest(
 
     const cost = calculateCostOnServer(request);
     
-    // Fetch traveler data to embed in the request
     const travelerDoc = await adminDb.collection('users').doc(travelerId).get();
     const travelerData = travelerDoc.data();
     
@@ -302,7 +309,6 @@ export async function submitTravelRequest(
       }
     };
     
-    // If a guide is selected, embed their data too
     if (guideId) {
         const guideDoc = await adminDb.collection('users').doc(guideId).get();
         const guideData = guideDoc.data();
@@ -349,8 +355,8 @@ export async function respondToTravelRequest(
     } else { // Declined
          await requestRef.update({ 
             status: 'pending',
-            guideId: admin.firestore.FieldValue.delete(), // Remove the guideId
-            guideData: admin.firestore.FieldValue.delete(), // Remove the guide data
+            guideId: admin.firestore.FieldValue.delete(),
+            guideData: admin.firestore.FieldValue.delete(),
         });
     }
 
