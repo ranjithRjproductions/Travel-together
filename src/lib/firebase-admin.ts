@@ -1,61 +1,58 @@
 
-import { initializeApp, getApps, cert, getApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getMessaging } from 'firebase-admin/messaging';
+import { initializeApp, getApps, cert, getApp, App } from 'firebase-admin/app';
+import { getAuth, Auth } from 'firebase-admin/auth';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-// This function checks if the required environment variables are set.
-const hasAdminConfig = () => {
-  return (
-    process.env.FIREBASE_PROJECT_ID &&
-    process.env.FIREBASE_CLIENT_EMAIL &&
-    process.env.FIREBASE_PRIVATE_KEY
-  );
-};
+let adminApp: App | null = null;
+let adminAuth: Auth | null = null;
+let adminDb: Firestore | null = null;
 
-// This function initializes the Firebase Admin SDK using environment variables.
-const initializeAdminApp = () => {
-  if (!hasAdminConfig()) {
-    console.warn(
-      'Firebase Admin SDK environment variables are not set. Skipping initialization.'
-    );
-    return null; // Return null if config is missing
+function initializeAdminApp() {
+  if (getApps().length > 0) {
+    adminApp = getApp();
+  } else {
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (!serviceAccountKey) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Cannot initialize Firebase Admin SDK.');
+    }
+
+    try {
+      const serviceAccount = JSON.parse(serviceAccountKey);
+      adminApp = initializeApp({
+        credential: cert(serviceAccount),
+      });
+    } catch (e: any) {
+      throw new Error(`Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY or initialize app: ${e.message}`);
+    }
   }
 
-  // The private key from the environment variable needs to have its newlines properly formatted.
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n');
+  adminAuth = getAuth(adminApp);
+  adminDb = getFirestore(adminApp);
+}
 
-  try {
-    return initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey,
-      }),
-    });
-  } catch (error: any) {
-    console.error('Firebase Admin SDK initialization failed:', error.message);
-    return null;
+// Ensure initialization is attempted when the module is loaded.
+try {
+  initializeAdminApp();
+} catch (error) {
+  console.error("Firebase Admin SDK Initialization Error:", (error as Error).message);
+  // The services will remain null, and getAdminServices will throw an error when called.
+}
+
+
+export function getAdminServices() {
+  if (!adminApp || !adminAuth || !adminDb) {
+    throw new Error('Firebase Admin SDK has not been initialized. Please check your server environment and configuration.');
   }
-};
+  return { adminAuth, adminDb };
+}
 
-// Initialize Admin SDK once globally.
-// Check if apps are already initialized to prevent re-initialization.
-const adminApp = !getApps().length ? initializeAdminApp() : getApp();
+// Backwards compatibility for any other files that might be using the direct export.
+// This is not ideal, but safer during this transition.
+export { adminAuth, adminDb };
 
-// Export the initialized services. If initialization failed, these will be null
-// or throw an error upon use, which helps in debugging.
-export const adminAuth = adminApp ? getAuth(adminApp) : null;
-export const adminDb = adminApp ? getFirestore(adminApp) : null;
-export const adminMessaging = adminApp ? getMessaging(adminApp) : null;
-
-// A helper function to safely get the database instance.
-// This is useful in server components/actions where you need to ensure db is available.
 export function getAdminDb() {
   if (!adminDb) {
-    throw new Error(
-      'Firestore Admin is not initialized. Check your server environment variables.'
-    );
+    throw new Error('Firestore Admin is not initialized. Please check your server environment and configuration.');
   }
   return adminDb;
 }
