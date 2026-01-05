@@ -1,13 +1,15 @@
 
 import { cookies } from 'next/headers';
 import type { User } from '@/lib/definitions';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { getAdminServices } from '@/lib/firebase-admin';
 
 export async function getUser(): Promise<User | null> {
   const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) return null;
 
   try {
+    const { adminAuth, adminDb } = getAdminServices();
+
     // Verify the session cookie. This checks for valid signature and expiry.
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
     
