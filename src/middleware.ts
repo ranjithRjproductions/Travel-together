@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // If a logged-in user tries to access an auth route OR the public home page,
-    // redirect them to their correct dashboard. This is the key fix.
+    // redirect them to their correct dashboard.
     if (isAuthRoute || isPublicRoute) {
       return NextResponse.redirect(new URL(dashboardUrl, request.url));
     }
