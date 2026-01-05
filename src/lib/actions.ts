@@ -72,7 +72,6 @@ export async function signup(_: any, formData: FormData) {
 /* -------------------------------------------------------------------------- */
 
 export async function login(idToken: string) {
-  let redirectUrl: string;
   try {
     const expiresIn = 5 * 24 * 60 * 60 * 1000; // 5 days
 
@@ -81,18 +80,7 @@ export async function login(idToken: string) {
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn,
     });
-
-    const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
-    if (!userDoc.exists) {
-      throw new Error('User profile not found.');
-    }
-
-    const userData = userDoc.data() as User;
     
-    // Check for admin role separately for security
-    const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
-    const isAdmin = adminDoc.exists;
-
     cookies().set({
       name: 'session',
       value: sessionCookie,
@@ -102,23 +90,14 @@ export async function login(idToken: string) {
       path: '/',
       maxAge: expiresIn / 1000,
     });
-
-    // Determine the redirect URL but don't call redirect() yet
-    redirectUrl = '/traveler/dashboard';
-    if (isAdmin) {
-      redirectUrl = '/admin';
-    } else if (userData.role === 'Guide') {
-      redirectUrl = '/guide/dashboard';
-    }
-
+    
+    // This action now completes without redirecting.
+    // The client-side form will handle the redirect after this promise resolves.
   } catch (error: any) {
     console.error('Login session error:', error);
     // Re-throw the error to be caught by the client form
     throw new Error(error.message || 'Failed to create session.');
   }
-  
-  // Call redirect outside the try...catch block
-  redirect(redirectUrl);
 }
 
 
@@ -392,5 +371,3 @@ export async function respondToTravelRequest(
     return { success: false, message: e.message };
   }
 }
-
-    
