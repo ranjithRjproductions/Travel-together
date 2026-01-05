@@ -1,6 +1,7 @@
+
 import AppLayout from '@/components/app-layout';
 import { getUser } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 
 export default async function TravelerLayout({
   children,
@@ -11,10 +12,12 @@ export default async function TravelerLayout({
 
   if (!user) {
     redirect('/login');
-  } else if (user.role !== 'Traveler') {
-    // This is a critical role check. If a Guide somehow lands here,
-    // redirect them to their correct dashboard.
-    redirect('/guide/dashboard');
+  } 
+  
+  // A layout MUST only protect its own routes. It must not redirect to other roles.
+  // If the user is not a traveler, this route is not found for them.
+  if (user.role !== 'Traveler') {
+    notFound();
   }
 
   return <AppLayout user={user}>{children}</AppLayout>;

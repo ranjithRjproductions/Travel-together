@@ -1,3 +1,4 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -18,10 +19,11 @@ export function middleware(request: NextRequest) {
 
   const isPublicRoute = pathname === '/';
 
-  // If user is logged in, redirect them away from public/auth pages to a neutral dashboard path.
-  // The protected layouts will then handle the final role-based redirect.
+  // If user is logged in, redirect them away from public/auth pages.
+  // The protected layouts will handle the final role-based view.
   if (isLoggedIn && (isAuthRoute || isPublicRoute)) {
-    // Redirecting to a generic path that the protected layouts can resolve.
+    // Redirect to a neutral path that protected layouts will resolve.
+    // The traveler layout will handle the redirect to the correct dashboard if the role is not traveler.
     return NextResponse.redirect(new URL('/traveler/dashboard', request.url));
   }
 

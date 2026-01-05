@@ -1,7 +1,7 @@
 
 import AppLayout from '@/components/app-layout';
 import { getUser } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+import { redirect, notFound }from 'next/navigation';
 
 export default async function AdminLayout({
   children,
@@ -14,13 +14,10 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
-  // This is the most critical check. If the user object from our trusted
-  // server-side function doesn't have the `isAdmin` flag, they are
-  // immediately redirected.
+  // A layout MUST only protect its own routes. It must not redirect to other roles.
+  // If the user is not an admin, this route is not found for them.
   if (!user.isAdmin) {
-    // Redirect non-admins to their appropriate dashboard.
-    const redirectUrl = user.role === 'Guide' ? '/guide/dashboard' : '/traveler/dashboard';
-    redirect(redirectUrl);
+    notFound();
   }
 
   // If the user is an admin, render the admin-specific layout.
