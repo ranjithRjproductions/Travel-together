@@ -11,9 +11,8 @@ import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
 /* -------------------------------------------------------------------------- */
-/* SIGNUP – DB RECORD + ROLE CLAIM (AUTH DONE ON CLIENT)                      */
+/* SIGNUP – DB RECORD ONLY (NO CUSTOM CLAIMS)                                  */
 /* -------------------------------------------------------------------------- */
-
 export async function signup(_: any, formData: FormData) {
   const schema = z.object({
     uid: z.string().min(1),
@@ -30,8 +29,6 @@ export async function signup(_: any, formData: FormData) {
   const { uid, name, email, role } = parsed.data;
 
   try {
-    let claims = { role };
-
     // Create Firestore user record
     const userPayload: any = {
       id: uid,
@@ -41,29 +38,24 @@ export async function signup(_: any, formData: FormData) {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Special handling for the admin user
+    // Special handling for the admin user, still storing role in DB
     if (email === 'admin@gmail.com') {
-      claims = { role: 'Admin', isAdmin: true } as any;
       userPayload.role = 'Admin';
       await adminDb.collection('roles_admin').doc(uid).set({ isAdmin: true });
     }
 
-    // Set immutable role claim
-    await adminAuth.setCustomUserClaims(uid, claims);
-    
-    // Create user document in Firestore
+    // Create user document in Firestore, this is the source of truth for role
     await adminDb.collection('users').doc(uid).set(userPayload);
-
 
     return { success: true };
   } catch (error) {
     console.error('Signup error:', error);
-
     // Cleanup auth user if DB write fails
     try {
       await adminAuth.deleteUser(uid);
-    } catch {}
-
+    } catch (cleanupError) {
+      console.error('Cleanup auth user failed:', cleanupError);
+    }
     return {
       success: false,
       message: 'Signup failed. Please try again.',
@@ -71,29 +63,38 @@ export async function signup(_: any, formData: FormData) {
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* LOGIN – SESSION CREATION                                                   */
-/* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/* LOGIN – SESSION CREATION & ROLE-BASED REDIRECT FROM FIRESTORE              */
+/* -------------------------------------------------------------------------- */
 export async function loginAction(idToken: string) {
   try {
-    const decoded = await adminAuth.verifyIdToken(idToken);
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+    const { uid } = decodedToken;
 
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-      expiresIn: 60 * 60 * 24 * 5 * 1000, // 5 days
-    });
+    // Read role from Firestore
+    const userDoc = await adminDb.collection('users').doc(uid).get();
+    if (!userDoc.exists) {
+      throw new Error('User document not found in Firestore.');
+    }
+    const userData = userDoc.data() as User;
+    const role = userData.role;
+
+    // Create session cookie
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
 
     cookies().set('session', sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      maxAge: expiresIn,
       path: '/',
     });
     
-    // This is now the single source of truth for post-login redirection.
-    if (decoded.role === 'Admin') {
+    // SINGLE SOURCE OF TRUTH FOR REDIRECT
+    if (role === 'Admin') {
       redirect('/admin');
-    } else if (decoded.role === 'Guide') {
+    } else if (role === 'Guide') {
       redirect('/guide/dashboard');
     } else {
       redirect('/traveler/dashboard');
@@ -101,39 +102,29 @@ export async function loginAction(idToken: string) {
 
   } catch (error: any) {
     console.error("Login action failed:", error.message);
-    // In case of error, we can't redirect, so we let the client handle the error message.
-    return { success: false, message: error.message };
+    // Let client handle displaying the error
+    throw new Error(error.message || 'Failed to create session.');
   }
 }
-
 
 /* -------------------------------------------------------------------------- */
 /* LOGOUT                                                                     */
 /* -------------------------------------------------------------------------- */
-
 export async function logoutAction() {
   const cookieStore = cookies();
-  const sessionCookieName = 'session';
-  const sessionValue = cookieStore.get(sessionCookieName);
-
-  // Invalidate the session cookie
-  if (sessionValue) {
-    cookieStore.set({
-        name: sessionCookieName,
-        value: '',
-        path: '/',
-        maxAge: 0,
-    });
-  }
+  
+  // Expire all possible session cookie names
+  cookieStore.set('session', '', { maxAge: 0, path: '/' });
+  cookieStore.set('__session', '', { maxAge: 0, path: '/' });
 
   // After clearing the cookie, redirect to the login page.
   redirect('/login?message=You have been logged out.');
 }
 
+
 /* -------------------------------------------------------------------------- */
 /* OTHER ACTIONS (UNCHANGED)                                                  */
 /* -------------------------------------------------------------------------- */
-
 export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected') {
     try {
         const session = cookies().get('session')?.value;

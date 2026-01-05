@@ -146,7 +146,8 @@ export function LoginForm() {
       }
 
       const idToken = await user.getIdToken();
-      // The server action handles the redirect, so we just await its completion.
+      
+      // The server action handles the redirect. We just await its completion.
       // If it fails, it will throw an error caught by the block below.
       await loginAction(idToken);
       
@@ -156,11 +157,16 @@ export function LoginForm() {
       if (auth.currentUser) {
         await signOut(auth);
       }
+      
+      let errorMessage = 'An unexpected error occurred. Please try again.';
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError('Invalid email or password.');
-      } else {
-        setError(err.message || 'An unexpected error occurred. Please try again.');
+        errorMessage = 'Invalid email or password.';
+      } else if (err.message) {
+        // Use the message from the thrown error in the server action
+        errorMessage = err.message;
       }
+      
+      setError(errorMessage);
       setIsSubmitting(false);
     }
   };

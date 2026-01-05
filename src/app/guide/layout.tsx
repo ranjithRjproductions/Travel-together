@@ -10,7 +10,7 @@ export default async function GuideLayout({
 }) {
   const user = await getUser();
 
-  // If there's no session, redirect to login.
+  // If there's no session, middleware should have already redirected.
   if (!user) {
     redirect('/login');
   } 

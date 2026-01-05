@@ -11,37 +11,27 @@ export async function getUser(): Promise<User | null> {
     // Verify the session cookie. This checks for valid signature and expiry.
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
     
-    // The role is now reliably sourced from the custom claim set during signup.
-    const role = decodedClaims.role as 'Traveler' | 'Guide' | 'Admin' | undefined;
-
-    // isAdmin is also a claim, ensuring it's tied to the session.
-    const isAdmin = Boolean(decodedClaims.isAdmin);
-
-    // Basic validation to ensure the role claim exists and is valid.
-    if (!role || (role !== 'Traveler' && role !== 'Guide' && role !== 'Admin')) {
-        console.warn(`Invalid or missing role claim for UID: ${decodedClaims.uid}`);
-        return null;
-    }
-
-    // Fetch the corresponding user document from Firestore to get profile data.
+    // Fetch the corresponding user document from Firestore to get the role and profile data.
     const userDoc = await adminDb.collection('users').doc(decodedClaims.uid).get();
     if (!userDoc.exists) {
         console.warn(`User document not found for UID: ${decodedClaims.uid}`);
-        // This indicates a desync between Auth and Firestore, which should be handled.
         return null;
     }
     
-    const userData = userDoc.data();
-    
+    const userData = userDoc.data() as User;
+    const role = userData.role;
+
+    // Also check for admin status from a separate collection for security.
+    const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
+    const isAdmin = adminDoc.exists;
+
     // Construct the final User object for use in layouts and pages.
     return {
+      ...userData, // Spread all fields from the Firestore document
       uid: decodedClaims.uid,
-      name: userData?.name || 'Unnamed',
       email: decodedClaims.email || 'no-email@example.com',
-      role: role,
-      isAdmin: isAdmin,
-      photoURL: userData?.photoURL || undefined,
-      photoAlt: userData?.photoAlt || undefined,
+      role,
+      isAdmin,
     } as User;
 
   } catch (error) {

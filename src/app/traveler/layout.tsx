@@ -10,13 +10,14 @@ export default async function TravelerLayout({
 }) {
   const user = await getUser();
 
-  // If there's no session, redirect to login. This is a server-side check.
+  // If there's no session, middleware should have already redirected.
+  // This is a server-side check for robustness.
   if (!user) {
     redirect('/login');
   } 
   
   // This is the strict validation. If the user's role is not 'Traveler',
-  // this layout will render a 404 Not Found page, preventing any rendering or redirects.
+  // this layout will render a 404 Not Found page. It does not redirect.
   if (user.role !== 'Traveler') {
     notFound();
   }

@@ -1,22 +1,22 @@
 
-  'use client';
+'use client';
 
-  import { useState } from 'react';
-  import { useRouter } from 'next/navigation';
-  import { Button } from '@/components/ui/button';
-  import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-  import { Input } from '@/components/ui/input';
-  import { Label } from '@/components/ui/label';
-  import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-  import { User, Briefcase, UserPlus, MailCheck } from 'lucide-react';
-  import { signup } from '@/lib/actions';
-  import { useToast } from '@/hooks/use-toast';
-  import { useAuth } from '@/firebase';
-  import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
-  import content from '@/app/content/signup.json';
-  import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { User, Briefcase, UserPlus, MailCheck } from 'lucide-react';
+import { signup } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/firebase';
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
+import content from '@/app/content/signup.json';
+import Link from 'next/link';
 
-  function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
+function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   const disabled = isSubmitting;
   return (
     <Button type="submit" className="w-full" disabled={disabled}>
@@ -28,46 +28,46 @@
       )}
     </Button>
   );
-  }
+}
 
-  function VerifyEmailCard({ email, onResend, onLogin }: { email: string; onResend: () => void; onLogin: () => void; }) {
-    const [isResending, setIsResending] = useState(false);
+function VerifyEmailCard({ email, onResend, onLogin }: { email: string; onResend: () => void; onLogin: () => void; }) {
+  const [isResending, setIsResending] = useState(false);
 
-    const handleResend = async () => {
-        setIsResending(true);
-        await onResend();
-        setIsResending(false);
-    };
+  const handleResend = async () => {
+    setIsResending(true);
+    await onResend();
+    setIsResending(false);
+  };
 
-    return (
-        <Card>
-            <CardHeader className="text-center">
-                <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit">
-                    <MailCheck className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="mt-4">Please Verify Your Email</CardTitle>
-                <CardDescription>
-                    A verification link has been sent to <span className="font-semibold text-primary">{email}</span>. Please check your inbox and click the link to activate your account.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-                <p className="text-sm text-muted-foreground">
-                    Didn't receive the email? Check your spam folder or click below to resend.
-                </p>
-            </CardContent>
-            <CardFooter className="flex-col gap-4">
-                <Button onClick={handleResend} className="w-full" disabled={isResending}>
-                    {isResending ? 'Sending...' : 'Resend Verification Link'}
-                </Button>
-                <Button variant="outline" onClick={onLogin} className="w-full">
-                    Back to Login
-                </Button>
-            </CardFooter>
-        </Card>
-    );
-  }
+  return (
+    <Card>
+      <CardHeader className="text-center">
+        <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit">
+          <MailCheck className="h-8 w-8 text-primary" />
+        </div>
+        <CardTitle className="mt-4">Please Verify Your Email</CardTitle>
+        <CardDescription>
+          A verification link has been sent to <span className="font-semibold text-primary">{email}</span>. Please check your inbox and click the link to activate your account.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="text-center">
+        <p className="text-sm text-muted-foreground">
+          Didn't receive the email? Check your spam folder or click below to resend.
+        </p>
+      </CardContent>
+      <CardFooter className="flex-col gap-4">
+        <Button onClick={handleResend} className="w-full" disabled={isResending}>
+          {isResending ? 'Sending...' : 'Resend Verification Link'}
+        </Button>
+        <Button variant="outline" onClick={onLogin} className="w-full">
+          Back to Login
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
 
-  export function SignupForm() {
+export function SignupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [verificationEmailSent, setVerificationEmailSent] = useState(false);
   const [emailForVerification, setEmailForVerification] = useState('');
@@ -77,25 +77,25 @@
 
   const handleResendVerification = async () => {
     if (!auth.currentUser) {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not find user to resend verification. Please try logging in again."
-        });
-        return;
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not find user to resend verification. Please try logging in again."
+      });
+      return;
     }
     try {
-        await sendEmailVerification(auth.currentUser);
-        toast({
-            title: "Email Sent",
-            description: "A new verification link has been sent to your email address.",
-        });
+      await sendEmailVerification(auth.currentUser);
+      toast({
+        title: "Email Sent",
+        description: "A new verification link has been sent to your email address.",
+      });
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to send verification email. Please try again shortly.",
-        });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to send verification email. Please try again shortly.",
+      });
     }
   };
 
@@ -108,13 +108,13 @@
     const password = String(formData.get('password'));
 
     if (!email.endsWith('@gmail.com') && !email.endsWith('@outlook.com')) {
-        toast({
-            variant: 'destructive',
-            title: 'Invalid Email Domain',
-            description: 'Please use a @gmail.com or @outlook.com email address to sign up.',
-        });
-        setIsSubmitting(false);
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Email Domain',
+        description: 'Please use a @gmail.com or @outlook.com email address to sign up.',
+      });
+      setIsSubmitting(false);
+      return;
     }
 
     try {
@@ -153,7 +153,7 @@
     }
   };
 
-bif (verificationEmailSent) {
+  if (verificationEmailSent) {
       return (
           <VerifyEmailCard 
             email={emailForVerification}

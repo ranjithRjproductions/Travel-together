@@ -20,25 +20,25 @@ import { Skeleton } from './ui/skeleton';
 import { useState } from 'react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
-
-function LogoutForm() {
-    return (
-        <form action={logoutAction} className="w-full">
-            <button type="submit" className="w-full">
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                    <LogOut aria-hidden="true" />
-                    <span>Log out</span>
-                </DropdownMenuItem>
-            </button>
-        </form>
-    );
-}
+import { useRouter } from 'next/navigation';
 
 export function UserNav({ user }: { user?: UserType | null }) {
   const [open, setOpen] = useState(false);
+  const auth = useAuth();
+  const router = useRouter();
 
   if (!user) {
     return <Skeleton className="h-10 w-10 rounded-full" />;
+  }
+  
+  const handleLogout = async () => {
+    try {
+        await logoutAction(); // Clear server session cookie
+        await signOut(auth); // Sign out from Firebase client
+        router.replace('/login?message=You have been logged out.'); // Force a page reload to clear state
+    } catch(error) {
+        console.error("Logout failed:", error);
+    }
   }
 
   const getInitials = (name?: string, email?: string) => {
@@ -123,7 +123,10 @@ export function UserNav({ user }: { user?: UserType | null }) {
           </>
         )}
         <DropdownMenuSeparator />
-        <LogoutForm />
+         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+            <LogOut aria-hidden="true" />
+            <span>Log out</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
