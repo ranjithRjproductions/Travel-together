@@ -146,22 +146,12 @@ export function LoginForm() {
       }
 
       const idToken = await user.getIdToken();
-      const result = await login(idToken);
-
-      if (result.success) {
-        // The server action now handles the redirect, but we can refresh the page
-        // to ensure the client state is updated, or trust the server redirect.
-        // For a smoother experience, we can manually redirect based on the role.
-        if (result.role === 'Guide') {
-            router.push('/guide/dashboard');
-        } else if (result.role === 'Admin') {
-            router.push('/admin');
-        } else {
-            router.push('/traveler/dashboard');
-        }
-      } else {
-        throw new Error(result.message || 'Failed to create session.');
-      }
+      // The server action now handles the redirect. We just await it.
+      await login(idToken);
+      
+      // If the server action throws an error, it will be caught below.
+      // If it succeeds, the user will be redirected, and this line won't be reached.
+      
     } catch (err: any) {
       console.error('Login Error:', err);
       // Clean up any temporary auth state if login fails for other reasons
@@ -171,6 +161,7 @@ export function LoginForm() {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password.');
       } else {
+        // Display server action error message if available
         setError(err.message || 'An unexpected error occurred. Please try again.');
       }
       setIsSubmitting(false);

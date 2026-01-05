@@ -83,7 +83,7 @@ export async function login(idToken: string) {
 
     const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
     if (!userDoc.exists) {
-      return { success: false, message: 'User profile not found.' };
+      throw new Error('User profile not found.');
     }
 
     const userData = userDoc.data() as User;
@@ -91,7 +91,6 @@ export async function login(idToken: string) {
     // Check for admin role separately for security
     const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
     const isAdmin = adminDoc.exists;
-
 
     cookies().set({
       name: 'session',
@@ -102,15 +101,23 @@ export async function login(idToken: string) {
       path: '/',
       maxAge: expiresIn / 1000,
     });
-    
-    // Return role for client-side to decide redirection
-    return { success: true, role: isAdmin ? 'Admin' : userData.role };
 
-  } catch (error) {
+    // The redirect will be caught by the client and followed
+    let redirectUrl = '/traveler/dashboard';
+    if (isAdmin) {
+      redirectUrl = '/admin';
+    } else if (userData.role === 'Guide') {
+      redirectUrl = '/guide/dashboard';
+    }
+    redirect(redirectUrl);
+
+  } catch (error: any) {
     console.error('Login session error:', error);
-    return { success: false, message: 'Failed to create session.' };
+    // Re-throw the error to be caught by the client form
+    throw new Error(error.message || 'Failed to create session.');
   }
 }
+
 
 /* -------------------------------------------------------------------------- */
 /* LOGOUT                                                                      */
