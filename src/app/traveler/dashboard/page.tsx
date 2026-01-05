@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import content from '@/app/content/traveler-dashboard.json';
 import { PlusCircle, BookMarked, User as UserIcon } from 'lucide-react';
@@ -28,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { doc } from 'firebase/firestore';
 
 function DashboardSkeleton() {
   return (
