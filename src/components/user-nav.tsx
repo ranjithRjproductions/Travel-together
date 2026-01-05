@@ -27,12 +27,13 @@ function LogoutButton() {
   const router = useRouter();
 
   const handleLogout = async () => {
-    // First, clear the server-side session cookie.
+    // First, clear the server-side session cookie by calling the server action.
     await logoutAction();
-    // Then, sign out the client-side Firebase instance.
+    // Then, sign out the client-side Firebase instance to clear local auth state.
     await signOut(auth);
-    // Finally, perform a hard navigation to the homepage.
+    // Finally, perform a hard navigation to the homepage to ensure a clean state.
     router.replace('/');
+    router.refresh();
   };
 
   return (
@@ -41,6 +42,19 @@ function LogoutButton() {
       <span>Log out</span>
     </DropdownMenuItem>
   );
+}
+
+function LogoutForm() {
+    return (
+        <form action={logoutAction}>
+            <button type="submit" className="w-full">
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                    <LogOut aria-hidden="true" />
+                    <span>Log out</span>
+                </DropdownMenuItem>
+            </button>
+        </form>
+    );
 }
 
 export function UserNav({ user }: { user?: UserType | null }) {
@@ -132,7 +146,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
           </>
         )}
         <DropdownMenuSeparator />
-        <LogoutButton />
+        <LogoutForm />
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -102,12 +102,19 @@ export async function loginAction(idToken: string) {
 /* -------------------------------------------------------------------------- */
 
 export async function logoutAction() {
-  cookies().set({
-    name: 'session',
-    value: '',
-    path: '/',
-    maxAge: 0,
-  });
+  const cookieStore = cookies();
+  const sessionCookie = cookieStore.get('session') || cookieStore.get('__session');
+  
+  if (sessionCookie) {
+    cookieStore.set({
+      name: sessionCookie.name,
+      value: '',
+      path: '/',
+      maxAge: 0,
+    });
+  }
+  
+  redirect('/login');
 }
 
 
