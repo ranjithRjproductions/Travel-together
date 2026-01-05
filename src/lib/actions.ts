@@ -71,39 +71,29 @@ export async function signup(_: any, formData: FormData) {
 /* LOGIN – SESSION CREATION (SERVER ACTION, NO API ROUTES)                     */
 /* -------------------------------------------------------------------------- */
 
-export async function login(idToken: string) {
-  let redirectUrl = '/traveler/dashboard'; // Default redirect
-  try {
-    const expiresIn = 5 * 24 * 60 * 60 * 1000; // 5 days
+export async function loginAction(idToken: string) {
+  const decoded = await adminAuth.verifyIdToken(idToken);
 
-    const decoded = await adminAuth.verifyIdToken(idToken, true);
-    
-    if (decoded.role === 'Guide') {
-      redirectUrl = '/guide/dashboard';
-    } else if (decoded.isAdmin) {
-       redirectUrl = '/admin';
-    }
+  const sessionCookie = await adminAuth.createSessionCookie(idToken, {
+    expiresIn: 60 * 60 * 24 * 5 * 1000, // 5 days
+  });
 
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-      expiresIn,
-    });
-    
-    cookies().set({
-      name: 'session',
-      value: sessionCookie,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: expiresIn / 1000,
-    });
-
-  } catch (error: any) {
-    console.error('Login session error:', error);
-    throw new Error(error.message || 'Failed to create session.');
-  }
+  cookies().set('session', sessionCookie, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
   
-  redirect(redirectUrl);
+  if (decoded.role === 'Admin') {
+    redirect('/admin');
+  }
+
+  if (decoded.role === 'Guide') {
+    redirect('/guide/dashboard');
+  }
+
+  redirect('/traveler/dashboard');
 }
 
 
@@ -112,26 +102,11 @@ export async function login(idToken: string) {
 /* -------------------------------------------------------------------------- */
 
 export async function logoutAction() {
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('session');
-  
-  // Invalidate the session on Firebase. This is the authoritative step.
-  if (sessionCookie) {
-      try {
-        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie.value, true);
-        await adminAuth.revokeRefreshTokens(decodedClaims.sub);
-      } catch (error) {
-        // Session cookie is invalid or expired.
-        // This is an expected error and can be ignored.
-      }
-  }
-
-  // Clear the session cookie from the browser
-  cookieStore.set({
+  cookies().set({
     name: 'session',
     value: '',
-    maxAge: 0,
     path: '/',
+    maxAge: 0,
   });
 }
 

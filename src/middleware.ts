@@ -1,36 +1,28 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { getUser } from '@/lib/auth';
 
-export const runtime = 'nodejs';
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const user = await getUser();
+  const session = req.cookies.get('session');
+  const isAuth = Boolean(session);
 
-  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password');
+  const isAuthPage =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/forgot-password');
+  
   const isPublicRoute = pathname === '/';
 
-  // If user is logged in
-  if (user) {
-    // If they are on an auth route or the homepage, redirect them to their appropriate dashboard
-    if (isAuthRoute || isPublicRoute) {
-      let redirectUrl = '/traveler/dashboard'; // Default
-      if (user.role === 'Guide') {
-        redirectUrl = '/guide/dashboard';
-      } else if (user.role === 'Admin') {
-        redirectUrl = '/admin';
-      }
-      return NextResponse.redirect(new URL(redirectUrl, request.url));
-    }
-  } 
-  // If user is NOT logged in
-  else {
-    // If they try to access a protected route, redirect to login
-    const isProtectedRoute = !isAuthRoute && !isPublicRoute;
-    if (isProtectedRoute) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
+  // Unauthenticated users trying to access protected routes are redirected to login.
+  if (!isAuth && !isAuthPage && !isPublicRoute) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  // Authenticated users trying to access auth pages or the public homepage are redirected to the root.
+  // The root path will then be handled by the respective role-based layout, which will perform the final, correct redirect.
+  if (isAuth && (isAuthPage || isPublicRoute)) {
+    return NextResponse.redirect(new URL('/', req.url));
   }
 
   return NextResponse.next();

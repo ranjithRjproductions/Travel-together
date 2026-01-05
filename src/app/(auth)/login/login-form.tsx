@@ -23,7 +23,7 @@ import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import content from '@/app/content/login.json';
 import Link from 'next/link';
-import { login } from '@/lib/actions';
+import { loginAction } from '@/lib/actions';
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
@@ -116,7 +116,7 @@ export function LoginForm() {
     }
     setShowVerifyEmail(false);
     setUserEmail('');
-}
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -146,11 +146,10 @@ export function LoginForm() {
       }
 
       const idToken = await user.getIdToken();
-      // The server action now handles the redirect. We just await it.
-      await login(idToken);
+      await loginAction(idToken);
       
-      // If the server action throws an error, it will be caught below.
-      // If it succeeds, the user will be redirected, and this line won't be reached.
+      // The server action handles the redirect, so client-side logic is no longer needed.
+      // If the action throws an error, it will be caught by the catch block below.
       
     } catch (err: any) {
       console.error('Login Error:', err);
@@ -161,7 +160,6 @@ export function LoginForm() {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password.');
       } else {
-        // Display server action error message if available
         setError(err.message || 'An unexpected error occurred. Please try again.');
       }
       setIsSubmitting(false);
