@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'ID token is required' }, { status: 400 });
     }
 
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days in milliseconds
+    const expiresInMs = 60 * 60 * 24 * 5 * 1000; // 5 days in milliseconds
     const decodedToken = await adminAuth.verifyIdToken(idToken);
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn: expiresInMs });
 
     const { uid } = decodedToken;
     const userDoc = await adminDb.collection('users').doc(uid).get();
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const isAdmin = adminDoc.exists;
     
     // The `maxAge` property should be in seconds.
-    const maxAgeInSeconds = Math.round(expiresIn / 1000);
+    const maxAgeInSeconds = Math.round(expiresInMs / 1000);
 
     cookies().set('session', sessionCookie, {
       httpOnly: true,
@@ -47,3 +47,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: error.message || 'Failed to create session.' }, { status: 500 });
   }
 }
+
+    
