@@ -40,7 +40,6 @@ export async function signup(_: any, formData: FormData) {
 
     // Special handling for the admin user, still storing role in DB
     if (email === 'admin@gmail.com') {
-      userPayload.role = 'Admin';
       await adminDb.collection('roles_admin').doc(uid).set({ isAdmin: true });
     }
 
@@ -68,6 +67,7 @@ export async function signup(_: any, formData: FormData) {
 /* LOGIN – SESSION CREATION & ROLE-BASED REDIRECT FROM FIRESTORE              */
 /* -------------------------------------------------------------------------- */
 export async function loginAction(idToken: string) {
+  let redirectUrl = '';
   try {
     const decodedToken = await adminAuth.verifyIdToken(idToken);
     const { uid } = decodedToken;
@@ -91,13 +91,13 @@ export async function loginAction(idToken: string) {
       path: '/',
     });
     
-    // SINGLE SOURCE OF TRUTH FOR REDIRECT
+    // Determine redirect URL
     if (role === 'Admin') {
-      redirect('/admin');
+      redirectUrl = '/admin';
     } else if (role === 'Guide') {
-      redirect('/guide/dashboard');
+      redirectUrl = '/guide/dashboard';
     } else {
-      redirect('/traveler/dashboard');
+      redirectUrl = '/traveler/dashboard';
     }
 
   } catch (error: any) {
@@ -105,6 +105,9 @@ export async function loginAction(idToken: string) {
     // Let client handle displaying the error
     throw new Error(error.message || 'Failed to create session.');
   }
+  
+  // Perform the redirect outside the try...catch block
+  redirect(redirectUrl);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -112,10 +115,12 @@ export async function loginAction(idToken: string) {
 /* -------------------------------------------------------------------------- */
 export async function logoutAction() {
   const cookieStore = cookies();
-  
-  // Expire all possible session cookie names
-  cookieStore.set('session', '', { maxAge: 0, path: '/' });
-  cookieStore.set('__session', '', { maxAge: 0, path: '/' });
+  const sessionCookie = cookieStore.get('session') || cookieStore.get('__session');
+
+  if (sessionCookie) {
+    // Expire the cookie by setting maxAge to 0
+    cookieStore.set(sessionCookie.name, '', { maxAge: 0, path: '/' });
+  }
 
   // After clearing the cookie, redirect to the login page.
   redirect('/login?message=You have been logged out.');
