@@ -141,7 +141,6 @@ export function LoginForm() {
           // If email is not verified, sign out the user to prevent inconsistent states
           await signOut(auth);
           setShowVerifyEmail(true);
-          setIsSubmitting(false);
           return;
       }
 
@@ -149,9 +148,17 @@ export function LoginForm() {
       
       // The server action handles the redirect. We just await its completion.
       // If it fails, it will throw an error caught by the block below.
+      // The `finally` block will run regardless of success or failure.
       await loginAction(idToken);
       
     } catch (err: any) {
+      // Don't set state for NEXT_REDIRECT errors, as they are not user-facing errors.
+      if ((err as Error).message.includes('NEXT_REDIRECT')) {
+        // The redirect is being handled, so we don't need to do anything else.
+        // The `finally` block will still execute.
+        return;
+      }
+      
       console.error('Login Error:', err);
       // Clean up any temporary auth state if login fails for other reasons
       if (auth.currentUser) {
@@ -167,7 +174,10 @@ export function LoginForm() {
       }
       
       setError(errorMessage);
-      setIsSubmitting(false);
+    } finally {
+        // This ensures that the submitting state is only cleared after the
+        // server action has completed (or failed).
+        setIsSubmitting(false);
     }
   };
 
