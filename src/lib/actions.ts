@@ -72,6 +72,7 @@ export async function signup(_: any, formData: FormData) {
 /* -------------------------------------------------------------------------- */
 
 export async function login(idToken: string) {
+  let redirectUrl: string;
   try {
     const expiresIn = 5 * 24 * 60 * 60 * 1000; // 5 days
 
@@ -102,20 +103,22 @@ export async function login(idToken: string) {
       maxAge: expiresIn / 1000,
     });
 
-    // The redirect will be caught by the client and followed
-    let redirectUrl = '/traveler/dashboard';
+    // Determine the redirect URL but don't call redirect() yet
+    redirectUrl = '/traveler/dashboard';
     if (isAdmin) {
       redirectUrl = '/admin';
     } else if (userData.role === 'Guide') {
       redirectUrl = '/guide/dashboard';
     }
-    redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Login session error:', error);
     // Re-throw the error to be caught by the client form
     throw new Error(error.message || 'Failed to create session.');
   }
+  
+  // Call redirect outside the try...catch block
+  redirect(redirectUrl);
 }
 
 
@@ -389,3 +392,5 @@ export async function respondToTravelRequest(
     return { success: false, message: e.message };
   }
 }
+
+    
