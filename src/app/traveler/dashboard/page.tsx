@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -57,13 +57,6 @@ export default function TravelerDashboard() {
   
   const isLoading = isUserLoading || isProfileLoading;
 
-  // Correctly handle redirects in a useEffect hook
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/login');
-    }
-  }, [isLoading, user, router]);
-
   const checkProfileCompleteness = (profile: UserProfile | null | undefined): { complete: boolean, reason: string } => {
     if (!profile) return { complete: false, reason: 'Profile data could not be loaded.' };
     
@@ -96,13 +89,7 @@ export default function TravelerDashboard() {
     }
   };
 
-  // Render skeleton while loading or before redirecting
-  if (isLoading || !user) {
-    return <DashboardSkeleton />;
-  }
-  
-  // This can happen briefly between auth load and profile load
-  if (!userProfile) {
+  if (isLoading || !userProfile) {
     return <DashboardSkeleton />;
   }
 
