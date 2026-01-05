@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -54,6 +54,15 @@ export default function TravelerDashboard() {
   }, [user, firestore]);
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+  
+  const isLoading = isUserLoading || isProfileLoading;
+
+  // Correctly handle redirects in a useEffect hook
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login');
+    }
+  }, [isLoading, user, router]);
 
   const checkProfileCompleteness = (profile: UserProfile | null | undefined): { complete: boolean, reason: string } => {
     if (!profile) return { complete: false, reason: 'Profile data could not be loaded.' };
@@ -87,16 +96,9 @@ export default function TravelerDashboard() {
     }
   };
 
-  const isLoading = isUserLoading || isProfileLoading;
-
-  if (isLoading) {
+  // Render skeleton while loading or before redirecting
+  if (isLoading || !user) {
     return <DashboardSkeleton />;
-  }
-
-  // Redirect unauthenticated users
-  if (!user) {
-    router.replace('/login');
-    return <DashboardSkeleton />; // Render skeleton while redirecting
   }
   
   // This can happen briefly between auth load and profile load
