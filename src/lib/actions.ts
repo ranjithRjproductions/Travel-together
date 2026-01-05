@@ -80,7 +80,7 @@ export async function login(idToken: string) {
     
     if (decoded.role === 'Guide') {
       redirectUrl = '/guide/dashboard';
-    } else if (decoded.role === 'Admin') {
+    } else if (decoded.isAdmin) {
        redirectUrl = '/admin';
     }
 
@@ -100,11 +100,9 @@ export async function login(idToken: string) {
 
   } catch (error: any) {
     console.error('Login session error:', error);
-    // Re-throw the error to be caught by the client form
     throw new Error(error.message || 'Failed to create session.');
   }
   
-  // This redirect now happens outside the try...catch block
   redirect(redirectUrl);
 }
 
@@ -114,24 +112,28 @@ export async function login(idToken: string) {
 /* -------------------------------------------------------------------------- */
 
 export async function logout() {
-  const session = cookies().get('session')?.value;
-
+  const sessionCookie = cookies().get('session')?.value;
+  
+  // 1. Clear the session cookie
   cookies().set({
     name: 'session',
     value: '',
     maxAge: 0,
     path: '/',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
   });
 
-  if (session) {
+  // 2. Invalidate the session on Firebase
+  if (sessionCookie) {
     try {
-      const decoded = await adminAuth.verifySessionCookie(session, true);
-      await adminAuth.revokeRefreshTokens(decoded.uid);
-    } catch {}
+      const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+      await adminAuth.revokeRefreshTokens(decodedClaims.sub);
+    } catch (error) {
+      // The session cookie is invalid or expired.
+      // This is an expected error and can be ignored.
+    }
   }
 
+  // 3. Redirect to the homepage
   redirect('/');
 }
 
