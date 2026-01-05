@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import admin from 'firebase-admin';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { getAdminServices } from '@/lib/firebase-admin';
 import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
@@ -27,10 +27,9 @@ export async function signup(_: any, formData: FormData) {
   }
 
   const { uid, name, email, role } = parsed.data;
+  const { adminDb, adminAuth } = getAdminServices();
 
   try {
-    // This server action is still problematic and should be moved to an API route.
-    // For now, we are focusing on the login flow.
     const userPayload: any = {
       id: uid,
       name,
@@ -80,6 +79,7 @@ export async function logoutAction() {
 /* OTHER ACTIONS (UNCHANGED)                                                  */
 /* -------------------------------------------------------------------------- */
 export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected') {
+    const { adminAuth, adminDb } = getAdminServices();
     try {
         const session = cookies().get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
@@ -101,6 +101,7 @@ export async function updateGuideStatus(guideId: string, status: 'active' | 'rej
 
 
 export async function deleteTravelerAccount(travelerId: string) {
+    const { adminAuth, adminDb } = getAdminServices();
     try {
         const session = cookies().get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
@@ -125,6 +126,7 @@ export async function deleteTravelerAccount(travelerId: string) {
 }
 
 export async function deleteGuideAccount(guideId: string) {
+    const { adminAuth, adminDb } = getAdminServices();
     try {
         const session = cookies().get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
@@ -147,6 +149,7 @@ export async function deleteGuideAccount(guideId: string) {
 }
 
 export async function deleteTravelerProfileInfo(travelerId: string) {
+    const { adminAuth, adminDb } = getAdminServices();
     try {
         const session = cookies().get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
@@ -169,6 +172,7 @@ export async function deleteTravelerProfileInfo(travelerId: string) {
 }
 
 export async function deleteTravelRequest(requestId: string) {
+    const { adminAuth, adminDb } = getAdminServices();
     try {
         const session = cookies().get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
@@ -214,6 +218,7 @@ export async function submitTravelRequest(
   requestId: string,
   guideId?: string
 ) {
+  const { adminAuth, adminDb } = getAdminServices();
   try {
     const session = cookies().get('session')?.value;
     if (!session) throw new Error('Unauthenticated');
@@ -274,6 +279,7 @@ export async function respondToTravelRequest(
     requestId: string,
     response: 'confirmed' | 'declined'
 ) {
+  const { adminAuth, adminDb } = getAdminServices();
   try {
     const session = cookies().get('session')?.value;
     if (!session) throw new Error('Unauthenticated');
