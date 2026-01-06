@@ -42,6 +42,7 @@ export default function CreateRequestFormPage() {
   
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminStatusChecked, setIsAdminStatusChecked] = useState(false);
 
   // IMPORTANT: Only create a doc ref if the requestId is not 'new'
   const requestDocRef = useMemo(() => {
@@ -103,7 +104,7 @@ export default function CreateRequestFormPage() {
   }, [isNew, authUser, firestore, router, toast]);
   
   useEffect(() => {
-    if (isAuthLoading || isRequestLoading || isNew) return;
+    if (isAuthLoading || isNew) return;
 
     if (!authUser) {
       router.replace('/login');
@@ -116,58 +117,63 @@ export default function CreateRequestFormPage() {
       const adminDocRef = doc(firestore, 'roles_admin', authUser.uid);
       const adminDoc = await getDoc(adminDocRef);
       setIsAdmin(adminDoc.exists());
+      setIsAdminStatusChecked(true); // Mark admin status as checked
     };
     checkAdminStatus();
     
-    if (requestError) {
-      toast({ title: "Error", description: "Could not load the request.", variant: "destructive" });
-      router.replace('/traveler/dashboard');
-      return;
-    }
+  }, [isAuthLoading, authUser, router, isNew, firestore]);
+  
+  useEffect(() => {
+      if (isNew || isRequestLoading || !isAdminStatusChecked) return;
 
-    if (hasLoadedOnce && !request) {
-      router.push('/traveler/dashboard');
-      return;
-    }
-    
-    if (!request) return;
-    
-    setHasLoadedOnce(true);
-
-    if (request.travelerId !== authUser.uid && !isAdmin) {
-        toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
+      if (requestError) {
+        toast({ title: "Error", description: "Could not load the request.", variant: "destructive" });
         router.replace('/traveler/dashboard');
         return;
-    }
+      }
 
-    // If not a draft, we don't need to determine editing states.
-    if (request.status !== 'draft') return;
+      if (hasLoadedOnce && !request) {
+        router.push('/traveler/dashboard');
+        return;
+      }
+      
+      if (!request || !authUser) return;
+      
+      setHasLoadedOnce(true);
 
+      if (request.travelerId !== authUser.uid && !isAdmin) {
+          toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
+          router.replace('/traveler/dashboard');
+          return;
+      }
 
-    setIsEditingStep1(!request.step1Complete);
-    setIsEditingStep2(!request.step2Complete && !!request.step1Complete);
-    setIsEditingStep3(!request.step3Complete && !!request.step2Complete);
-    setIsEditingStep4(!request.step4Complete && !!request.step3Complete);
+      // If not a draft, we don't need to determine editing states.
+      if (request.status !== 'draft') return;
 
-    if (request.step4Complete) {
-      setCurrentTab('step-5');
-    } else if (request.step3Complete) {
-      setCurrentTab('step-4');
-    } else if (request.step2Complete) {
-      setCurrentTab('step-3');
-    } else if (request.step1Complete) {
-      setCurrentTab('step-2');
-    } else {
-      setCurrentTab('step-1');
-    }
-  }, [isAuthLoading, isRequestLoading, authUser, request, requestError, router, toast, hasLoadedOnce, isNew, firestore, isAdmin]);
+      setIsEditingStep1(!request.step1Complete);
+      setIsEditingStep2(!request.step2Complete && !!request.step1Complete);
+      setIsEditingStep3(!request.step3Complete && !!request.step2Complete);
+      setIsEditingStep4(!request.step4Complete && !!request.step3Complete);
+
+      if (request.step4Complete) {
+        setCurrentTab('step-5');
+      } else if (request.step3Complete) {
+        setCurrentTab('step-4');
+      } else if (request.step2Complete) {
+        setCurrentTab('step-3');
+      } else if (request.step1Complete) {
+        setCurrentTab('step-2');
+      } else {
+        setCurrentTab('step-1');
+      }
+  }, [isRequestLoading, isAdminStatusChecked, authUser, request, requestError, router, toast, hasLoadedOnce, isNew, isAdmin]);
 
 
   const handleSave = () => {
     // The useDoc hook will trigger a re-render with the updated request data
   };
 
-  const isLoading = isAuthLoading || isRequestLoading || isTravelerDataLoading || isNew || !hasLoadedOnce;
+  const isLoading = isAuthLoading || isRequestLoading || isTravelerDataLoading || isNew || !hasLoadedOnce || !isAdminStatusChecked;
   
   if (isLoading) {
     return (
