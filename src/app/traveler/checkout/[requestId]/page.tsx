@@ -106,7 +106,7 @@ export default function CheckoutPage() {
 
         const options = {
             key,
-            amount: Number(amount), // Ensure amount is a number
+            amount: Number(amount),
             currency,
             name: "Let's Travel Together",
             description: `Payment for Booking`,
@@ -114,7 +114,7 @@ export default function CheckoutPage() {
             handler: function (response: any) {
                 toast({
                     title: "Payment Submitted!",
-                    description: "Your booking is being confirmed. Redirecting...",
+                    description: "Your booking is being confirmed. You will be redirected shortly.",
                 });
                 router.push('/traveler/my-bookings');
             },

@@ -145,17 +145,14 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
 
         const request = requestSnap.data() as TravelRequest;
         
-        // Safeguard: refuse if status is not 'confirmed'
         if (request.status !== 'confirmed') {
             return { success: false, message: 'This request is not ready for payment.' };
         }
 
-        // Safeguard: refuse if order already created
         if (request.razorpayOrderId) {
             return { success: false, message: 'A payment order already exists for this request.' };
         }
 
-        // Use the same server-side cost calculation
         const amountInRupees = calculateCostOnServer(request);
         if (amountInRupees <= 0) {
             throw new Error('Calculated amount must be positive.');
@@ -179,7 +176,6 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
 
         const order = await razorpay.orders.create(options);
 
-        // Atomically update the travel request with payment details
         await requestRef.update({
             razorpayOrderId: order.id,
             status: 'payment-pending',
