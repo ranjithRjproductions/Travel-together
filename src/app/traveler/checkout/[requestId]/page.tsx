@@ -92,23 +92,14 @@ export default function CheckoutPage() {
             name: "Let's Travel Together",
             description: `Payment for Request ID: ${request.id}`,
             image: "/logo.png",
-            handler: async function (response: any) {
-                // This is the temporary, insecure client-side update for local testing.
-                try {
-                    await updateDoc(requestDocRef, { status: 'paid' });
-                    toast({
-                        title: "Payment Successful!",
-                        description: "Your booking is confirmed. Redirecting...",
-                    });
-                    router.push('/traveler/my-bookings');
-                } catch (error) {
-                    console.error("Error updating document status:", error);
-                    toast({
-                        variant: "destructive",
-                        title: "Update Failed",
-                        description: "Payment was successful but we couldn't update your booking status. Please contact support.",
-                    });
-                }
+            handler: function (response: any) {
+                // The webhook will handle the Firestore update.
+                // We just need to inform the user and redirect.
+                toast({
+                    title: "Payment Submitted!",
+                    description: "Your booking is being confirmed. Redirecting...",
+                });
+                router.push('/traveler/my-bookings');
             },
             prefill: {
                 name: user.displayName || "Traveler",
