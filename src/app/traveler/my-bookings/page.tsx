@@ -161,14 +161,14 @@ function UpcomingRequestList({
                             </p>
                         </div>
                          <div className="flex items-center gap-4">
-                            {request.status === 'confirmed' || request.status === 'payment-pending' ? (
+                            {request.status === 'confirmed' ? (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
                                       <CreditCard className="mr-2 h-4 w-4"/>
                                       Pay Now (₹{request.estimatedCost?.toFixed(2)})
                                     </Link>
                                 </Button>
-                            ) : (
+                            ) : request.status === 'paid' ? (
                                <div className="text-right">
                                     <Badge variant="default" className="bg-green-600 mb-2">Paid & Confirmed</Badge>
                                     {request.tripPin && (
@@ -179,6 +179,8 @@ function UpcomingRequestList({
                                         </div>
                                     )}
                                </div>
+                            ) : (
+                               <Badge variant="secondary" className="bg-amber-500 text-white">Payment Pending</Badge>
                             )}
                         </div>
                     </CardContent>
