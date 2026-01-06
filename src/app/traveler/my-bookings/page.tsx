@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, KeyRound, CreditCard } from 'lucide-react';
+import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, KeyRound, CreditCard, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
@@ -168,6 +169,11 @@ function UpcomingRequestList({
                                       Pay Now (₹{request.estimatedCost?.toFixed(2)})
                                     </Link>
                                 </Button>
+                            ) : request.status === 'payment-pending' ? (
+                                <Button disabled variant="secondary">
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Processing Payment...
+                                </Button>
                             ) : request.status === 'paid' ? (
                                <div className="text-right">
                                     <Badge variant="default" className="bg-green-600 mb-2">Paid & Confirmed</Badge>
@@ -180,7 +186,7 @@ function UpcomingRequestList({
                                     )}
                                </div>
                             ) : (
-                               <Badge variant="secondary" className="bg-amber-500 text-white">Payment Pending</Badge>
+                               <Badge variant="secondary">{request.status}</Badge>
                             )}
                         </div>
                     </CardContent>
