@@ -167,10 +167,8 @@ export function LoginForm() {
       
       if (data.success) {
         let redirectUrl = '/traveler/dashboard';
-        if(data.isAdmin) {
-          redirectUrl = '/admin'
-        } else if (data.role === 'Guide') {
-            redirectUrl = '/guide/dashboard';
+        if (data.role === 'Guide') {
+          redirectUrl = '/guide/dashboard';
         }
         router.push(redirectUrl);
       } else {
