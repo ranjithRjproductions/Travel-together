@@ -37,8 +37,9 @@ interface FirestoreTimestamp {
 }
 
 // Update TravelRequest to expect the server-side timestamp
-type ServerTravelRequest = Omit<TravelRequest, 'createdAt'> & {
+type ServerTravelRequest = Omit<TravelRequest, 'createdAt' | 'paidAt'> & {
   createdAt: FirestoreTimestamp | string; // Can be either on the server
+  paidAt?: FirestoreTimestamp | string;
 };
 
 
@@ -152,16 +153,31 @@ function ProfileSection({ user }: { user: User & { uid: string } }) {
     );
 }
 
-function getRequestStatusBadge(status: TravelRequest['status']) {
+function getRequestStatusBadge(request: ServerTravelRequest) {
+    const { status, paidAt } = request;
+
+    if (status === 'confirmed' && paidAt) {
+        return <Badge className="bg-green-600 hover:bg-green-700 text-white">Paid</Badge>;
+    }
+    if (status === 'payment-pending') {
+        return <Badge variant="secondary" className="bg-amber-500 text-white">Payment Pending</Badge>;
+    }
+
     const variants = {
         draft: 'outline',
         pending: 'secondary',
+        'guide-selected': 'secondary',
         confirmed: 'default',
         completed: 'outline',
         cancelled: 'destructive'
     } as const;
-    return <Badge variant={variants[status]} className="capitalize">{status.replace('-', ' ')}</Badge>;
+    
+    const statusText = status.replace(/-/g, ' ');
+    const variant = variants[status as keyof typeof variants] || 'secondary';
+
+    return <Badge variant={variant} className="capitalize">{statusText}</Badge>;
 }
+
 
 const getRequestTitle = (request: ServerTravelRequest): string => {
     const { purposeData } = request;
@@ -201,7 +217,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        {getRequestStatusBadge(request.status)}
+                                        {getRequestStatusBadge(request)}
                                         <Button asChild size="sm" variant="outline">
                                             <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
                                         </Button>
