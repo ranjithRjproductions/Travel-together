@@ -85,8 +85,8 @@ export default function CheckoutPage() {
             return;
         }
         
-        const amount = Number(request.estimatedCost);
-        if (isNaN(amount) || amount <= 0) {
+        const amountInRupees = Number(request.estimatedCost);
+        if (isNaN(amountInRupees) || amountInRupees <= 0) {
              toast({
                 variant: "destructive",
                 title: "Invalid Amount",
@@ -94,10 +94,12 @@ export default function CheckoutPage() {
             });
             return;
         }
+        
+        const amountInPaise = amountInRupees * 100;
 
         const options = {
             key: razorpayKeyId,
-            amount: amount * 100, // Amount is in paise
+            amount: amountInPaise,
             currency: "INR",
             name: "Let's Travel Together",
             description: `Payment for Request ID: ${request.id}`,
