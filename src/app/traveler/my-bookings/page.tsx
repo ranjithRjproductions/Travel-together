@@ -219,7 +219,6 @@ export default function MyBookingsPage() {
 
   const upcomingRequestsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    // Listen for confirmed (unpaid and paid) and payment-pending
     return query(
       collection(firestore, 'travelRequests'),
       where('travelerId', '==', user.uid),

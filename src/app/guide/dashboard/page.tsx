@@ -130,12 +130,12 @@ function IncomingRequests() {
   );
 }
 
-function RequestTravelerInfo({ travelerData, status }: { travelerData: Partial<UserProfile> | undefined, status: TravelRequest['status'] }) {
+function RequestTravelerInfo({ travelerData, status, paidAt }: { travelerData: Partial<UserProfile> | undefined, status: TravelRequest['status'], paidAt: any }) {
     if (!travelerData) {
         return <Skeleton className="h-10 w-32" />;
     }
 
-    if (status === 'confirmed') {
+    if (status === 'confirmed' && !paidAt) {
         return (
             <div className="text-right">
                  <div className="flex items-center justify-end gap-2 text-amber-600">
@@ -147,7 +147,7 @@ function RequestTravelerInfo({ travelerData, status }: { travelerData: Partial<U
         );
     }
     
-    if (status === 'paid') {
+    if (status === 'confirmed' && paidAt) {
         const initials = travelerData.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
         return (
             <div>
@@ -179,7 +179,7 @@ function ConfirmedRequests() {
     return query(
       collection(firestore, 'travelRequests'),
       where('guideId', '==', user.uid),
-      where('status', 'in', ['confirmed', 'paid'])
+      where('status', '==', 'confirmed')
     );
   }, [user, firestore]);
 
@@ -226,7 +226,7 @@ function ConfirmedRequests() {
                       </div>
                   </div>
                   <div className="sm:text-right">
-                      <RequestTravelerInfo travelerData={request.travelerData} status={request.status} />
+                      <RequestTravelerInfo travelerData={request.travelerData} status={request.status} paidAt={request.paidAt} />
                   </div>
               </CardContent>
           </Card>
