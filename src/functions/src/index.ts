@@ -145,8 +145,9 @@ export const travelRequestStatusUpdate = functions.firestore
     
     // Case 4: Traveler pays for the request. Notify Traveler.
     if (
-      newValue.status === "paid" &&
-      previousValue.status === "payment-pending" &&
+      newValue.status === "confirmed" &&
+      (previousValue.status === "payment-pending") &&
+      (newValue as any).tripPin && // This is the key change - only send email when PIN is generated
       !newValue.emailNotified?.travelerPaid // Idempotency check
     ) {
         // No push notification, just email confirmation
@@ -233,7 +234,6 @@ export const processRazorpayEvent = functions.firestore
     const event = snap.data();
     const eventId = context.params.eventId;
     
-    // ✅ FIX 1: Allow multiple success event types from Razorpay
     const allowedEvents = ["order.paid", "payment.captured"];
     if (!allowedEvents.includes(event.event)) {
       console.log(`[Processor] Ignoring event '${event.event}' (${eventId}).`);
@@ -266,8 +266,8 @@ export const processRazorpayEvent = functions.firestore
             const request = requestSnap.data() as TravelRequest;
 
             // --- Validation Checks ---
-            if (request.status === "paid") {
-              console.log(`[Processor] Request ${requestId} is already marked as paid. Ignoring duplicate processing.`);
+            if (request.status === "confirmed" && (request as any).tripPin) {
+              console.log(`[Processor] Request ${requestId} is already finalized (has Trip PIN). Ignoring duplicate processing.`);
               return;
             }
             if (request.status !== "payment-pending") {
@@ -277,7 +277,6 @@ export const processRazorpayEvent = functions.firestore
               throw new Error(`Razorpay Order ID mismatch for request ${requestId}.`);
             }
             
-            // ✅ FIX 2: Normalize amounts before comparison
             const expected = Number(request.paymentDetails?.expectedAmount);
             const received = Number(receivedAmount);
             
@@ -292,14 +291,14 @@ export const processRazorpayEvent = functions.firestore
             const tripPin = Math.floor(1000 + Math.random() * 9000).toString();
             
             transaction.update(requestRef, {
-                status: "paid",
+                status: "confirmed", // Move to the final 'confirmed' state
                 paidAt: admin.firestore.FieldValue.serverTimestamp(),
-                tripPin,
+                tripPin, // Add the Trip PIN to signify payment completion
                 'paymentDetails.razorpayPaymentId': payment.id,
                 'paymentDetails.processedEventId': eventId,
             });
 
-            console.log(`[Processor] Successfully processed payment for request ${requestId}.`);
+            console.log(`[Processor] Successfully processed payment for request ${requestId}. Status set to confirmed with Trip PIN.`);
         });
     } catch (error: any) {
         console.error(`[Processor Transaction Error] for event ${eventId}:`, error);

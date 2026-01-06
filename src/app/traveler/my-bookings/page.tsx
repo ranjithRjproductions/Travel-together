@@ -162,31 +162,34 @@ function UpcomingRequestList({
                             </p>
                         </div>
                          <div className="flex items-center gap-4">
-                            {request.status === 'confirmed' ? (
+                            {/* If status is confirmed AND there is no Trip PIN, it means it's ready for payment */}
+                            {request.status === 'confirmed' && !request.tripPin && (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
                                       <CreditCard className="mr-2 h-4 w-4"/>
                                       Pay Now (₹{request.estimatedCost?.toFixed(2)})
                                     </Link>
                                 </Button>
-                            ) : request.status === 'payment-pending' ? (
+                            )}
+
+                            {/* If status is payment-pending, show processing state */}
+                            {request.status === 'payment-pending' && (
                                 <Button disabled variant="secondary">
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Processing Payment...
                                 </Button>
-                            ) : request.status === 'paid' ? (
+                            )}
+
+                            {/* If status is confirmed AND there is a Trip PIN, it's paid and finalized */}
+                            {request.status === 'confirmed' && request.tripPin && (
                                <div className="text-right">
                                     <Badge variant="default" className="bg-green-600 mb-2">Paid & Confirmed</Badge>
-                                    {request.tripPin && (
-                                        <div className="flex items-center justify-end gap-2 text-sm">
-                                            <KeyRound className="h-4 w-4 text-muted-foreground" />
-                                            <span>Your Trip PIN:</span>
-                                            <span className="font-bold text-lg tracking-wider">{request.tripPin}</span>
-                                        </div>
-                                    )}
+                                    <div className="flex items-center justify-end gap-2 text-sm">
+                                        <KeyRound className="h-4 w-4 text-muted-foreground" />
+                                        <span>Your Trip PIN:</span>
+                                        <span className="font-bold text-lg tracking-wider">{request.tripPin}</span>
+                                    </div>
                                </div>
-                            ) : (
-                               <Badge variant="secondary">{request.status}</Badge>
                             )}
                         </div>
                     </CardContent>
@@ -223,7 +226,7 @@ export default function MyBookingsPage() {
     return query(
       collection(firestore, 'travelRequests'),
       where('travelerId', '==', user.uid),
-      where('status', 'in', ['confirmed', 'paid', 'payment-pending'])
+      where('status', 'in', ['confirmed', 'payment-pending']) // Listen for confirmed and payment-pending
     );
   }, [user, firestore]);
 
