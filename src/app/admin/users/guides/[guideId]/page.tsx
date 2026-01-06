@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { getAdminDb } from '@/lib/firebase-admin';
@@ -118,9 +117,9 @@ function Section({ title, icon: Icon, children }: { title: string, icon: React.E
 }
 
 function getRequestStatusBadge(request: ServerTravelRequest) {
-    const { status, paidAt } = request;
+    const { status } = request;
 
-    if (status === 'confirmed' && paidAt) {
+    if (status === 'paid') {
         return <Badge className="bg-green-600 hover:bg-green-700 text-white">Paid</Badge>;
     }
     if (status === 'payment-pending') {

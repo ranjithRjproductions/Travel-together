@@ -145,8 +145,8 @@ export const travelRequestStatusUpdate = functions.firestore
     
     // Case 4: Traveler pays for the request. Notify Traveler.
     if (
-      newValue.status === "confirmed" &&
-      (previousValue.status === "payment-pending") &&
+      newValue.status === "paid" &&
+      previousValue.status === "payment-pending" &&
       !newValue.emailNotified?.travelerPaid // Idempotency check
     ) {
         // No push notification, just email confirmation
@@ -264,8 +264,8 @@ export const processRazorpayEvent = functions.firestore
             const request = requestSnap.data() as TravelRequest;
 
             // --- Validation Checks ---
-            if (request.status === "confirmed" && (request as any).paidAt) {
-              console.log(`[Processor] Request ${requestId} is already finalized (has paidAt timestamp). Ignoring duplicate processing.`);
+            if (request.status === "paid") {
+              console.log(`[Processor] Request ${requestId} is already marked as paid. Ignoring duplicate processing.`);
               return;
             }
             if (request.status !== "payment-pending") {
@@ -287,13 +287,13 @@ export const processRazorpayEvent = functions.firestore
 
             // --- All checks passed, update document ---
             transaction.update(requestRef, {
-                status: "confirmed",
+                status: "paid",
                 paidAt: admin.firestore.FieldValue.serverTimestamp(),
                 'paymentDetails.razorpayPaymentId': payment.id,
                 'paymentDetails.processedEventId': eventId,
             });
 
-            console.log(`[Processor] Successfully processed payment for request ${requestId}. Status set to confirmed.`);
+            console.log(`[Processor] Successfully processed payment for request ${requestId}. Status set to paid.`);
         });
     } catch (error: any) {
         console.error(`[Processor Transaction Error] for event ${eventId}:`, error);

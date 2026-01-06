@@ -163,7 +163,7 @@ function UpcomingRequestList({
                         </div>
                          <div className="flex items-center gap-4">
                             {/* Case 1: Confirmed but not paid */}
-                            {request.status === 'confirmed' && !request.paidAt && (
+                            {request.status === 'confirmed' && (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
                                       <CreditCard className="mr-2 h-4 w-4"/>
@@ -178,8 +178,8 @@ function UpcomingRequestList({
                                     Processing Payment...
                                 </Button>
                             )}
-                            {/* Case 3: Confirmed and paid */}
-                            {request.status === 'confirmed' && request.paidAt && (
+                            {/* Case 3: Paid */}
+                            {request.status === 'paid' && (
                                <div className="text-right">
                                     <Badge variant="default" className="bg-green-600 mb-2 flex items-center">
                                        <CheckCircle className="mr-1 h-3 w-3"/> Paid & Confirmed
@@ -222,7 +222,7 @@ export default function MyBookingsPage() {
     return query(
       collection(firestore, 'travelRequests'),
       where('travelerId', '==', user.uid),
-      where('status', 'in', ['confirmed', 'payment-pending'])
+      where('status', 'in', ['confirmed', 'payment-pending', 'paid'])
     );
   }, [user, firestore]);
 

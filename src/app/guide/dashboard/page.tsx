@@ -135,7 +135,7 @@ function RequestTravelerInfo({ travelerData, status, paidAt }: { travelerData: P
         return <Skeleton className="h-10 w-32" />;
     }
 
-    if (status === 'confirmed' && !paidAt) {
+    if (status === 'confirmed') {
         return (
             <div className="text-right">
                  <div className="flex items-center justify-end gap-2 text-amber-600">
@@ -147,7 +147,7 @@ function RequestTravelerInfo({ travelerData, status, paidAt }: { travelerData: P
         );
     }
     
-    if (status === 'confirmed' && paidAt) {
+    if (status === 'paid') {
         const initials = travelerData.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
         return (
             <div>
@@ -187,7 +187,7 @@ function ConfirmedRequests() {
     return query(
       collection(firestore, 'travelRequests'),
       where('guideId', '==', user.uid),
-      where('status', 'in', ['confirmed', 'payment-pending'])
+      where('status', 'in', ['confirmed', 'payment-pending', 'paid'])
     );
   }, [user, firestore]);
 
