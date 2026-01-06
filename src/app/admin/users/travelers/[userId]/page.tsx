@@ -14,6 +14,7 @@ import { ArrowLeft, User as UserIcon, Phone, MapPin, Accessibility, Calendar, Vi
 import { format } from 'date-fns';
 import { DeleteProfileInfoButton } from './delete-profile-info-button';
 import { DeleteRequestButton } from './delete-request-button';
+import { DeleteDraftsButton } from './delete-drafts-button';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
 
@@ -216,7 +217,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
     );
 }
 
-function DangerZoneSection({ userId }: { userId: string }) {
+function DangerZoneSection({ travelerId }: { travelerId: string }) {
     return (
         <Card className="border-destructive">
             <CardHeader>
@@ -225,10 +226,10 @@ function DangerZoneSection({ userId }: { userId: string }) {
             <CardContent className="space-y-4">
                 <div className="flex justify-between items-center p-4 border border-dashed rounded-lg">
                     <div>
-                        <h4 className="font-semibold">Delete Travel Requests</h4>
-                        <p className="text-sm text-muted-foreground">Permanently delete all of this user's travel requests.</p>
+                        <h4 className="font-semibold">Delete All Drafts</h4>
+                        <p className="text-sm text-muted-foreground">Permanently delete all of this user's draft travel requests.</p>
                     </div>
-                    <Button variant="destructive" disabled>Delete Requests</Button>
+                    <DeleteDraftsButton travelerId={travelerId} />
                 </div>
             </CardContent>
         </Card>
@@ -256,8 +257,7 @@ export default async function TravelerDetailPage({ params }: { params: { userId:
 
         <ProfileSection user={user} />
         <RequestsSection requests={requests} />
+        <DangerZoneSection travelerId={user.uid} />
     </div>
   );
 }
-
-    

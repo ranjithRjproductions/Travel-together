@@ -316,6 +316,38 @@ export async function deleteTravelRequest(requestId: string) {
     }
 }
 
+export async function deleteDraftRequestsForTraveler(travelerId: string) {
+    const { adminAuth, adminDb } = getAdminServices();
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        const decoded = await adminAuth.verifySessionCookie(session, true);
+        const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
+        if (!adminDoc.exists) throw new Error('Unauthorized');
+        
+        const draftsQuery = adminDb.collection('travelRequests')
+            .where('travelerId', '==', travelerId)
+            .where('status', '==', 'draft');
+            
+        const draftsSnapshot = await draftsQuery.get();
+        if (draftsSnapshot.empty) {
+            return { success: true, message: 'No draft requests to delete.' };
+        }
+
+        const batch = adminDb.batch();
+        draftsSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        revalidatePath(`/admin/users/travelers/${travelerId}`);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, message: error.message || 'Failed to delete draft requests.' };
+    }
+}
+
+
 export async function submitTravelRequest(
   requestId: string,
   guideId?: string
