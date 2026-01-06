@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -7,10 +6,12 @@ import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { type TravelRequest } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, CreditCard, MapPin } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ArrowLeft, CreditCard, User, Calendar, Clock, MapPin, University, Hospital, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -29,24 +30,41 @@ function CheckoutPageSkeleton() {
                     <Skeleton className="h-4 w-1/2" />
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="space-y-2">
+                     <div className="space-y-4">
+                        <Skeleton className="h-5 w-1/3" />
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </div>
+                     <div className="space-y-4">
                         <Skeleton className="h-5 w-1/3" />
                         <Skeleton className="h-4 w-2/3" />
                     </div>
-                     <div className="space-y-2">
-                        <Skeleton className="h-5 w-1/3" />
-                        <Skeleton className="h-4 w-2/3" />
+                    <div className="text-right space-y-2 pt-4">
+                         <Skeleton className="h-5 w-24 ml-auto" />
+                         <Skeleton className="h-10 w-32 ml-auto" />
                     </div>
-                    <div className="text-center space-y-2 pt-4">
-                         <Skeleton className="h-5 w-24 mx-auto" />
-                         <Skeleton className="h-10 w-32 mx-auto" />
-                    </div>
-                    <Skeleton className="h-12 w-full mt-4" />
                 </CardContent>
+                 <CardFooter>
+                    <Skeleton className="h-12 w-full" />
+                </CardFooter>
             </Card>
         </div>
     );
 }
+
+const InfoRow = ({ label, value, icon: Icon }: { label: string, value?: React.ReactNode, icon?: React.ElementType }) => {
+    if (!value) return null;
+    return (
+        <div className="flex items-start">
+            {Icon && <Icon className="h-4 w-4 text-muted-foreground mr-3 mt-1 flex-shrink-0" />}
+            <div className="flex-grow">
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="font-medium">{value}</p>
+            </div>
+        </div>
+    );
+};
+
 
 export default function CheckoutPage() {
     const params = useParams();
@@ -150,31 +168,12 @@ export default function CheckoutPage() {
         return title;
     };
     
-    const getLocationInfo = (request: TravelRequest) => {
-        const { purposeData } = request;
-        if (!purposeData) return null;
-
-        switch (purposeData.purpose) {
-        case 'education':
-            return { name: purposeData.subPurposeData?.collegeName, district: purposeData.subPurposeData?.collegeAddress?.district };
-        case 'hospital':
-            return { name: purposeData.subPurposeData?.hospitalName, district: purposeData.subPurposeData?.hospitalAddress?.district };
-        case 'shopping':
-            if (purposeData.subPurposeData?.shopType === 'particular') {
-                return { name: purposeData.subPurposeData?.shopName, district: purposeData.subPurposeData?.shopAddress?.district };
-            }
-            return { name: purposeData.subPurposeData?.shoppingArea?.area, district: purposeData.subPurposeData?.shoppingArea?.district };
-        default:
-            return null;
-        }
-    };
-
-    const locationInfo = getLocationInfo(request);
+    const PurposeIcon = request.purposeData?.purpose === 'education' ? University : request.purposeData?.purpose === 'hospital' ? Hospital : ShoppingCart;
 
     return (
         <div className="max-w-2xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-                 <h1 className="font-headline text-3xl font-bold">Checkout</h1>
+                 <h1 className="font-headline text-3xl font-bold">Payment Invoice</h1>
                  <Button variant="outline" onClick={() => router.push('/traveler/my-bookings')}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Bookings
@@ -183,44 +182,63 @@ export default function CheckoutPage() {
 
             <Card>
                  <CardHeader>
-                    <CardTitle>{getRequestTitle(request)}</CardTitle>
+                    <CardTitle className="flex items-center gap-3">
+                        <PurposeIcon className="h-6 w-6 text-primary" />
+                        {getRequestTitle(request)}
+                    </CardTitle>
                     <CardDescription>
-                         for {request.requestedDate ? format(new Date(request.requestedDate), 'PPP') : 'N/A'}
+                         Invoice for booking confirmed on {request.acceptedAt ? format(request.acceptedAt.toDate(), 'PPP') : 'N/A'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {locationInfo && (
-                         <div className="space-y-2">
-                            <p className="text-sm font-medium text-muted-foreground flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</p>
-                            <p className="font-semibold">{locationInfo.name}, {locationInfo.district}</p>
+                    <div className="grid sm:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold">Guide Details</h3>
+                            <InfoRow label="Guide Name" value={request.guideData?.name} icon={User} />
                         </div>
-                    )}
-                    <div className="space-y-2">
-                        <p className="text-sm font-medium text-muted-foreground">Guide</p>
-                        <p className="font-semibold">{request.guideData?.name || 'Guide not assigned'}</p>
-                    </div>
-                    <div className="space-y-2">
-                        <p className="text-sm font-medium text-muted-foreground">Time</p>
-                        <p>{request.startTime} - {request.endTime}</p>
+                        <div className="space-y-4">
+                             <h3 className="font-semibold">Service Details</h3>
+                            <InfoRow label="Date" value={request.requestedDate ? format(new Date(request.requestedDate), 'PPPP') : 'N/A'} icon={Calendar}/>
+                            <InfoRow label="Time" value={`${request.startTime} - ${request.endTime}`} icon={Clock} />
+                        </div>
                     </div>
 
-                    <div className="text-center border-t pt-6">
-                        <p className="text-muted-foreground">Amount to Pay</p>
-                        <p className="text-4xl font-bold">₹{(request.estimatedCost || 0).toFixed(2)}</p>
-                    </div>
+                    <Separator />
 
-                    <Alert>
-                        <CreditCard className="h-4 w-4" />
-                        <AlertTitle>Secure Payment</AlertTitle>
+                    <div>
+                        <h3 className="font-semibold mb-4">Cost Breakdown</h3>
+                        <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+                             <div className="flex justify-between items-center">
+                                <span>Guide Service Fee</span>
+                                <span className="font-semibold">₹{(request.estimatedCost || 0).toFixed(2)}</span>
+                            </div>
+                             <div className="flex justify-between items-center text-sm text-muted-foreground">
+                                <span>Taxes & Platform Fees</span>
+                                <span className="font-semibold">₹0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <Separator />
+
+                    <div className="flex justify-end items-center text-right">
+                         <div>
+                            <p className="text-muted-foreground">Total Amount Due</p>
+                            <p className="text-2xl font-bold">₹{(request.estimatedCost || 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex-col gap-4">
+                     <Button size="lg" className="w-full" onClick={handlePayment}>
+                        <CreditCard className="mr-2 h-5 w-5" />
+                        Pay ₹{(request.estimatedCost || 0).toFixed(2)} Securely
+                    </Button>
+                     <Alert variant="default" className="text-center">
                         <AlertDescription>
-                            You will be redirected to Razorpay to complete your payment securely.
+                            You will be redirected to Razorpay to complete your payment. All transactions are secure and encrypted.
                         </AlertDescription>
                     </Alert>
-
-                     <Button size="lg" className="w-full" onClick={handlePayment}>
-                        Proceed to Payment
-                    </Button>
-                </CardContent>
+                </CardFooter>
             </Card>
         </div>
     )

@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, KeyRound } from 'lucide-react';
+import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, KeyRound, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
@@ -164,7 +163,10 @@ function UpcomingRequestList({
                          <div className="flex items-center gap-4">
                             {request.status === 'confirmed' ? (
                                 <Button asChild>
-                                    <Link href={`/traveler/checkout/${request.id}`}>Pay Now (₹{request.estimatedCost?.toFixed(2)})</Link>
+                                    <Link href={`/traveler/checkout/${request.id}`}>
+                                      <CreditCard className="mr-2 h-4 w-4"/>
+                                      Pay Now (₹{request.estimatedCost?.toFixed(2)})
+                                    </Link>
                                 </Button>
                             ) : (
                                <div className="text-right">
