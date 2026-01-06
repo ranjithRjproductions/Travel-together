@@ -40,6 +40,7 @@ interface TravelRequest {
     expectedAmount?: number;
     currency?: string;
   };
+  razorpayOrderId?: string;
 }
 
 // Helper function to send an email
@@ -145,7 +146,7 @@ export const travelRequestStatusUpdate = functions.firestore
     // Case 4: Traveler pays for the request. Notify Traveler.
     if (
       newValue.status === "paid" &&
-      previousValue.status === "confirmed" &&
+      previousValue.status === "payment-pending" &&
       !newValue.emailNotified?.travelerPaid // Idempotency check
     ) {
         // No push notification, just email confirmation

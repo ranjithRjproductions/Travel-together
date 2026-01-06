@@ -161,7 +161,7 @@ function UpcomingRequestList({
                             </p>
                         </div>
                          <div className="flex items-center gap-4">
-                            {request.status === 'confirmed' ? (
+                            {request.status === 'confirmed' || request.status === 'payment-pending' ? (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
                                       <CreditCard className="mr-2 h-4 w-4"/>
@@ -215,7 +215,7 @@ export default function MyBookingsPage() {
     return query(
       collection(firestore, 'travelRequests'),
       where('travelerId', '==', user.uid),
-      where('status', 'in', ['confirmed', 'paid'])
+      where('status', 'in', ['confirmed', 'paid', 'payment-pending'])
     );
   }, [user, firestore]);
 
