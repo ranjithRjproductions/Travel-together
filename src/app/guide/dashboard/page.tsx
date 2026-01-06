@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { respondToTravelRequest } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { User, MapPin, CreditCard, CheckCircle, Clock } from 'lucide-react';
+import { User, MapPin, CreditCard, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
@@ -147,7 +147,7 @@ function RequestTravelerInfo({ travelerData, status, paidAt }: { travelerData: P
         );
     }
     
-    if ((status === 'confirmed' && paidAt) || status === 'paid') {
+    if (status === 'confirmed' && paidAt) {
         const initials = travelerData.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
         return (
             <div>
@@ -166,7 +166,15 @@ function RequestTravelerInfo({ travelerData, status, paidAt }: { travelerData: P
         );
     }
 
-    // Default case, for statuses like payment-pending
+    if (status === 'payment-pending') {
+        return (
+            <Button disabled variant="secondary">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing Payment...
+            </Button>
+        )
+    }
+
      return <Badge variant="outline">{status}</Badge>;
 }
 
@@ -179,7 +187,7 @@ function ConfirmedRequests() {
     return query(
       collection(firestore, 'travelRequests'),
       where('guideId', '==', user.uid),
-      where('status', 'in', ['confirmed', 'paid', 'payment-pending'])
+      where('status', 'in', ['confirmed', 'payment-pending'])
     );
   }, [user, firestore]);
 
