@@ -147,27 +147,27 @@ function RequestTravelerInfo({ travelerData, status, paidAt }: { travelerData: P
         );
     }
     
-    if (status === 'confirmed' && paidAt) {
+    if ((status === 'confirmed' && paidAt) || status === 'paid') {
         const initials = travelerData.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
         return (
             <div>
-                 <div className="flex items-center gap-2 text-green-600 font-semibold">
+                 <div className="flex items-center justify-end gap-2 text-green-600 font-semibold">
                     <CheckCircle className="h-4 w-4" />
                     <span>Paid & Confirmed</span>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                    <Avatar className="h-8 w-8">
+                <div className="flex items-center justify-end gap-2 mt-2">
+                    <span className="font-medium">{travelerData.name}</span>
+                     <Avatar className="h-8 w-8">
                         <AvatarImage src={travelerData.photoURL} alt={travelerData.photoAlt || `Photo of ${travelerData.name}`} />
                         <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{travelerData.name}</span>
                 </div>
             </div>
         );
     }
 
-    // Default case, should not happen often in this component
-    return <Badge variant="outline">{status}</Badge>;
+    // Default case, for statuses like payment-pending
+     return <Badge variant="outline">{status}</Badge>;
 }
 
 function ConfirmedRequests() {
@@ -179,7 +179,7 @@ function ConfirmedRequests() {
     return query(
       collection(firestore, 'travelRequests'),
       where('guideId', '==', user.uid),
-      where('status', '==', 'confirmed')
+      where('status', 'in', ['confirmed', 'paid', 'payment-pending'])
     );
   }, [user, firestore]);
 
