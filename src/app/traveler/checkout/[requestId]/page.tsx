@@ -103,8 +103,6 @@ export default function CheckoutPage() {
             description: `Payment for Request ID: ${request.id}`,
             image: "/logo.png",
             handler: function (response: any) {
-                // The webhook will handle the Firestore update.
-                // We just need to inform the user and redirect.
                 toast({
                     title: "Payment Submitted!",
                     description: "Your booking is being confirmed. Redirecting...",
@@ -114,12 +112,13 @@ export default function CheckoutPage() {
             prefill: {
                 name: user.displayName || "Traveler",
                 email: user.email || "",
+                method: "upi", // Prefill UPI as the payment method
             },
             notes: {
                 requestId: request.id,
             },
             theme: {
-                color: "#3b82f6",
+                color: "#FACC15", // Use accent color for the theme
             },
         };
         const rzp = new Razorpay(options);
