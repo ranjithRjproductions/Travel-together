@@ -287,7 +287,7 @@ export const processRazorpayEvent = functions.firestore
 
             // --- All checks passed, update document ---
             transaction.update(requestRef, {
-                status: "confirmed", // Move to the final 'confirmed' state
+                status: "confirmed", // Move back to the final 'confirmed' state
                 paidAt: admin.firestore.FieldValue.serverTimestamp(),
                 'paymentDetails.razorpayPaymentId': payment.id,
                 'paymentDetails.processedEventId': eventId,

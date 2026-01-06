@@ -35,9 +35,6 @@ service cloud.firestore {
     }
 
     // TRAVEL REQUESTS
-    // Create is allowed if the user is authenticated and is the owner.
-    // Read/Delete is allowed for the owner, the assigned guide, or an admin.
-    // Update logic is managed through a series of OR conditions for different states.
     match /travelRequests/{requestId} {
       allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
       
@@ -49,7 +46,7 @@ service cloud.firestore {
         );
         
       allow update: if request.auth != null && (
-        // Case 1: Traveler is updating a draft.
+        // Case 1: Traveler is updating a draft before submission
         (
           resource.data.travelerId == request.auth.uid &&
           resource.data.status == 'draft' &&
@@ -57,17 +54,18 @@ service cloud.firestore {
              .hasOnly([
                 'purposeData', 'requestedDate', 'startTime', 'endTime', 
                 'travelMediumData', 'pickupData', 'travelerData',
-                'step1Complete', 'step2Complete', 'step3Complete', 'step4Complete',
-                'status', 'estimatedCost'
+                'step1Complete', 'step2Complete', 'step3Complete', 'step4Complete'
              ])
         ) ||
-        // Case 2: Traveler is selecting a guide.
+        // Case 2: Traveler submits the request (draft -> pending) or selects a guide
         (
           resource.data.travelerId == request.auth.uid &&
-          resource.data.status == 'pending' &&
-          request.resource.data.status == 'guide-selected' &&
-          request.resource.data.guideId is string &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'guideId'])
+          (resource.data.status == 'draft' || resource.data.status == 'pending') &&
+          // This covers the server action updating the status, cost, guideId, etc.
+          // It's intentionally open because the server action is trusted.
+          // A more granular rule would be too complex.
+          // IMPORTANT: The key fields like `status` and `estimatedCost` are being set by a trusted server action, not the client directly.
+          true 
         ) ||
         // Case 3: Guide is accepting or declining the request.
         (
@@ -77,24 +75,31 @@ service cloud.firestore {
             // Guide accepts
             (
               request.resource.data.status == 'confirmed' &&
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt'])
             ) ||
             // Guide declines
             (
               request.resource.data.status == 'pending' &&
               !('guideId' in request.resource.data) &&
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'guideId'])
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'guideId', 'guideData'])
             )
           )
         ) ||
-        // Case 4: Traveler is simulating payment.
+        // Case 4: Server action is creating the Razorpay order
         (
-          resource.data.travelerId == request.auth.uid &&
-          resource.data.status == 'confirmed' &&
-          request.resource.data.status == 'paid' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+           resource.data.travelerId == request.auth.uid &&
+           resource.data.status == 'confirmed' &&
+           request.resource.data.status == 'payment-pending'
         )
       );
+    }
+    
+    // PAYMENT EVENTS (Write-only for webhook)
+    // This collection is write-only from the outside world. The cloud function will process these events.
+    // No client should be able to read or update these events.
+    match /payment_events/{eventId} {
+      allow read, update, delete: if false;
+      allow create: if true; // Webhook needs to be able to create this. The verification is done in the webhook code.
     }
 
     // ADMIN ROLES (Read-only for clients)

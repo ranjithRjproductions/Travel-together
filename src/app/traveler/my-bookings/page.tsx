@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, CreditCard, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, CreditCard, Loader2, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
@@ -162,6 +162,7 @@ function UpcomingRequestList({
                             </p>
                         </div>
                          <div className="flex items-center gap-4">
+                            {/* Case 1: Confirmed but not paid */}
                             {request.status === 'confirmed' && !request.paidAt && (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
@@ -170,15 +171,19 @@ function UpcomingRequestList({
                                     </Link>
                                 </Button>
                             )}
+                            {/* Case 2: Payment is being processed */}
                             {request.status === 'payment-pending' && (
                                 <Button disabled variant="secondary">
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Processing Payment...
                                 </Button>
                             )}
+                            {/* Case 3: Confirmed and paid */}
                             {request.status === 'confirmed' && request.paidAt && (
                                <div className="text-right">
-                                    <Badge variant="default" className="bg-green-600 mb-2">Paid & Confirmed</Badge>
+                                    <Badge variant="default" className="bg-green-600 mb-2 flex items-center">
+                                       <CheckCircle className="mr-1 h-3 w-3"/> Paid & Confirmed
+                                    </Badge>
                                     <p className="text-xs text-muted-foreground">Your booking is finalized.</p>
                                </div>
                             )}
@@ -214,10 +219,11 @@ export default function MyBookingsPage() {
 
   const upcomingRequestsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
+    // Listen for confirmed (unpaid and paid) and payment-pending
     return query(
       collection(firestore, 'travelRequests'),
       where('travelerId', '==', user.uid),
-      where('status', 'in', ['confirmed', 'payment-pending']) // Listen for confirmed and payment-pending
+      where('status', 'in', ['confirmed', 'payment-pending'])
     );
   }, [user, firestore]);
 
