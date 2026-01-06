@@ -192,26 +192,59 @@ export async function deleteTravelRequest(requestId: string) {
 
 
 const calculateCostOnServer = (request: TravelRequest): number => {
-  const { startTime, endTime, requestedDate } = request;
-  if (!startTime || !endTime || !requestedDate) return 0;
+    const { purposeData, pickupData, startTime, endTime, requestedDate } = request;
 
-  const baseDate = parseISO(requestedDate);
+    let serviceStartTimeStr: string | undefined, serviceEndTimeStr: string | undefined;
 
-  const start = new Date(baseDate);
-  const [sh, sm] = startTime.split(':').map(Number);
-  start.setHours(sh, sm, 0, 0);
+    const isPrebookedHospital = purposeData?.purpose === 'hospital' &&
+                                purposeData.subPurposeData?.bookingDetails?.isAppointmentPrebooked === 'yes';
 
-  const end = new Date(baseDate);
-  const [eh, em] = endTime.split(':').map(Number);
-  end.setHours(eh, em, 0, 0);
+    if (pickupData?.pickupType === 'destination') {
+        if (isPrebookedHospital) {
+            serviceStartTimeStr = purposeData.subPurposeData.bookingDetails.startTime;
+        } else {
+            serviceStartTimeStr = startTime;
+        }
+    } else {
+        serviceStartTimeStr = pickupData?.pickupTime;
+    }
 
-  if (end <= start) return 0;
+    if (isPrebookedHospital) {
+        serviceEndTimeStr = purposeData.subPurposeData.bookingDetails.endTime;
+    } else {
+        serviceEndTimeStr = endTime;
+    }
 
-  const hours = differenceInMinutes(end, start) / 60;
+    if (!serviceStartTimeStr || !serviceEndTimeStr || !requestedDate) return 0;
+    
+    const baseDate = parseISO(requestedDate);
+    
+    const start = new Date(baseDate);
+    const [startHours, startMinutes] = serviceStartTimeStr.split(':').map(Number);
+    start.setHours(startHours, startMinutes, 0, 0);
 
-  return hours <= 3
-    ? hours * 150
-    : 3 * 150 + (hours - 3) * 100;
+    const end = new Date(baseDate);
+    const [endHours, endMinutes] = serviceEndTimeStr.split(':').map(Number);
+    end.setHours(endHours, endMinutes, 0, 0);
+
+    if (end <= start) return 0;
+
+    const durationInMinutes = differenceInMinutes(end, start);
+    if (durationInMinutes <= 0) return 0;
+    
+    const durationInHours = durationInMinutes / 60;
+    let cost = 0;
+
+    if (durationInHours <= 3) {
+        cost = durationInHours * 150;
+    } else {
+        const baseCost = 3 * 150;
+        const additionalHours = durationInHours - 3;
+        const additionalCost = additionalHours * 100;
+        cost = baseCost + additionalCost;
+    }
+
+    return Math.round(cost); // Return a whole number
 };
 
 export async function submitTravelRequest(

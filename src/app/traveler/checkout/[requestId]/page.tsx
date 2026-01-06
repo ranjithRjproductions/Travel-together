@@ -84,10 +84,19 @@ export default function CheckoutPage() {
             });
             return;
         }
+        
+        if (!request.estimatedCost || request.estimatedCost <= 0) {
+             toast({
+                variant: "destructive",
+                title: "Invalid Amount",
+                description: "The payment amount must be greater than zero.",
+            });
+            return;
+        }
 
         const options = {
             key: razorpayKeyId,
-            amount: request.estimatedCost ? request.estimatedCost * 100 : 0,
+            amount: request.estimatedCost * 100, // Amount is in paise
             currency: "INR",
             name: "Let's Travel Together",
             description: `Payment for Request ID: ${request.id}`,
@@ -195,7 +204,7 @@ export default function CheckoutPage() {
 
                     <div className="text-center border-t pt-6">
                         <p className="text-muted-foreground">Amount to Pay</p>
-                        <p className="text-4xl font-bold">₹{request.estimatedCost?.toFixed(2)}</p>
+                        <p className="text-4xl font-bold">₹{(request.estimatedCost || 0).toFixed(2)}</p>
                     </div>
 
                     <Alert>
