@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, KeyRound, CreditCard, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, CreditCard, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
@@ -162,7 +162,6 @@ function UpcomingRequestList({
                             </p>
                         </div>
                          <div className="flex items-center gap-4">
-                            {/* If status is confirmed AND there is no paidAt timestamp, it's ready for payment */}
                             {request.status === 'confirmed' && !request.paidAt && (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
@@ -171,16 +170,12 @@ function UpcomingRequestList({
                                     </Link>
                                 </Button>
                             )}
-
-                            {/* If status is payment-pending, show processing state */}
                             {request.status === 'payment-pending' && (
                                 <Button disabled variant="secondary">
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Processing Payment...
                                 </Button>
                             )}
-
-                            {/* If status is confirmed AND there is a paidAt timestamp, it's paid and finalized */}
                             {request.status === 'confirmed' && request.paidAt && (
                                <div className="text-right">
                                     <Badge variant="default" className="bg-green-600 mb-2">Paid & Confirmed</Badge>
