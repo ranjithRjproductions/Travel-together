@@ -147,7 +147,6 @@ export const travelRequestStatusUpdate = functions.firestore
     if (
       newValue.status === "confirmed" &&
       (previousValue.status === "payment-pending") &&
-      (newValue as any).tripPin && // This is the key change - only send email when PIN is generated
       !newValue.emailNotified?.travelerPaid // Idempotency check
     ) {
         // No push notification, just email confirmation
@@ -155,7 +154,6 @@ export const travelRequestStatusUpdate = functions.firestore
             const subject = "Payment Received - Your Booking is Finalized!";
             const html = `<p>Hi ${newValue.travelerData.name},</p>
                           <p>We have received your payment. Your booking with ${newValue.guideData?.name || "your guide"} is now finalized and secure.</p>
-                          <p>Your Trip PIN is: <strong>${(newValue as any).tripPin || "Not available"}</strong>. You will need to provide this to your guide to start the service.</p>
                           <p>We wish you a safe and pleasant journey!</p>
                           <p>Thank you,<br/>The Let's Travel Together Team</p>`;
             await sendEmail(newValue.travelerData.email, subject, html);
@@ -266,8 +264,8 @@ export const processRazorpayEvent = functions.firestore
             const request = requestSnap.data() as TravelRequest;
 
             // --- Validation Checks ---
-            if (request.status === "confirmed" && (request as any).tripPin) {
-              console.log(`[Processor] Request ${requestId} is already finalized (has Trip PIN). Ignoring duplicate processing.`);
+            if (request.status === "confirmed" && (request as any).paidAt) {
+              console.log(`[Processor] Request ${requestId} is already finalized (has paidAt timestamp). Ignoring duplicate processing.`);
               return;
             }
             if (request.status !== "payment-pending") {
@@ -288,17 +286,14 @@ export const processRazorpayEvent = functions.firestore
             }
 
             // --- All checks passed, update document ---
-            const tripPin = Math.floor(1000 + Math.random() * 9000).toString();
-            
             transaction.update(requestRef, {
                 status: "confirmed", // Move to the final 'confirmed' state
                 paidAt: admin.firestore.FieldValue.serverTimestamp(),
-                tripPin, // Add the Trip PIN to signify payment completion
                 'paymentDetails.razorpayPaymentId': payment.id,
                 'paymentDetails.processedEventId': eventId,
             });
 
-            console.log(`[Processor] Successfully processed payment for request ${requestId}. Status set to confirmed with Trip PIN.`);
+            console.log(`[Processor] Successfully processed payment for request ${requestId}. Status set to confirmed.`);
         });
     } catch (error: any) {
         console.error(`[Processor Transaction Error] for event ${eventId}:`, error);

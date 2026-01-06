@@ -162,8 +162,8 @@ function UpcomingRequestList({
                             </p>
                         </div>
                          <div className="flex items-center gap-4">
-                            {/* If status is confirmed AND there is no Trip PIN, it means it's ready for payment */}
-                            {request.status === 'confirmed' && !request.tripPin && (
+                            {/* If status is confirmed AND there is no paidAt timestamp, it's ready for payment */}
+                            {request.status === 'confirmed' && !request.paidAt && (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
                                       <CreditCard className="mr-2 h-4 w-4"/>
@@ -180,15 +180,11 @@ function UpcomingRequestList({
                                 </Button>
                             )}
 
-                            {/* If status is confirmed AND there is a Trip PIN, it's paid and finalized */}
-                            {request.status === 'confirmed' && request.tripPin && (
+                            {/* If status is confirmed AND there is a paidAt timestamp, it's paid and finalized */}
+                            {request.status === 'confirmed' && request.paidAt && (
                                <div className="text-right">
                                     <Badge variant="default" className="bg-green-600 mb-2">Paid & Confirmed</Badge>
-                                    <div className="flex items-center justify-end gap-2 text-sm">
-                                        <KeyRound className="h-4 w-4 text-muted-foreground" />
-                                        <span>Your Trip PIN:</span>
-                                        <span className="font-bold text-lg tracking-wider">{request.tripPin}</span>
-                                    </div>
+                                    <p className="text-xs text-muted-foreground">Your booking is finalized.</p>
                                </div>
                             )}
                         </div>

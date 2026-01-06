@@ -123,15 +123,16 @@ function getRequestStatusBadge(status: TravelRequest['status']) {
         pending: 'secondary',
         'guide-selected': 'secondary',
         confirmed: 'default',
-        paid: 'default',
+        'payment-pending': 'secondary',
+        paid: 'default', // Legacy, should not appear often
         completed: 'outline',
         cancelled: 'destructive'
     } as const;
     const textColors = {
         paid: 'text-white bg-green-600',
-        confirmed: 'text-white bg-amber-500'
+        confirmed: 'text-white bg-green-600' // Show confirmed as green
     }
-    const statusText = status.replace('-', ' ');
+    const statusText = status.replace(/-/g, ' ');
     const variant = variants[status] || 'secondary';
     const textColorClass = status in textColors ? textColors[status as keyof typeof textColors] : '';
 
