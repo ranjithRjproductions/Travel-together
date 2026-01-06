@@ -35,8 +35,10 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-type TravelerWithStats = User & {
+// A serializable version of the traveler data safe to pass to client components
+type SerializableTravelerWithStats = Omit<User, 'createdAt'> & {
   id: string;
+  createdAt: string; // Convert Timestamp to string
   requestCount: number;
   draftCount: number;
   inProgressCount: number;
@@ -59,7 +61,7 @@ const calculateProfileCompletion = (user: User): number => {
 }
 
 
-async function getTravelers(): Promise<TravelerWithStats[]> {
+async function getTravelers(): Promise<SerializableTravelerWithStats[]> {
   const db = getAdminDb();
   try {
     const usersSnapshot = await db.collection('users').where('role', '==', 'Traveler').get();
@@ -90,21 +92,26 @@ async function getTravelers(): Promise<TravelerWithStats[]> {
                 case 'pending':
                   pendingCount++;
                   break;
+
               }
             });
 
             const requestCount = requestsSnapshot.size;
             const profileCompletion = calculateProfileCompletion(userData);
 
+            // Convert Firestore Timestamp to ISO string to make it serializable
+            const createdAt = (userData as any).createdAt?.toDate?.().toISOString() || new Date().toISOString();
+
             return {
-                id: travelerId,
                 ...userData,
+                id: travelerId,
+                createdAt, // Use the serialized string
                 requestCount,
                 draftCount,
                 inProgressCount,
                 pendingCount,
                 profileCompletion,
-            } as TravelerWithStats;
+            } as SerializableTravelerWithStats;
         })
     );
 
