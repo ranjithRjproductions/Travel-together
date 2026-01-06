@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { type TravelRequest } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -85,7 +85,8 @@ export default function CheckoutPage() {
             return;
         }
         
-        if (!request.estimatedCost || request.estimatedCost <= 0) {
+        const amount = Number(request.estimatedCost);
+        if (isNaN(amount) || amount <= 0) {
              toast({
                 variant: "destructive",
                 title: "Invalid Amount",
@@ -96,7 +97,7 @@ export default function CheckoutPage() {
 
         const options = {
             key: razorpayKeyId,
-            amount: request.estimatedCost * 100, // Amount is in paise
+            amount: amount * 100, // Amount is in paise
             currency: "INR",
             name: "Let's Travel Together",
             description: `Payment for Request ID: ${request.id}`,
