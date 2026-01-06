@@ -144,6 +144,16 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
         if (!requestSnap.exists) throw new Error('Request not found.');
 
         const request = requestSnap.data() as TravelRequest;
+        
+        // Safeguard: refuse if status is not 'confirmed'
+        if (request.status !== 'confirmed') {
+            return { success: false, message: 'This request is not ready for payment.' };
+        }
+
+        // Safeguard: refuse if order already created
+        if (request.razorpayOrderId) {
+            return { success: false, message: 'A payment order already exists for this request.' };
+        }
 
         // Use the same server-side cost calculation
         const amountInRupees = calculateCostOnServer(request);

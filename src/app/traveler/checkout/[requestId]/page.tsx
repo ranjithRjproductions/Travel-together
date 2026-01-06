@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, CreditCard, User, Calendar, Clock, MapPin, University, Hospital, ShoppingCart, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 declare const Razorpay: any;
@@ -106,7 +106,7 @@ export default function CheckoutPage() {
 
         const options = {
             key,
-            amount,
+            amount: Number(amount), // Ensure amount is a number
             currency,
             name: "Let's Travel Together",
             description: `Payment for Booking`,
@@ -127,7 +127,7 @@ export default function CheckoutPage() {
                 requestId,
             },
             theme: {
-                color: "#4285F4", // Primary color
+                color: "#45934A",
             },
         };
         
@@ -191,7 +191,7 @@ export default function CheckoutPage() {
                         {getRequestTitle(request)}
                     </CardTitle>
                     <CardDescription>
-                         Invoice for booking confirmed on {request.acceptedAt ? format(request.acceptedAt.toDate(), 'PPP') : 'N/A'}
+                         Invoice for booking confirmed on {request.acceptedAt && typeof request.acceptedAt.toDate === 'function' ? format(request.acceptedAt.toDate(), 'PPP') : 'N/A'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -202,7 +202,7 @@ export default function CheckoutPage() {
                         </div>
                         <div className="space-y-4">
                              <h3 className="font-semibold">Service Details</h3>
-                            <InfoRow label="Date" value={request.requestedDate ? format(new Date(request.requestedDate), 'PPPP') : 'N/A'} icon={Calendar}/>
+                            <InfoRow label="Date" value={request.requestedDate ? format(parseISO(request.requestedDate), 'PPPP') : 'N/A'} icon={Calendar}/>
                             <InfoRow label="Time" value={`${request.startTime} - ${request.endTime}`} icon={Clock} />
                         </div>
                     </div>
