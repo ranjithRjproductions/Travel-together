@@ -36,6 +36,10 @@ interface TravelRequest {
     travelerConfirmed?: boolean;
     travelerPaid?: boolean;
   };
+  paymentDetails?: {
+    expectedAmount?: number;
+    currency?: string;
+  };
 }
 
 // Helper function to send an email
@@ -216,6 +220,81 @@ export const travelRequestStatusUpdate = functions.firestore
       return userDoc.ref.update({
         fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove),
       });
+    }
+
+    return null;
+  });
+
+// "Smart" Payment Processor Cloud Function
+export const processRazorpayEvent = functions.firestore
+  .document("payment_events/{eventId}")
+  .onCreate(async (snap, context) => {
+    const event = snap.data();
+    const eventId = context.params.eventId;
+
+    if (event.event !== "payment.captured") {
+        console.log(`[Processor] Ignoring event '${event.event}' (${eventId}).`);
+        return null;
+    }
+
+    const payment = event.payload.payment.entity;
+    const requestId = payment?.notes?.requestId;
+    const receivedAmount = payment?.amount;
+    const receivedCurrency = payment?.currency;
+    const razorpayOrderId = payment?.order_id;
+
+    if (!requestId || !razorpayOrderId) {
+        console.error(`[Processor Error] Missing 'requestId' or 'order_id' in event ${eventId}.`);
+        return null;
+    }
+
+    const requestRef = db.collection("travelRequests").doc(requestId);
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const requestSnap = await transaction.get(requestRef);
+
+            if (!requestSnap.exists) {
+                throw new Error(`Travel request ${requestId} not found.`);
+            }
+
+            const request = requestSnap.data() as TravelRequest;
+
+            // --- Validation Checks ---
+            if (request.status === "paid") {
+              console.log(`[Processor] Request ${requestId} is already marked as paid. Ignoring duplicate processing.`);
+              return;
+            }
+            if (request.status !== "payment-pending") {
+              throw new Error(`Request ${requestId} is not in 'payment-pending' state. Current state: ${request.status}.`);
+            }
+            if (request.razorpayOrderId !== razorpayOrderId) {
+              throw new Error(`Razorpay Order ID mismatch for request ${requestId}.`);
+            }
+            if (request.paymentDetails?.expectedAmount !== receivedAmount) {
+              throw new Error(`Amount mismatch for request ${requestId}. Expected ${request.paymentDetails?.expectedAmount}, got ${receivedAmount}.`);
+            }
+             if (request.paymentDetails?.currency !== receivedCurrency) {
+              throw new Error(`Currency mismatch for request ${requestId}. Expected ${request.paymentDetails?.currency}, got ${receivedCurrency}.`);
+            }
+
+            // --- All checks passed, update document ---
+            const tripPin = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            transaction.update(requestRef, {
+                status: "paid",
+                paidAt: admin.firestore.FieldValue.serverTimestamp(),
+                tripPin,
+                'paymentDetails.razorpayPaymentId': payment.id,
+                'paymentDetails.processedEventId': eventId,
+            });
+
+            console.log(`[Processor] Successfully processed payment for request ${requestId}.`);
+        });
+    } catch (error: any) {
+        console.error(`[Processor Transaction Error] for event ${eventId}:`, error);
+        // If the transaction fails, the event document remains, and it can be retried or inspected manually.
+        // You could also add a retry count to the event document to prevent infinite loops.
     }
 
     return null;

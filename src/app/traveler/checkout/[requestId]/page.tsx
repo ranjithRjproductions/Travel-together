@@ -1,17 +1,19 @@
+
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { type TravelRequest } from '@/lib/definitions';
+import { createRazorpayOrder } from '@/lib/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, CreditCard, User, Calendar, Clock, MapPin, University, Hospital, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, CreditCard, User, Calendar, Clock, MapPin, University, Hospital, ShoppingCart, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -73,6 +75,7 @@ export default function CheckoutPage() {
     const firestore = useFirestore();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const requestDocRef = useMemo(() => {
         if (!firestore || !requestId) return null;
@@ -84,44 +87,30 @@ export default function CheckoutPage() {
     const isLoading = isUserLoading || isRequestLoading;
     
     const handlePayment = async () => {
-        if (!request || !user || !requestDocRef) {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Could not load payment details. Please try again.",
-            });
+        if (!request || !user) {
+            toast({ variant: "destructive", title: "Error", description: "Request details not loaded." });
             return;
         }
 
-        const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-        if (!razorpayKeyId) {
-            toast({
-                variant: "destructive",
-                title: "Configuration Error",
-                description: "Payment gateway is not configured.",
-            });
+        setIsProcessing(true);
+
+        const orderResult = await createRazorpayOrder(requestId);
+
+        if (!orderResult.success || !orderResult.order) {
+            toast({ variant: "destructive", title: "Payment Error", description: orderResult.message });
+            setIsProcessing(false);
             return;
         }
-        
-        const amountInRupees = Number(request.estimatedCost);
-        if (isNaN(amountInRupees) || amountInRupees <= 0) {
-             toast({
-                variant: "destructive",
-                title: "Invalid Amount",
-                description: "The payment amount must be greater than zero.",
-            });
-            return;
-        }
-        
-        const amountInPaise = amountInRupees * 100;
+
+        const { id: order_id, key, amount, currency } = orderResult.order;
 
         const options = {
-            key: razorpayKeyId,
-            amount: amountInPaise,
-            currency: "INR",
+            key,
+            amount,
+            currency,
             name: "Let's Travel Together",
-            description: `Payment for Request ID: ${request.id}`,
-            image: "/logo.png",
+            description: `Payment for Booking`,
+            order_id,
             handler: function (response: any) {
                 toast({
                     title: "Payment Submitted!",
@@ -132,17 +121,32 @@ export default function CheckoutPage() {
             prefill: {
                 name: user.displayName || "Traveler",
                 email: user.email || "",
-                method: "upi", // Prefill UPI as the payment method
+                method: "upi",
             },
             notes: {
-                requestId: request.id,
+                requestId,
             },
             theme: {
-                color: "#FACC15", // Use accent color for the theme
+                color: "#4285F4", // Primary color
             },
         };
-        const rzp = new Razorpay(options);
-        rzp.open();
+        
+        try {
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response: any) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Payment Failed',
+                    description: response.error.description || 'Something went wrong.',
+                });
+                setIsProcessing(false);
+            });
+            rzp.open();
+        } catch (error) {
+            console.error("Razorpay error: ", error);
+             toast({ variant: 'destructive', title: 'Error', description: 'Could not open payment window.' });
+             setIsProcessing(false);
+        }
     }
 
     if (isLoading) {
@@ -229,12 +233,12 @@ export default function CheckoutPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex-col gap-4">
-                     <Button size="lg" className="w-full" onClick={handlePayment}>
-                        <CreditCard className="mr-2 h-5 w-5" />
-                        Pay ₹{(request.estimatedCost || 0).toFixed(2)} Securely
+                     <Button size="lg" className="w-full" onClick={handlePayment} disabled={isProcessing}>
+                        {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CreditCard className="mr-2 h-5 w-5" />}
+                        {isProcessing ? 'Processing...' : `Pay ₹${(request.estimatedCost || 0).toFixed(2)} Securely`}
                     </Button>
-                     <Alert variant="default" className="text-center">
-                        <AlertDescription>
+                     <Alert>
+                        <AlertDescription className="text-center">
                             You will be redirected to Razorpay to complete your payment. All transactions are secure and encrypted.
                         </AlertDescription>
                     </Alert>

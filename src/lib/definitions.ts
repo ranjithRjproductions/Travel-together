@@ -52,7 +52,7 @@ export type TravelRequest = {
   id: string;
   travelerId: string;
   guideId?: string;
-  status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'paid' | 'completed' | 'cancelled';
+  status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'payment-pending' | 'paid' | 'completed' | 'cancelled';
   
   // Timestamps
   createdAt: any; // Initially created as a draft
@@ -61,6 +61,15 @@ export type TravelRequest = {
   paidAt?: any; // Payment successful
   
   tripPin?: string; // 4-digit PIN for service verification
+  
+  razorpayOrderId?: string;
+  
+  paymentDetails?: {
+    expectedAmount?: number;
+    currency?: string;
+    razorpayPaymentId?: string;
+    processedEventId?: string;
+  };
 
   // Email idempotency flags
   emailNotified?: {
@@ -112,5 +121,3 @@ export type TravelRequest = {
   step3Complete: boolean;
   step4Complete: boolean;
 };
-
-    

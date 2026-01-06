@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import admin from 'firebase-admin';
+import Razorpay from 'razorpay';
 import { getAdminServices } from '@/lib/firebase-admin';
 import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
@@ -72,6 +73,125 @@ export async function logoutAction() {
   }
 
   redirect('/login?message=You have been logged out.');
+}
+
+const calculateCostOnServer = (request: TravelRequest): number => {
+    const { purposeData, pickupData, startTime, endTime, requestedDate } = request;
+
+    let serviceStartTimeStr: string | undefined, serviceEndTimeStr: string | undefined;
+
+    const isPrebookedHospital = purposeData?.purpose === 'hospital' &&
+                                purposeData.subPurposeData?.bookingDetails?.isAppointmentPrebooked === 'yes';
+
+    if (pickupData?.pickupType === 'destination') {
+        if (isPrebookedHospital) {
+            serviceStartTimeStr = purposeData.subPurposeData.bookingDetails.startTime;
+        } else {
+            serviceStartTimeStr = startTime;
+        }
+    } else {
+        serviceStartTimeStr = pickupData?.pickupTime;
+    }
+
+    if (isPrebookedHospital) {
+        serviceEndTimeStr = purposeData.subPurposeData.bookingDetails.endTime;
+    } else {
+        serviceEndTimeStr = endTime;
+    }
+
+    if (!serviceStartTimeStr || !serviceEndTimeStr || !requestedDate) return 0;
+    
+    const baseDate = parseISO(requestedDate);
+    
+    const start = new Date(baseDate);
+    const [startHours, startMinutes] = serviceStartTimeStr.split(':').map(Number);
+    start.setHours(startHours, startMinutes, 0, 0);
+
+    const end = new Date(baseDate);
+    const [endHours, endMinutes] = serviceEndTimeStr.split(':').map(Number);
+    end.setHours(endHours, endMinutes, 0, 0);
+
+    if (end <= start) return 0;
+
+    const durationInMinutes = differenceInMinutes(end, start);
+    if (durationInMinutes <= 0) return 0;
+    
+    const durationInHours = durationInMinutes / 60;
+    let cost = 0;
+
+    if (durationInHours <= 3) {
+        cost = durationInHours * 150;
+    } else {
+        const baseCost = 3 * 150;
+        const additionalHours = durationInHours - 3;
+        const additionalCost = additionalHours * 100;
+        cost = baseCost + additionalCost;
+    }
+
+    return Math.round(cost); // Return a whole number
+};
+
+export async function createRazorpayOrder(requestId: string): Promise<{ success: boolean; message: string; order?: any }> {
+    const { adminAuth, adminDb } = getAdminServices();
+
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        await adminAuth.verifySessionCookie(session, true);
+        
+        const requestRef = adminDb.collection('travelRequests').doc(requestId);
+        const requestSnap = await requestRef.get();
+        if (!requestSnap.exists) throw new Error('Request not found.');
+
+        const request = requestSnap.data() as TravelRequest;
+
+        // Use the same server-side cost calculation
+        const amountInRupees = calculateCostOnServer(request);
+        if (amountInRupees <= 0) {
+            throw new Error('Calculated amount must be positive.');
+        }
+        const amountInPaise = amountInRupees * 100;
+
+        const razorpay = new Razorpay({
+            key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+            key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        });
+
+        const options = {
+            amount: amountInPaise,
+            currency: 'INR',
+            receipt: requestId,
+            notes: {
+                requestId: requestId,
+                travelerId: request.travelerId,
+            }
+        };
+
+        const order = await razorpay.orders.create(options);
+
+        // Atomically update the travel request with payment details
+        await requestRef.update({
+            razorpayOrderId: order.id,
+            status: 'payment-pending',
+            paymentDetails: {
+                expectedAmount: amountInPaise,
+                currency: 'INR',
+            }
+        });
+
+        revalidatePath(`/traveler/checkout/${requestId}`);
+
+        return { success: true, message: 'Order created', order: {
+            id: order.id,
+            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+            amount: order.amount,
+            currency: order.currency,
+        }};
+
+    } catch (error: any) {
+        console.error('Failed to create Razorpay order:', error);
+        return { success: false, message: error.message || 'Could not create order.' };
+    }
 }
 
 
@@ -189,63 +309,6 @@ export async function deleteTravelRequest(requestId: string) {
         return { success: false, message: error.message };
     }
 }
-
-
-const calculateCostOnServer = (request: TravelRequest): number => {
-    const { purposeData, pickupData, startTime, endTime, requestedDate } = request;
-
-    let serviceStartTimeStr: string | undefined, serviceEndTimeStr: string | undefined;
-
-    const isPrebookedHospital = purposeData?.purpose === 'hospital' &&
-                                purposeData.subPurposeData?.bookingDetails?.isAppointmentPrebooked === 'yes';
-
-    if (pickupData?.pickupType === 'destination') {
-        if (isPrebookedHospital) {
-            serviceStartTimeStr = purposeData.subPurposeData.bookingDetails.startTime;
-        } else {
-            serviceStartTimeStr = startTime;
-        }
-    } else {
-        serviceStartTimeStr = pickupData?.pickupTime;
-    }
-
-    if (isPrebookedHospital) {
-        serviceEndTimeStr = purposeData.subPurposeData.bookingDetails.endTime;
-    } else {
-        serviceEndTimeStr = endTime;
-    }
-
-    if (!serviceStartTimeStr || !serviceEndTimeStr || !requestedDate) return 0;
-    
-    const baseDate = parseISO(requestedDate);
-    
-    const start = new Date(baseDate);
-    const [startHours, startMinutes] = serviceStartTimeStr.split(':').map(Number);
-    start.setHours(startHours, startMinutes, 0, 0);
-
-    const end = new Date(baseDate);
-    const [endHours, endMinutes] = serviceEndTimeStr.split(':').map(Number);
-    end.setHours(endHours, endMinutes, 0, 0);
-
-    if (end <= start) return 0;
-
-    const durationInMinutes = differenceInMinutes(end, start);
-    if (durationInMinutes <= 0) return 0;
-    
-    const durationInHours = durationInMinutes / 60;
-    let cost = 0;
-
-    if (durationInHours <= 3) {
-        cost = durationInHours * 150;
-    } else {
-        const baseCost = 3 * 150;
-        const additionalHours = durationInHours - 3;
-        const additionalCost = additionalHours * 100;
-        cost = baseCost + additionalCost;
-    }
-
-    return Math.round(cost); // Return a whole number
-};
 
 export async function submitTravelRequest(
   requestId: string,
