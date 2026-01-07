@@ -132,6 +132,7 @@ const calculateCostOnServer = (request: TravelRequest): number => {
     return Math.round(cost); // Return a whole number
 };
 
+// 🔒 See `functions/src/index.ts` for the full locked-down payment flow documentation.
 export async function createRazorpayOrder(requestId: string): Promise<{ success: boolean; message: string; order?: any }> {
     const { adminAuth, adminDb } = getAdminServices();
 

@@ -1,4 +1,56 @@
 
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 🔒 PAYMENT FLOW (LOCKED – PRODUCTION SAFE)
+ * ──────────────────────────────────────────────────────────────
+ *
+ * This project uses a STRICT, server-controlled payment flow.
+ * Any change here can cause double charges, stuck bookings,
+ * or financial inconsistencies.
+ *
+ * PAYMENT ARCHITECTURE:
+ *
+ * 1. Server Action (createRazorpayOrder)
+ *    - Calculates amount on the server ONLY
+ *    - Creates Razorpay order
+ *    - Sets booking status → "payment-pending"
+ *
+ * 2. Client Checkout Page
+ *    - Opens Razorpay Checkout using server order ID
+ *    - NEVER updates payment status
+ *    - NEVER trusts client success callbacks
+ *
+ * 3. Razorpay Webhook (DUMB)
+ *    - Verifies signature
+ *    - Stores raw event in /payment_events
+ *    - NO business logic
+ *
+ * 4. Cloud Function (SMART)
+ *    - Triggered on /payment_events creation
+ *    - Validates:
+ *        • order ID
+ *        • amount (server vs Razorpay)
+ *        • currency
+ *        • current booking state
+ *    - Uses Firestore transaction
+ *    - FINAL state after successful payment:
+ *        status = "paid"
+ *
+ * STATE RULES (DO NOT CHANGE):
+ *
+ * confirmed → payment-pending → paid
+ *
+ * - "payment-pending" = retry allowed
+ * - "paid" = final, paid, locked
+ *
+ * IMPORTANT:
+ * - Clients must NEVER write payment fields
+ * - Webhook must remain idempotent
+ * - Amount must NEVER be client-controlled
+ *
+ * ⚠️ Any change here REQUIRES architectural review.
+ * ──────────────────────────────────────────────────────────────
+ */
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as sgMail from "@sendgrid/mail";
