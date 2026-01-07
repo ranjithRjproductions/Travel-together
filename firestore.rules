@@ -63,8 +63,6 @@ service cloud.firestore {
           (resource.data.status == 'draft' || resource.data.status == 'pending') &&
           // This covers the server action updating the status, cost, guideId, etc.
           // It's intentionally open because the server action is trusted.
-          // A more granular rule would be too complex.
-          // IMPORTANT: The key fields like `status` and `estimatedCost` are being set by a trusted server action, not the client directly.
           true 
         ) ||
         // Case 3: Guide is accepting or declining the request.
@@ -90,18 +88,17 @@ service cloud.firestore {
            resource.data.travelerId == request.auth.uid &&
            resource.data.status == 'confirmed' &&
            request.resource.data.status == 'payment-pending'
+        ) ||
+         // Case 5: Server action is verifying the payment
+        (
+          resource.data.travelerId == request.auth.uid &&
+          resource.data.status == 'payment-pending' &&
+          request.resource.data.status == 'paid' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt', 'paymentDetails'])
         )
       );
     }
     
-    // PAYMENT EVENTS (Write-only for webhook)
-    // This collection is write-only from the outside world. The cloud function will process these events.
-    // No client should be able to read or update these events.
-    match /payment_events/{eventId} {
-      allow read, update, delete: if false;
-      allow create: if true; // Webhook needs to be able to create this. The verification is done in the webhook code.
-    }
-
     // ADMIN ROLES (Read-only for clients)
     // This collection is managed server-side. Admins can read it to verify privileges,
     // but no client can write to it, preventing privilege escalation.

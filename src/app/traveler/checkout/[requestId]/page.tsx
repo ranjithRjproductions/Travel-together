@@ -6,14 +6,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { type TravelRequest } from '@/lib/definitions';
-import { createRazorpayOrder } from '@/lib/actions';
+import { createRazorpayOrder, verifyRazorpayPayment } from '@/lib/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, CreditCard, User, Calendar, Clock, MapPin, University, Hospital, ShoppingCart, Loader2 } from 'lucide-react';
+import { ArrowLeft, CreditCard, User, Calendar, Clock, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -111,12 +110,27 @@ export default function CheckoutPage() {
             name: "Let's Travel Together",
             description: `Payment for Booking`,
             order_id,
-            handler: function (response: any) {
-                toast({
-                    title: "Payment Submitted!",
-                    description: "Your booking is being confirmed. You will be redirected shortly.",
+            handler: async function (response: any) {
+                const verificationResult = await verifyRazorpayPayment({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
                 });
-                router.push('/traveler/my-bookings');
+
+                if (verificationResult.success) {
+                    toast({
+                        title: "Payment Successful!",
+                        description: "Your booking is confirmed. You will be redirected shortly.",
+                    });
+                    router.push('/traveler/my-bookings');
+                } else {
+                     toast({
+                        variant: 'destructive',
+                        title: 'Payment Verification Failed',
+                        description: verificationResult.message || 'There was an issue confirming your payment. Please contact support.',
+                    });
+                     setIsProcessing(false);
+                }
             },
             prefill: {
                 name: user.displayName || "Traveler",
@@ -172,8 +186,6 @@ export default function CheckoutPage() {
         return title;
     };
     
-    const PurposeIcon = request.purposeData?.purpose === 'education' ? University : request.purposeData?.purpose === 'hospital' ? Hospital : ShoppingCart;
-
     return (
         <div className="max-w-2xl mx-auto">
             <div className="flex justify-between items-center mb-6">
@@ -187,7 +199,6 @@ export default function CheckoutPage() {
             <Card>
                  <CardHeader>
                     <CardTitle className="flex items-center gap-3">
-                        <PurposeIcon className="h-6 w-6 text-primary" />
                         {getRequestTitle(request)}
                     </CardTitle>
                     <CardDescription>

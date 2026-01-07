@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import admin from 'firebase-admin';
 import Razorpay from 'razorpay';
+import crypto from 'crypto';
 import { getAdminServices } from '@/lib/firebase-admin';
 import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
@@ -150,7 +151,26 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
         }
 
         if (request.razorpayOrderId) {
-            return { success: false, message: 'A payment order already exists for this request.' };
+            // Re-fetch the order from Razorpay to ensure it's still valid
+            try {
+                const razorpay = new Razorpay({
+                    key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+                    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+                });
+                const existingOrder = await razorpay.orders.fetch(request.razorpayOrderId);
+                 if (existingOrder && existingOrder.status === 'created') {
+                     await requestRef.update({ status: 'payment-pending' });
+                     return { success: true, message: 'Existing order found', order: {
+                        id: existingOrder.id,
+                        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                        amount: existingOrder.amount,
+                        currency: existingOrder.currency,
+                     }};
+                 }
+            } catch (e) {
+                // If fetching order fails, it might be expired or invalid. Proceed to create a new one.
+                console.warn("Could not fetch existing Razorpay order. A new one will be created.", e);
+            }
         }
 
         const amountInRupees = calculateCostOnServer(request);
@@ -197,6 +217,66 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
     } catch (error: any) {
         console.error('Failed to create Razorpay order:', error);
         return { success: false, message: error.message || 'Could not create order.' };
+    }
+}
+
+interface PaymentVerificationData {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export async function verifyRazorpayPayment(data: PaymentVerificationData): Promise<{ success: boolean; message: string }> {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
+    const { adminAuth, adminDb } = getAdminServices();
+
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        const decodedToken = await adminAuth.verifySessionCookie(session, true);
+
+        // Securely verify the signature
+        const secret = process.env.RAZORPAY_KEY_SECRET!;
+        const body = razorpay_order_id + "|" + razorpay_payment_id;
+        const expectedSignature = crypto
+            .createHmac("sha256", secret)
+            .update(body.toString())
+            .digest("hex");
+
+        if (expectedSignature !== razorpay_signature) {
+            return { success: false, message: "Invalid payment signature." };
+        }
+
+        // Signature is valid, now update the database
+        const requestQuery = adminDb.collection('travelRequests').where('razorpayOrderId', '==', razorpay_order_id).limit(1);
+        const requestSnapshot = await requestQuery.get();
+
+        if (requestSnapshot.empty) {
+            throw new Error(`No travel request found with Razorpay order ID ${razorpay_order_id}`);
+        }
+
+        const requestDoc = requestSnapshot.docs[0];
+        if (requestDoc.data().travelerId !== decodedToken.uid) {
+             return { success: false, message: "Permission denied." };
+        }
+        
+        if (requestDoc.data().status === 'paid') {
+            revalidatePath('/traveler/my-bookings');
+            return { success: true, message: "Payment already processed." };
+        }
+
+        await requestDoc.ref.update({
+            status: 'paid',
+            paidAt: admin.firestore.FieldValue.serverTimestamp(),
+            'paymentDetails.razorpayPaymentId': razorpay_payment_id,
+        });
+
+        revalidatePath('/traveler/my-bookings');
+        return { success: true, message: "Payment verified and booking confirmed." };
+
+    } catch (error: any) {
+        console.error("Error verifying Razorpay payment:", error);
+        return { success: false, message: error.message || "An unexpected error occurred during payment verification." };
     }
 }
 

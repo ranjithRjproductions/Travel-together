@@ -2,13 +2,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Edit, MoreHorizontal, Search, Trash2, CreditCard, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, CreditCard, Loader2, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type TravelRequest, type User as UserData } from '@/lib/definitions';
@@ -160,7 +160,6 @@ function UpcomingRequestList({
                             </p>
                         </div>
                          <div className="flex items-center gap-4">
-                            {/* Case 1: Confirmed but not paid */}
                             {request.status === 'confirmed' && (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
@@ -169,14 +168,12 @@ function UpcomingRequestList({
                                     </Link>
                                 </Button>
                             )}
-                            {/* Case 2: Payment is being processed */}
                             {request.status === 'payment-pending' && (
                                 <Button disabled variant="secondary">
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Processing Payment...
                                 </Button>
                             )}
-                            {/* Case 3: Paid */}
                             {request.status === 'paid' && (
                                <div className="text-right">
                                     <Badge variant="default" className="bg-green-600 mb-2 flex items-center">
