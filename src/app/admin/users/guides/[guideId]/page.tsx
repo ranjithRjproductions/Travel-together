@@ -116,29 +116,27 @@ function Section({ title, icon: Icon, children }: { title: string, icon: React.E
     );
 }
 
-function getRequestStatusBadge(request: ServerTravelRequest) {
-    const { status } = request;
+function getRequestStatusBadge(status: TravelRequest['status']) {
+  if (status === 'paid') {
+    return <Badge className="bg-green-600 hover:bg-green-700 text-white">Paid</Badge>;
+  }
+  if (status === 'payment-pending') {
+    return <Badge variant="secondary" className="bg-amber-500 text-white">Payment Pending</Badge>;
+  }
 
-    if (status === 'paid') {
-        return <Badge className="bg-green-600 hover:bg-green-700 text-white">Paid</Badge>;
-    }
-    if (status === 'payment-pending') {
-        return <Badge variant="secondary" className="bg-amber-500 text-white">Payment Pending</Badge>;
-    }
+  const variants = {
+    draft: 'outline',
+    pending: 'secondary',
+    'guide-selected': 'secondary',
+    confirmed: 'default',
+    completed: 'outline',
+    cancelled: 'destructive',
+  } as const;
 
-    const variants = {
-        draft: 'outline',
-        pending: 'secondary',
-        'guide-selected': 'secondary',
-        confirmed: 'default',
-        completed: 'outline',
-        cancelled: 'destructive'
-    } as const;
-    
-    const statusText = status.replace(/-/g, ' ');
-    const variant = variants[status as keyof typeof variants] || 'secondary';
+  const statusText = status.replace(/-/g, ' ');
+  const variant = variants[status as keyof typeof variants] || 'secondary';
 
-    return <Badge variant={variant} className="capitalize">{statusText}</Badge>;
+  return <Badge variant={variant} className="capitalize">{statusText}</Badge>;
 }
 
 
@@ -187,7 +185,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    {getRequestStatusBadge(request)}
+                                    {getRequestStatusBadge(request.status)}
                                     <Button asChild size="sm" variant="outline">
                                         <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
                                     </Button>

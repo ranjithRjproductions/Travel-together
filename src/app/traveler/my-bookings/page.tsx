@@ -85,8 +85,6 @@ function RequestList({
     switch(status) {
         case 'pending': return <Badge variant="secondary">Finding Guides</Badge>;
         case 'guide-selected': return <Badge variant="secondary">Waiting for Guide</Badge>;
-        case 'confirmed': return <Badge variant="default" className="bg-amber-500">Payment Pending</Badge>;
-        case 'paid': return <Badge variant="default" className="bg-green-600">Paid & Confirmed</Badge>;
         default: return null;
     }
   };

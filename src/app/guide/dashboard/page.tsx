@@ -130,7 +130,7 @@ function IncomingRequests() {
   );
 }
 
-function RequestTravelerInfo({ travelerData, status, paidAt }: { travelerData: Partial<UserProfile> | undefined, status: TravelRequest['status'], paidAt: any }) {
+function RequestTravelerInfo({ travelerData, status }: { travelerData: Partial<UserProfile> | undefined, status: TravelRequest['status'] }) {
     if (!travelerData) {
         return <Skeleton className="h-10 w-32" />;
     }
@@ -168,10 +168,13 @@ function RequestTravelerInfo({ travelerData, status, paidAt }: { travelerData: P
 
     if (status === 'payment-pending') {
         return (
-            <Button disabled variant="secondary">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing Payment...
-            </Button>
+            <div className="text-right">
+                <div className="flex items-center justify-end gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="font-semibold">Processing Payment...</span>
+                </div>
+                <p className="text-xs text-muted-foreground">from {travelerData.name}</p>
+            </div>
         )
     }
 
@@ -234,7 +237,7 @@ function ConfirmedRequests() {
                       </div>
                   </div>
                   <div className="sm:text-right">
-                      <RequestTravelerInfo travelerData={request.travelerData} status={request.status} paidAt={request.paidAt} />
+                      <RequestTravelerInfo travelerData={request.travelerData} status={request.status} />
                   </div>
               </CardContent>
           </Card>

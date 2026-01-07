@@ -231,18 +231,14 @@ export const processRazorpayEvent = functions.firestore
   .onCreate(async (snap, context) => {
     const event = snap.data();
     const eventId = context.params.eventId;
-    
-    // Listen for both order.paid and payment.captured for robustness.
-    const allowedEvents = ["order.paid", "payment.captured"];
-    if (!allowedEvents.includes(event.event)) {
+
+    if (event.event !== "payment.captured") {
         console.log(`[Processor] Ignoring event '${event.event}' (${eventId}).`);
         return null;
     }
 
     const payment = event.payload.payment.entity;
-    const order = event.payload.order?.entity;
-    
-    const requestId = order?.notes?.requestId || payment?.notes?.requestId;
+    const requestId = payment?.notes?.requestId;
     const receivedAmount = payment?.amount;
     const receivedCurrency = payment?.currency;
     const razorpayOrderId = payment?.order_id;
@@ -275,12 +271,8 @@ export const processRazorpayEvent = functions.firestore
             if (request.razorpayOrderId !== razorpayOrderId) {
               throw new Error(`Razorpay Order ID mismatch for request ${requestId}.`);
             }
-            
-            const expected = Number(request.paymentDetails?.expectedAmount);
-            const received = Number(receivedAmount);
-            
-            if (expected !== received) {
-              throw new Error(`Amount mismatch for request ${requestId}. Expected ${expected}, got ${received}.`);
+            if (request.paymentDetails?.expectedAmount !== receivedAmount) {
+              throw new Error(`Amount mismatch for request ${requestId}. Expected ${request.paymentDetails?.expectedAmount}, got ${receivedAmount}.`);
             }
              if (request.paymentDetails?.currency !== receivedCurrency) {
               throw new Error(`Currency mismatch for request ${requestId}. Expected ${request.paymentDetails?.currency}, got ${receivedCurrency}.`);
@@ -294,7 +286,7 @@ export const processRazorpayEvent = functions.firestore
                 'paymentDetails.processedEventId': eventId,
             });
 
-            console.log(`[Processor] Successfully processed payment for request ${requestId}. Status set to paid.`);
+            console.log(`[Processor] Successfully processed payment for request ${requestId}.`);
         });
     } catch (error: any) {
         console.error(`[Processor Transaction Error] for event ${eventId}:`, error);
