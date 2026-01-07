@@ -232,10 +232,11 @@ export const processRazorpayEvent = functions.firestore
     const event = snap.data();
     const eventId = context.params.eventId;
     
+    // Listen for both order.paid and payment.captured for robustness.
     const allowedEvents = ["order.paid", "payment.captured"];
     if (!allowedEvents.includes(event.event)) {
-      console.log(`[Processor] Ignoring event '${event.event}' (${eventId}).`);
-      return null;
+        console.log(`[Processor] Ignoring event '${event.event}' (${eventId}).`);
+        return null;
     }
 
     const payment = event.payload.payment.entity;
@@ -281,7 +282,7 @@ export const processRazorpayEvent = functions.firestore
             if (expected !== received) {
               throw new Error(`Amount mismatch for request ${requestId}. Expected ${expected}, got ${received}.`);
             }
-            if (request.paymentDetails?.currency !== receivedCurrency) {
+             if (request.paymentDetails?.currency !== receivedCurrency) {
               throw new Error(`Currency mismatch for request ${requestId}. Expected ${request.paymentDetails?.currency}, got ${receivedCurrency}.`);
             }
 
