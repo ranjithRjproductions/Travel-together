@@ -115,7 +115,8 @@ async function getTravelers(): Promise<SerializableTravelerWithStats[]> {
         })
     );
 
-    return travelersWithStats;
+    // Sort by creation date after fetching and converting all data
+    return travelersWithStats.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   } catch (error) {
     console.error("Error fetching travelers:", error);
@@ -183,5 +184,3 @@ export default async function ManageTravelersPage() {
     </Card>
   );
 }
-
-    
