@@ -28,7 +28,11 @@ export default function ProfileSettingsLayout({
 }) {
   const pathname = usePathname();
   
-  const currentPage = navigation.find(item => pathname.startsWith(item.href)) || navigation[0];
+  const currentPage = navigation
+    .slice()
+    .sort((a, b) => b.href.length - a.href.length)
+    .find(item => pathname.startsWith(item.href));
+
 
   return (
     <div className="grid md:grid-cols-[250px_1fr] gap-8 items-start">

@@ -1,4 +1,6 @@
 
+import type { Metadata } from 'next';
+import homeContent from '@/app/content/home.json';
 import {
   Card,
   CardContent,
@@ -7,6 +9,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { EnableNotificationsButton } from '@/components/EnableNotificationsButton';
+
+const siteName = homeContent.meta.title.split('–')[0].trim();
+
+export const metadata: Metadata = {
+  title: `Account Settings | Traveler Settings | ${siteName}`,
+};
+
 
 export default function NotificationsPage() {
   return (

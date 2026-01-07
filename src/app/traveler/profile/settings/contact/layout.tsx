@@ -5,7 +5,7 @@ import homeContent from '@/app/content/home.json';
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
 export const metadata: Metadata = {
-  title: `Contact Details | ${siteName}`,
+  title: `Contact Details | Traveler Settings | ${siteName}`,
 };
 
 export default function ContactSettingsLayout({

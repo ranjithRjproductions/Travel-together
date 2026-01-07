@@ -104,11 +104,14 @@ useEffect(() => {
   if (userProfile) {
     reset({ name: userProfile.name || '', gender: userProfile.gender || undefined });
     setPhotoPreview(userProfile.photoURL || null);
-    setIsEditMode(!userProfile.name || !userProfile.gender); 
+    // Enter edit mode only if essential fields are missing
+    setIsEditMode(!userProfile.name || !userProfile.gender || !userProfile.photoURL); 
   } else if (!isUserLoading && !isProfileLoading) {
+    // If there's no profile at all, start in edit mode
     setIsEditMode(true);
   }
 }, [userProfile, reset, isUserLoading, isProfileLoading]);
+
 
 const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
@@ -184,7 +187,7 @@ const onSubmit: SubmitHandler<ProfileFormData> = async (data) => {
     });
     
     setPhotoFile(null);
-    setIsEditMode(false);
+    setIsEditMode(false); // IMPORTANT: Exit edit mode after successful save
 
   } catch (error: any) {
     console.error('Error saving profile:', error);
