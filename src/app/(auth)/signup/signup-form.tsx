@@ -40,12 +40,12 @@ function VerifyEmailCard({ email, onResend, onLogin }: { email: string; onResend
   };
 
   return (
-    <Card>
+    <Card role="alert" aria-live="assertive">
       <CardHeader className="text-center">
         <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit">
           <MailCheck className="h-8 w-8 text-primary" />
         </div>
-        <CardTitle className="mt-4">Please Verify Your Email</CardTitle>
+        <CardTitle className="mt-4" autoFocus tabIndex={-1}>Please Verify Your Email</CardTitle>
         <CardDescription>
           A verification link has been sent to <span className="font-semibold text-primary">{email}</span>. Please check your inbox and click the link to activate your account.
         </CardDescription>
