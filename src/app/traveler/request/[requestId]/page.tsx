@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc, deleteDoc, addDoc, collection, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -43,6 +43,7 @@ export default function CreateRequestFormPage() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminStatusChecked, setIsAdminStatusChecked] = useState(false);
+  const isCreating = useRef(false); // Add a ref to act as a lock
 
   // IMPORTANT: Only create a doc ref if the requestId is not 'new'
   const requestDocRef = useMemo(() => {
@@ -68,38 +69,30 @@ export default function CreateRequestFormPage() {
 
   // Effect to handle creation of a new request
   useEffect(() => {
-    if (!isNew || !authUser || !firestore) return;
+    if (isNew && authUser && firestore && !isCreating.current) {
+        isCreating.current = true; // Set the lock
 
-    let isMounted = true;
+        const createRequest = async () => {
+            try {
+                const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), {
+                    travelerId: authUser.uid,
+                    status: 'draft',
+                    createdAt: serverTimestamp(),
+                    step1Complete: false,
+                    step2Complete: false,
+                    step3Complete: false,
+                    step4Complete: false,
+                });
+                // Redirect to the new request's URL
+                router.replace(`/traveler/request/${newRequestRef.id}`);
+            } catch (error) {
+                console.error("Failed to create new request:", error);
+                toast({ title: "Error", description: "Could not create a new draft. Please try again.", variant: "destructive" });
+                router.push('/traveler/dashboard');
+            }
+        };
 
-    const createRequest = async () => {
-      // Create the draft document in Firestore
-      const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), {
-        travelerId: authUser.uid, // Ensure the travelerId is set on creation
-        status: 'draft',
-        createdAt: serverTimestamp(),
-        step1Complete: false,
-        step2Complete: false,
-        step3Complete: false,
-        step4Complete: false,
-      });
-
-      if (isMounted) {
-        // Redirect to the new request's URL
-        router.replace(`/traveler/request/${newRequestRef.id}`);
-      }
-    };
-
-    createRequest().catch(error => {
-      console.error("Failed to create new request:", error);
-      toast({ title: "Error", description: "Could not create a new draft. Please try again.", variant: "destructive" });
-      if (isMounted) {
-        router.push('/traveler/dashboard');
-      }
-    });
-
-    return () => {
-      isMounted = false;
+        createRequest();
     }
   }, [isNew, authUser, firestore, router, toast]);
   
@@ -215,9 +208,9 @@ export default function CreateRequestFormPage() {
          <div className="max-w-2xl mx-auto">
           <Step5Review request={request} userData={travelerData} />
            <div className="flex justify-end mt-6">
-              <Button onClick={() => router.push('/traveler/my-requests')}>
+              <Button onClick={() => router.push('/traveler/my-bookings')}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to My Requests
+                  Back to My Bookings
               </Button>
             </div>
          </div>
