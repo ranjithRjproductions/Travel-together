@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -17,10 +16,6 @@ import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
 
 const siteName = homeContent.meta.title.split('–')[0].trim();
-
-export const metadata: Metadata = {
-  title: `Profile Settings | ${siteName}`,
-};
 
 const navigation = [
   { name: 'Profile Information', href: '/traveler/profile/settings', icon: User, exact: true },
