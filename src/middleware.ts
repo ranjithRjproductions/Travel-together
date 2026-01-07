@@ -2,6 +2,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
+  // NOTE: Per docs/REDIRECT_CONTRACT.md, this middleware is for simple routing.
+  // It handles redirects for logged-in users away from public/auth pages and
+  // unauthenticated users away from most protected routes.
+  // Complex role-based gating is handled in the respective server component layouts.
   const { pathname } = req.nextUrl;
 
   // Explicitly bypass all API routes to prevent interference.

@@ -121,6 +121,9 @@ export async function signup(_: any, formData: FormData) {
 /* LOGOUT                                                                     */
 /* -------------------------------------------------------------------------- */
 export async function logoutAction() {
+  // NOTE: This redirect is intentional and terminal. The user's session is being destroyed.
+  // Per docs/REDIRECT_CONTRACT.md, this is a valid use of redirect() in a Server Action.
+  // DO NOT reuse this pattern for auth gating or role-based routing.
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('session') || cookieStore.get('__session');
 

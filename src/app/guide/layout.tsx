@@ -8,6 +8,9 @@ export default async function GuideLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // NOTE: This server component is the authority for this route's authentication.
+  // Per docs/REDIRECT_CONTRACT.md, all auth redirects for /guide/* must happen here.
+  // Do NOT add client-side auth redirects for this page.
   const user = await getUser();
 
   // If there's no session, middleware should have already redirected.
