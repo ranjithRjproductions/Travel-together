@@ -12,6 +12,61 @@ import { getAdminServices } from '@/lib/firebase-admin';
 import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
+
+/**
+ * ──────────────────────────────────────────────────────────────
+ * 🔒 PAYMENT FLOW (LOCKED – PRODUCTION SAFE)
+ * ──────────────────────────────────────────────────────────────
+ *
+ * This project uses a STRICT, server-controlled payment flow.
+ * Any change here can cause double charges, stuck bookings,
+ * or financial inconsistencies.
+ *
+ * PAYMENT ARCHITECTURE:
+ *
+ * 1. Server Action (createRazorpayOrder)
+ *    - Calculates amount on the server ONLY
+ *    - Creates Razorpay order
+ *    - Sets booking status → "payment-pending"
+ *
+ * 2. Client Checkout Page
+ *    - Opens Razorpay Checkout using server order ID
+ *    - NEVER updates payment status
+ *    - NEVER trusts client success callbacks
+ *
+ * 3. Razorpay Webhook (DUMB)
+ *    - Verifies signature
+ *    - Stores raw event in /payment_events
+ *    - NO business logic
+ *
+ * 4. Cloud Function (SMART)
+ *    - Triggered on /payment_events creation
+ *    - Validates:
+ *        • order ID
+ *        • amount (server vs Razorpay)
+ *        • currency
+ *        • current booking state
+ *    - Uses Firestore transaction
+ *    - FINAL state after successful payment:
+ *        status = "paid"
+ *
+ * STATE RULES (DO NOT CHANGE):
+ *
+ * confirmed → payment-pending → paid
+ *
+ * - "payment-pending" = retry allowed
+ * - "paid" = final, paid, locked
+ *
+ * IMPORTANT:
+ * - Clients must NEVER write payment fields
+ * - Webhook must remain idempotent
+ * - Amount must NEVER be client-controlled
+ *
+ * ⚠️ Any change here REQUIRES architectural review.
+ * ──────────────────────────────────────────────────────────────
+ */
+
+
 /* -------------------------------------------------------------------------- */
 /* SIGNUP – DB RECORD ONLY (NO CUSTOM CLAIMS)                                  */
 /* -------------------------------------------------------------------------- */
@@ -129,7 +184,7 @@ const calculateCostOnServer = (request: TravelRequest): number => {
         cost = baseCost + additionalCost;
     }
 
-    return Math.round(cost); // Return a whole number
+    return cost;
 };
 
 // 🔒 See `functions/src/index.ts` for the full locked-down payment flow documentation.
@@ -178,7 +233,7 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
         if (amountInRupees <= 0) {
             throw new Error('Calculated amount must be positive.');
         }
-        const amountInPaise = amountInRupees * 100;
+        const amountInPaise = Math.round(amountInRupees * 100);
 
         const razorpay = new Razorpay({
             key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
@@ -257,14 +312,28 @@ export async function verifyRazorpayPayment(data: PaymentVerificationData): Prom
         }
 
         const requestDoc = requestSnapshot.docs[0];
-        if (requestDoc.data().travelerId !== decodedToken.uid) {
+        const requestData = requestDoc.data();
+        if (requestData.travelerId !== decodedToken.uid) {
              return { success: false, message: "Permission denied." };
         }
         
-        if (requestDoc.data().status === 'paid') {
+        if (requestData.status === 'paid') {
             revalidatePath('/traveler/my-bookings');
             return { success: true, message: "Payment already processed." };
         }
+
+        // Check amount from Razorpay
+        const razorpay = new Razorpay({
+            key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+            key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        });
+
+        const payment = await razorpay.payments.fetch(razorpay_payment_id);
+        
+        if (payment.amount !== requestData.paymentDetails?.expectedAmount) {
+             throw new Error(`Amount mismatch. Expected ${requestData.paymentDetails?.expectedAmount}, but received ${payment.amount}.`);
+        }
+
 
         await requestDoc.ref.update({
             status: 'paid',
@@ -273,6 +342,7 @@ export async function verifyRazorpayPayment(data: PaymentVerificationData): Prom
         });
 
         revalidatePath('/traveler/my-bookings');
+        revalidatePath('/guide/dashboard');
         return { success: true, message: "Payment verified and booking confirmed." };
 
     } catch (error: any) {
@@ -529,3 +599,5 @@ export async function respondToTravelRequest(
     return { success: false, message: e.message };
   }
 }
+
+    
