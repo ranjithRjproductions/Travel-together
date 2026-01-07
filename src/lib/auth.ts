@@ -2,6 +2,7 @@
 import { cookies } from 'next/headers';
 import type { User } from '@/lib/definitions';
 import { getAdminServices } from '@/lib/firebase-admin';
+import type { Timestamp } from 'firebase-admin/firestore';
 
 export async function getUser(): Promise<User | null> {
   const sessionCookie = cookies().get('session')?.value;
@@ -20,16 +21,23 @@ export async function getUser(): Promise<User | null> {
         return null;
     }
     
-    const userData = userDoc.data() as User;
+    const userData = userDoc.data() as User & { createdAt?: Timestamp };
     const role = userData.role;
 
     // Also check for admin status from a separate collection for security.
     const adminDoc = await adminDb.collection('roles_admin').doc(decodedClaims.uid).get();
     const isAdmin = adminDoc.exists;
 
+    // IMPORTANT: Convert Firestore Timestamp to a serializable format (ISO string)
+    // before passing the object to a Client Component.
+    const finalUserData: any = { ...userData };
+    if (userData.createdAt && typeof userData.createdAt.toDate === 'function') {
+        finalUserData.createdAt = userData.createdAt.toDate().toISOString();
+    }
+
     // Construct the final User object for use in layouts and pages.
     return {
-      ...userData, // Spread all fields from the Firestore document
+      ...finalUserData,
       uid: decodedClaims.uid,
       email: decodedClaims.email || 'no-email@example.com',
       role,
