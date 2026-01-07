@@ -1,4 +1,5 @@
 
+
 /**
  * ──────────────────────────────────────────────────────────────
  * 🔒 PAYMENT FLOW (LOCKED – PRODUCTION SAFE)
@@ -332,9 +333,12 @@ export const processRazorpayEvent = functions.firestore
             }
 
             // --- All checks passed, update document ---
+            const tripPin = Math.floor(1000 + Math.random() * 9000).toString();
+            
             transaction.update(requestRef, {
                 status: "paid",
                 paidAt: admin.firestore.FieldValue.serverTimestamp(),
+                tripPin,
                 'paymentDetails.razorpayPaymentId': payment.id,
                 'paymentDetails.processedEventId': eventId,
             });

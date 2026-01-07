@@ -4,23 +4,14 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
-import { doc, deleteDoc, addDoc, collection, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 import { type TravelRequest, type User as UserData } from '@/lib/definitions';
 import { Step1Form, Step1View } from './step1-service';
 import { Step2Form, Step2View } from './step2-date';
@@ -43,13 +34,11 @@ export default function CreateRequestFormPage() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminStatusChecked, setIsAdminStatusChecked] = useState(false);
-  const isCreating = useRef(false); // Add a ref to act as a lock
 
-  // IMPORTANT: Only create a doc ref if the requestId is not 'new'
   const requestDocRef = useMemo(() => {
-    if (!firestore || isNew || !requestId) return null;
+    if (!firestore || !requestId) return null;
     return doc(firestore, 'travelRequests', requestId);
-  }, [requestId, firestore, isNew]);
+  }, [requestId, firestore]);
 
   const { data: request, isLoading: isRequestLoading, error: requestError } = useDoc<TravelRequest>(requestDocRef);
 
@@ -66,38 +55,9 @@ export default function CreateRequestFormPage() {
   const [isEditingStep2, setIsEditingStep2] = useState(false);
   const [isEditingStep3, setIsEditingStep3] = useState(false);
   const [isEditingStep4, setIsEditingStep4] = useState(false);
-
-  // Effect to handle creation of a new request
-  useEffect(() => {
-    if (isNew && authUser && firestore && !isCreating.current) {
-        isCreating.current = true; // Set the lock
-
-        const createRequest = async () => {
-            try {
-                const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), {
-                    travelerId: authUser.uid,
-                    status: 'draft',
-                    createdAt: serverTimestamp(),
-                    step1Complete: false,
-                    step2Complete: false,
-                    step3Complete: false,
-                    step4Complete: false,
-                });
-                // Redirect to the new request's URL
-                router.replace(`/traveler/request/${newRequestRef.id}`);
-            } catch (error) {
-                console.error("Failed to create new request:", error);
-                toast({ title: "Error", description: "Could not create a new draft. Please try again.", variant: "destructive" });
-                router.push('/traveler/dashboard');
-            }
-        };
-
-        createRequest();
-    }
-  }, [isNew, authUser, firestore, router, toast]);
   
   useEffect(() => {
-    if (isAuthLoading || isNew) return;
+    if (isAuthLoading) return;
 
     if (!authUser) {
       router.replace('/login');
@@ -114,25 +74,29 @@ export default function CreateRequestFormPage() {
     };
     checkAdminStatus();
     
-  }, [isAuthLoading, authUser, router, isNew, firestore]);
+  }, [isAuthLoading, authUser, router, firestore]);
   
   useEffect(() => {
-      if (isNew || isRequestLoading || !isAdminStatusChecked) return;
+      if (isRequestLoading || !isAdminStatusChecked) return;
 
       if (requestError) {
         toast({ title: "Error", description: "Could not load the request.", variant: "destructive" });
         router.replace('/traveler/dashboard');
         return;
       }
-
+      
+      // If we have loaded, and there's no request, it's a 404
       if (hasLoadedOnce && !request) {
+        toast({ title: "Not Found", description: "The requested draft does not exist.", variant: "destructive" });
         router.push('/traveler/dashboard');
         return;
       }
       
       if (!request || !authUser) return;
       
-      setHasLoadedOnce(true);
+      if (!hasLoadedOnce) {
+        setHasLoadedOnce(true);
+      }
 
       if (request.travelerId !== authUser.uid && !isAdmin) {
           toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
@@ -159,14 +123,14 @@ export default function CreateRequestFormPage() {
       } else {
         setCurrentTab('step-1');
       }
-  }, [isRequestLoading, isAdminStatusChecked, authUser, request, requestError, router, toast, hasLoadedOnce, isNew, isAdmin]);
+  }, [isRequestLoading, isAdminStatusChecked, authUser, request, requestError, router, toast, hasLoadedOnce]);
 
 
   const handleSave = () => {
     // The useDoc hook will trigger a re-render with the updated request data
   };
 
-  const isLoading = isAuthLoading || isRequestLoading || isTravelerDataLoading || isNew || !hasLoadedOnce || !isAdminStatusChecked;
+  const isLoading = isAuthLoading || isRequestLoading || isTravelerDataLoading || !hasLoadedOnce || !isAdminStatusChecked;
   
   if (isLoading) {
     return (

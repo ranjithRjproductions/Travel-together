@@ -12,7 +12,6 @@ import { getAdminServices } from '@/lib/firebase-admin';
 import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
-
 /**
  * ──────────────────────────────────────────────────────────────
  * 🔒 PAYMENT FLOW (LOCKED – PRODUCTION SAFE)
@@ -258,10 +257,8 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
         await requestRef.update({
             razorpayOrderId: order.id,
             status: 'payment-pending',
-            paymentDetails: {
-                expectedAmount: amountInPaise,
-                currency: 'INR',
-            }
+            'paymentDetails.expectedAmount': amountInPaise,
+            'paymentDetails.currency': 'INR',
         });
 
         revalidatePath(`/traveler/checkout/${requestId}`);
@@ -285,6 +282,7 @@ interface PaymentVerificationData {
   razorpay_signature: string;
 }
 
+// 🔒 See `functions/src/index.ts` for the full locked-down payment flow documentation.
 export async function verifyRazorpayPayment(data: PaymentVerificationData): Promise<{ success: boolean; message: string }> {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
     const { adminAuth, adminDb } = getAdminServices();
@@ -292,7 +290,7 @@ export async function verifyRazorpayPayment(data: PaymentVerificationData): Prom
     try {
         const session = cookies().get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
-        const decodedToken = await adminAuth.verifySessionCookie(session, true);
+        await adminAuth.verifySessionCookie(session, true);
 
         // Securely verify the signature
         const secret = process.env.RAZORPAY_KEY_SECRET!;
@@ -306,47 +304,11 @@ export async function verifyRazorpayPayment(data: PaymentVerificationData): Prom
             return { success: false, message: "Invalid payment signature." };
         }
 
-        // Signature is valid, now update the database
-        const requestQuery = adminDb.collection('travelRequests').where('razorpayOrderId', '==', razorpay_order_id).limit(1);
-        const requestSnapshot = await requestQuery.get();
-
-        if (requestSnapshot.empty) {
-            throw new Error(`No travel request found with Razorpay order ID ${razorpay_order_id}`);
-        }
-
-        const requestDoc = requestSnapshot.docs[0];
-        const requestData = requestDoc.data();
-        if (requestData.travelerId !== decodedToken.uid) {
-             return { success: false, message: "Permission denied." };
-        }
-        
-        if (requestData.status === 'paid') {
-            revalidatePath('/traveler/my-bookings');
-            return { success: true, message: "Payment already processed." };
-        }
-
-        // Check amount from Razorpay
-        const razorpay = new Razorpay({
-            key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-            key_secret: process.env.RAZORPAY_KEY_SECRET!,
-        });
-
-        const payment = await razorpay.payments.fetch(razorpay_payment_id);
-        
-        if (payment.amount !== requestData.paymentDetails?.expectedAmount) {
-             throw new Error(`Amount mismatch. Expected ${requestData.paymentDetails?.expectedAmount}, but received ${payment.amount}.`);
-        }
-
-
-        await requestDoc.ref.update({
-            status: 'paid',
-            paidAt: admin.firestore.FieldValue.serverTimestamp(),
-            'paymentDetails.razorpayPaymentId': razorpay_payment_id,
-        });
-
+        // Signature is valid. We still let the backend cloud function handle the final state change
+        // to keep the flow robust and idempotent. This action's only job is to confirm to the client
+        // that the signature was valid.
         revalidatePath('/traveler/my-bookings');
-        revalidatePath('/guide/dashboard');
-        return { success: true, message: "Payment verified and booking confirmed." };
+        return { success: true, message: "Payment signature verified. Awaiting final confirmation from server." };
 
     } catch (error: any) {
         console.error("Error verifying Razorpay payment:", error);
@@ -356,8 +318,35 @@ export async function verifyRazorpayPayment(data: PaymentVerificationData): Prom
 
 
 /* -------------------------------------------------------------------------- */
-/* OTHER ACTIONS (UNCHANGED)                                                  */
+/* OTHER ACTIONS                                                              */
 /* -------------------------------------------------------------------------- */
+
+export async function createDraftRequest(): Promise<{ success: boolean; message: string; requestId?: string }> {
+    const { adminAuth, adminDb } = getAdminServices();
+    try {
+        const session = cookies().get('session')?.value;
+        if (!session) throw new Error('Unauthenticated');
+        const decodedToken = await adminAuth.verifySessionCookie(session, true);
+        const travelerId = decodedToken.uid;
+        
+        const newRequestRef = await adminDb.collection('travelRequests').add({
+            travelerId,
+            status: 'draft',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            step1Complete: false,
+            step2Complete: false,
+            step3Complete: false,
+            step4Complete: false,
+        });
+
+        return { success: true, message: 'Draft created', requestId: newRequestRef.id };
+    } catch (error: any) {
+        console.error("Failed to create draft request:", error);
+        return { success: false, message: error.message || 'Could not create a new draft.' };
+    }
+}
+
+
 export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected') {
     const { adminAuth, adminDb } = getAdminServices();
     try {
@@ -602,5 +591,3 @@ export async function respondToTravelRequest(
     return { success: false, message: e.message };
   }
 }
-
-    

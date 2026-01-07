@@ -28,6 +28,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { doc } from 'firebase/firestore';
+import { createDraftRequest } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
+
 
 function DashboardSkeleton() {
   return (
@@ -45,8 +48,10 @@ export default function TravelerDashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+  const [isCreatingRequest, setIsCreatingRequest] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -79,13 +84,25 @@ export default function TravelerDashboard() {
     return { complete: true, reason: '' };
   };
   
-  const handleCreateRequestClick = () => {
+  const handleCreateRequestClick = async () => {
     const { complete, reason } = checkProfileCompleteness(userProfile);
-    if (complete) {
-      router.push('/traveler/request/create');
-    } else {
+    if (!complete) {
       setAlertMessage(reason || 'Please make sure all your profile settings are complete before creating a request. This helps us find the perfect guide for your needs.');
       setIsAlertOpen(true);
+      return;
+    }
+
+    setIsCreatingRequest(true);
+    const result = await createDraftRequest();
+    if (result.success && result.requestId) {
+        router.push(`/traveler/request/${result.requestId}`);
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: result.message || "Could not create a new draft request.",
+        });
+        setIsCreatingRequest(false);
     }
   };
 
@@ -128,8 +145,12 @@ export default function TravelerDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow flex items-end">
-              <Button onClick={handleCreateRequestClick} size="lg" className="w-full">
-                <PlusCircle aria-hidden="true" /> {content.createRequest.cta}
+              <Button onClick={handleCreateRequestClick} size="lg" className="w-full" disabled={isCreatingRequest}>
+                {isCreatingRequest ? 'Creating...' : (
+                    <>
+                        <PlusCircle aria-hidden="true" /> {content.createRequest.cta}
+                    </>
+                )}
               </Button>
             </CardContent>
           </Card>
