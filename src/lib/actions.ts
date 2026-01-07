@@ -186,6 +186,7 @@ const calculateCostOnServer = (request: TravelRequest): number => {
         cost = baseCost + additionalCost;
     }
 
+    // Remove the incorrect Math.round call
     return cost;
 };
 
@@ -591,3 +592,5 @@ export async function respondToTravelRequest(
     return { success: false, message: e.message };
   }
 }
+
+    
