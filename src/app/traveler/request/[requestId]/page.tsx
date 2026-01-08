@@ -41,9 +41,9 @@ export default function CreateRequestFormPage() {
 
   // Fetch the TRAVELER'S user data using the ID from the request document.
   const travelerDocRef = useMemo(() => {
-    if (!firestore || !request?.travelerId) return null;
+    if (!firestore || !request?.travelerId || isAuthLoading || !authUser) return null;
     return doc(firestore, 'users', request.travelerId);
-  }, [firestore, request?.travelerId]);
+  }, [firestore, request?.travelerId, isAuthLoading, authUser]);
   const { data: travelerData, isLoading: isTravelerDataLoading } = useDoc<UserData>(travelerDocRef);
 
 
