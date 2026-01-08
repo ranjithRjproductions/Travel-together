@@ -162,6 +162,16 @@ export default function FindGuidePage() {
         return `Available on ${dateText} for ${purposeText} support`;
     }
 
+    const getSubtitleText = () => {
+        if (isLoading) {
+            return "We are filtering guides based on your request's criteria...";
+        }
+        if (matchedGuides.length > 0) {
+            return "We’ve found these guides based on your request's location and expertise.";
+        }
+        return "No guides matched all your criteria.";
+    }
+
 
     return (
         <div className="container mx-auto py-8">
@@ -169,11 +179,11 @@ export default function FindGuidePage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
                     <div className="text-lg text-muted-foreground">
-                        {isLoading ? <Skeleton className="h-6 w-3/4" /> : "We’ve found these guides based on your request's location and expertise."}
+                        {getSubtitleText()}
                     </div>
                 </div>
-                 <Button asChild variant="outline">
-                    <Link href="/traveler/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
+                 <Button variant="outline" onClick={() => router.push('/traveler/dashboard')}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
                 </Button>
             </div>
 
