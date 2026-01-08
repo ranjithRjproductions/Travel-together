@@ -57,7 +57,14 @@ async function getTravelerDetails(userId: string) {
         return null;
     }
 
-    const user = { uid: userDoc.id, ...userDoc.data() } as User & { uid: string };
+    const userData = userDoc.data() as User & { uid: string, createdAt: FirestoreTimestamp };
+    
+    // Convert timestamp to a serializable format (ISO string)
+    const user = { 
+      uid: userDoc.id, 
+      ...userData,
+      createdAt: userData.createdAt?.toDate?.().toISOString() || new Date().toISOString()
+    };
     
     const requests = requestsSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as ServerTravelRequest))
