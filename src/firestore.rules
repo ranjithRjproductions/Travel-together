@@ -38,7 +38,6 @@ service cloud.firestore {
     match /travelRequests/{requestId} {
       allow create: if request.auth != null && 
         request.resource.data.travelerId == request.auth.uid &&
-        request.resource.data.status == 'draft' &&
         request.resource.data.keys().hasOnly(['travelerId', 'status', 'createdAt', 'step1Complete', 'step2Complete', 'step3Complete', 'step4Complete']);
 
       allow read, delete: if request.auth != null && 
@@ -111,5 +110,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

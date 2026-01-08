@@ -183,12 +183,6 @@ export default function MyRequestsPage() {
           operation: 'delete',
         });
         errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not delete the draft. Please try again.',
-        });
-        setAriaLiveMessage('Error: Could not delete draft.');
       });
   };
 
