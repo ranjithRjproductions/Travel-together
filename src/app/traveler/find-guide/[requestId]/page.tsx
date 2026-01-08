@@ -170,23 +170,19 @@ export default function FindGuidePage() {
         if (matchedGuides.length > 0) {
             return "We’ve found these guides based on your request's location and expertise.";
         }
-        return "No guides matched all your criteria.";
+        // Return an empty string if no guides are found to avoid redundancy
+        return "";
     }
 
 
     return (
         <div className="container mx-auto py-8">
             <AriaLive message={isLoading ? "Filtering guides..." : "Guide search complete."} />
-            <div className="mb-8 flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
-                    <div className="text-lg text-muted-foreground">
-                        {getSubtitleText()}
-                    </div>
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
+                <div className="text-lg text-muted-foreground">
+                    {getSubtitleText()}
                 </div>
-                 <Button variant="outline" onClick={() => router.push('/traveler/dashboard')}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
-                </Button>
             </div>
 
             {isLoading ? (
