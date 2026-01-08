@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -30,8 +30,6 @@ export default function CreateRequestFormPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [isAdmin, setIsAdmin] = useState(false);
-
   const requestDocRef = useMemo(() => {
     if (!firestore || !requestId || isAuthLoading || !authUser) return null;
     return doc(firestore, 'travelRequests', requestId);
@@ -60,16 +58,7 @@ export default function CreateRequestFormPage() {
       router.replace('/login');
       return;
     }
-    
-    const checkAdminStatus = async () => {
-      if (!firestore) return;
-      const adminDocRef = doc(firestore, 'roles_admin', authUser.uid);
-      const adminDoc = await getDoc(adminDocRef);
-      setIsAdmin(adminDoc.exists());
-    };
-    checkAdminStatus();
-    
-  }, [isAuthLoading, authUser, router, firestore]);
+  }, [isAuthLoading, authUser, router]);
   
   useEffect(() => {
       if (isRequestLoading) return;
@@ -90,8 +79,9 @@ export default function CreateRequestFormPage() {
       
       if (!authUser) return;
       
-
-      if (request.travelerId !== authUser.uid && !isAdmin) {
+      // A normal user can only see their own requests.
+      // Admins have their own view via /admin/users/...
+      if (request.travelerId !== authUser.uid) {
           toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
           router.replace('/traveler/dashboard');
           return;
@@ -121,7 +111,7 @@ export default function CreateRequestFormPage() {
       } else {
         setCurrentTab('step-1');
       }
-  }, [isRequestLoading, authUser, request, requestError, router, toast, isAdmin]);
+  }, [isRequestLoading, authUser, request, requestError, router, toast]);
 
 
   const handleSave = () => {
@@ -163,7 +153,7 @@ export default function CreateRequestFormPage() {
   }
 
   // If the request has been submitted, show the read-only summary view
-  if (request.status !== 'draft' && !isAdmin) {
+  if (request.status !== 'draft') {
     return (
       <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
          <h1 className="font-headline text-3xl md:text-4xl font-bold mb-8">Request Details</h1>
@@ -173,24 +163,6 @@ export default function CreateRequestFormPage() {
               <Button onClick={() => router.push('/traveler/my-bookings')}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to My Bookings
-              </Button>
-            </div>
-         </div>
-      </main>
-    )
-  }
-  
-    // Allow admin to view even submitted requests
-  if (isAdmin && request.status !== 'draft') {
-      return (
-      <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
-         <h1 className="font-headline text-3xl md:text-4xl font-bold mb-8">Request Details (Admin View)</h1>
-         <div className="max-w-2xl mx-auto">
-          <Step5Review request={request} userData={travelerData} />
-           <div className="flex justify-end mt-6">
-              <Button onClick={() => router.back()}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Traveler Details
               </Button>
             </div>
          </div>
