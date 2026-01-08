@@ -26,7 +26,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AriaLive } from '@/components/ui/aria-live';
-import { revalidatePath } from 'next/cache';
 
 function GuideInfo({ guideData }: { guideData?: Partial<UserData> }) {
     if (!guideData) {
@@ -226,7 +225,6 @@ export default function MyBookingsPage() {
 
   useEffect(() => {
       if(searchParams.get('payment_success')) {
-          revalidatePath('/traveler/my-bookings');
           router.replace('/traveler/my-bookings', { scroll: false });
       }
   }, [searchParams, router]);
