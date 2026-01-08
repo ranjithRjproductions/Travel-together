@@ -43,6 +43,13 @@ type ServerTravelRequest = Omit<TravelRequest, 'createdAt' | 'submittedAt' | 'ac
   paidAt?: FirestoreTimestamp | string;
 };
 
+type ClientTravelRequest = Omit<TravelRequest, 'createdAt' | 'paidAt' | 'submittedAt' | 'acceptedAt'> & {
+  createdAt?: string;
+  submittedAt?: string;
+  acceptedAt?: string;
+  paidAt?: string;
+};
+
 
 async function getGuideDetails(guideId: string) {
     const db = getAdminDb();
@@ -64,10 +71,20 @@ async function getGuideDetails(guideId: string) {
     const guideProfile = guideProfileDoc.exists ? guideProfileDoc.data() : null;
 
      const requests = requestsSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as ServerTravelRequest))
+        .map(doc => {
+          const data = doc.data() as ServerTravelRequest;
+          return {
+              id: doc.id,
+              ...data,
+              createdAt: data.createdAt && typeof (data.createdAt as any).toDate === 'function' ? (data.createdAt as FirestoreTimestamp).toDate().toISOString() : data.createdAt,
+              submittedAt: data.submittedAt && typeof (data.submittedAt as any).toDate === 'function' ? (data.submittedAt as FirestoreTimestamp).toDate().toISOString() : data.submittedAt,
+              acceptedAt: data.acceptedAt && typeof (data.acceptedAt as any).toDate === 'function' ? (data.acceptedAt as FirestoreTimestamp).toDate().toISOString() : data.acceptedAt,
+              paidAt: data.paidAt && typeof (data.paidAt as any).toDate === 'function' ? (data.paidAt as FirestoreTimestamp).toDate().toISOString() : data.paidAt,
+          } as ClientTravelRequest;
+        })
         .sort((a, b) => {
-            const dateA = a.createdAt && typeof (a.createdAt as any).toDate === 'function' ? (a.createdAt as FirestoreTimestamp).toDate().getTime() : (a.createdAt ? new Date(a.createdAt as string).getTime() : 0);
-            const dateB = b.createdAt && typeof (b.createdAt as any).toDate === 'function' ? (b.createdAt as FirestoreTimestamp).toDate().getTime() : (b.createdAt ? new Date(b.createdAt as string).getTime() : 0);
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return dateB - dateA;
         });
 
@@ -140,7 +157,7 @@ function getRequestStatusBadge(status: TravelRequest['status']) {
 }
 
 
-const getRequestTitle = (request: ServerTravelRequest): string => {
+const getRequestTitle = (request: ClientTravelRequest): string => {
     const { purposeData } = request;
     if (!purposeData?.purpose) return 'Untitled Request';
 
@@ -151,18 +168,16 @@ const getRequestTitle = (request: ServerTravelRequest): string => {
     return title;
 };
 
-const formatTimestamp = (timestamp: FirestoreTimestamp | string | undefined | null): string => {
+const formatTimestamp = (timestamp: string | undefined | null): string => {
   if (!timestamp) return 'N/A';
-  const date = typeof (timestamp as any)?.toDate === 'function'
-    ? (timestamp as FirestoreTimestamp).toDate()
-    : new Date(timestamp as string);
+  const date = new Date(timestamp);
 
   if (isNaN(date.getTime())) return 'Invalid Date';
   return format(date, 'MMM d, yyyy, h:mm a');
 };
 
 
-function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
+function RequestsSection({ requests }: { requests: ClientTravelRequest[] }) {
     return (
         <Card>
             <CardHeader>
@@ -308,5 +323,3 @@ export default async function GuideDetailPage({ params }: { params: { guideId: s
     </div>
   );
 }
-
-    
