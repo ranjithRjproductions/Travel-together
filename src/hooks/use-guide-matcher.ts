@@ -90,6 +90,11 @@ export function useGuideMatcher(request: TravelRequest | null, traveler: UserDat
           return false;
         }
 
+        if (traveler.gender && guide.gender !== traveler.gender) {
+          console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Mismatched gender. Guide: ${guide.gender}, Traveler: ${traveler.gender}`);
+          return false;
+        }
+
         if (!requestDistrict || guideProfile.address?.district !== requestDistrict) {
              console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Mismatched district. Guide: ${guideProfile.address?.district}, Request: ${requestDistrict}`);
              return false;
