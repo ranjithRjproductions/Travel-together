@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Step5Review } from '@/app/traveler/request/[requestId]/step5-review';
 import { getUser } from '@/lib/auth';
+import { Timestamp } from 'firebase-admin/firestore';
 
 // This is a Server Component responsible for securely fetching and displaying
 // a travel request for an administrator.
@@ -28,10 +29,10 @@ async function getRequestAndUserData(requestId: string): Promise<{ request: Trav
     const request: TravelRequest = {
         id: requestSnap.id,
         ...requestData,
-        createdAt: requestData?.createdAt?.toDate()?.toISOString() || null,
-        submittedAt: requestData?.submittedAt?.toDate()?.toISOString() || null,
-        acceptedAt: requestData?.acceptedAt?.toDate()?.toISOString() || null,
-        paidAt: requestData?.paidAt?.toDate()?.toISOString() || null,
+        createdAt: (requestData?.createdAt as Timestamp)?.toDate?.().toISOString() || null,
+        submittedAt: (requestData?.submittedAt as Timestamp)?.toDate?.().toISOString() || null,
+        acceptedAt: (requestData?.acceptedAt as Timestamp)?.toDate?.().toISOString() || null,
+        paidAt: (requestData?.paidAt as Timestamp)?.toDate?.().toISOString() || null,
     } as TravelRequest;
     
     if (!request.travelerId) {
@@ -45,7 +46,15 @@ async function getRequestAndUserData(requestId: string): Promise<{ request: Trav
         return null;
     }
 
-    const userData = userSnap.data() as User;
+    const rawUserData = userSnap.data() as User & { createdAt?: Timestamp };
+
+    // Convert the user's createdAt timestamp to a serializable format.
+    const userData: User = {
+        ...rawUserData,
+        uid: userSnap.id, // ensure uid is set
+        // @ts-ignore
+        createdAt: rawUserData.createdAt?.toDate?.().toISOString() || null,
+    };
     
     return { request, userData };
 }
@@ -86,5 +95,3 @@ export default async function AdminRequestViewPage({ params }: { params: { reque
     </main>
   );
 }
-
-    
