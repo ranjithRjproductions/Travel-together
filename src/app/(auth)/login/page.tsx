@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: `${content.pageTitle} | ${siteName}`,
 };
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
   searchParams?: { message?: string };
