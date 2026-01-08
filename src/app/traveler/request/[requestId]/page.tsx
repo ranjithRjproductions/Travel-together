@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -24,7 +24,6 @@ import { ArrowLeft } from 'lucide-react';
 export default function CreateRequestFormPage() {
   const params = useParams();
   const requestId = params.requestId as string;
-  const isNew = requestId === 'create';
 
   const { user: authUser, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
