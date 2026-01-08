@@ -224,7 +224,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                                     <div className="flex items-center gap-4">
                                         {getRequestStatusBadge(request.status)}
                                         <Button asChild size="sm" variant="outline">
-                                            <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
+                                            <Link href={`/admin/requests/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
                                         </Button>
                                         <DeleteRequestButton requestId={request.id} />
                                     </div>
@@ -282,3 +282,5 @@ export default async function TravelerDetailPage({ params }: { params: { userId:
     </div>
   );
 }
+
+    
