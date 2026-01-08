@@ -16,7 +16,7 @@ import content from '@/app/content/traveler-dashboard.json';
 import { PlusCircle, BookMarked, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { type User as UserProfile } from '@/lib/definitions';
+import { type TravelRequest, type User as UserProfile } from '@/lib/definitions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { doc } from 'firebase/firestore';
+import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { createDraftRequest } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -93,14 +93,37 @@ export default function TravelerDashboard() {
     }
 
     setIsCreatingRequest(true);
-    const result = await createDraftRequest();
-    if (result.success && result.requestId) {
-        router.push(`/traveler/request/${result.requestId}`);
+    
+    // Step 1: Call server action to securely get travelerId
+    const authResult = await createDraftRequest();
+
+    if (authResult.success && authResult.travelerId && firestore) {
+        try {
+            // Step 2: Use travelerId to create draft on the client
+            const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), {
+                travelerId: authResult.travelerId,
+                status: 'draft',
+                createdAt: serverTimestamp(),
+                step1Complete: false,
+                step2Complete: false,
+                step3Complete: false,
+                step4Complete: false,
+            });
+            // Step 3: Redirect to the new draft page
+            router.push(`/traveler/request/${newRequestRef.id}`);
+        } catch (error: any) {
+             toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Could not create a new draft request on the client.",
+            });
+            setIsCreatingRequest(false);
+        }
     } else {
         toast({
             variant: "destructive",
-            title: "Error",
-            description: result.message || "Could not create a new draft request.",
+            title: "Authentication Error",
+            description: authResult.message || "Could not verify your identity to create a request.",
         });
         setIsCreatingRequest(false);
     }
@@ -173,5 +196,3 @@ export default function TravelerDashboard() {
     </>
   );
 }
-
-    

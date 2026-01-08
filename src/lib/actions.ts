@@ -120,7 +120,7 @@ export async function signup(_: any, formData: FormData) {
 /* LOGOUT                                                                     */
 /* -------------------------------------------------------------------------- */
 export async function logoutAction() {
-  // NOTE: This redirect is intentional and terminal. The user's session is being destroyed.
+  // This redirect is intentional and terminal. The user's session is being destroyed.
   // Per docs/REDIRECT_CONTRACT.md, this is a valid use of redirect() in a Server Action.
   // DO NOT reuse this pattern for auth gating or role-based routing.
   const cookieStore = cookies();
@@ -322,28 +322,20 @@ export async function verifyRazorpayPayment(data: PaymentVerificationData): Prom
 /* OTHER ACTIONS                                                              */
 /* -------------------------------------------------------------------------- */
 
-export async function createDraftRequest(): Promise<{ success: boolean; message: string; requestId?: string }> {
-    const { adminAuth, adminDb } = getAdminServices();
+export async function createDraftRequest(): Promise<{ success: boolean; message: string; travelerId?: string }> {
+    const { adminAuth } = getAdminServices();
     try {
         const session = cookies().get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
         const decodedToken = await adminAuth.verifySessionCookie(session, true);
-        const travelerId = decodedToken.uid;
         
-        const newRequestRef = await adminDb.collection('travelRequests').add({
-            travelerId,
-            status: 'draft',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            step1Complete: false,
-            step2Complete: false,
-            step3Complete: false,
-            step4Complete: false,
-        });
+        // This action now ONLY returns the secure user ID.
+        // Document creation is handled on the client.
+        return { success: true, message: 'User authenticated.', travelerId: decodedToken.uid };
 
-        return { success: true, message: 'Draft created', requestId: newRequestRef.id };
     } catch (error: any) {
-        console.error("Failed to create draft request:", error);
-        return { success: false, message: error.message || 'Could not create a new draft.' };
+        console.error("Failed to authenticate user for draft creation:", error);
+        return { success: false, message: error.message || 'Could not authenticate user.' };
     }
 }
 
