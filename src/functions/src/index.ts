@@ -210,7 +210,6 @@ export const travelRequestStatusUpdate = functions.firestore
             const subject = "Payment Received - Your Booking is Finalized!";
             const html = `<p>Hi ${newValue.travelerData.name},</p>
                           <p>We have received your payment. Your booking with ${newValue.guideData?.name || "your guide"} is now finalized and secure.</p>
-                          <p>Your Trip PIN is: <strong>${(newValue as any).tripPin || "Not available"}</strong>. You will need to provide this to your guide to start the service.</p>
                           <p>We wish you a safe and pleasant journey!</p>
                           <p>Thank you,<br/>The Let's Travel Together Team</p>`;
             await sendEmail(newValue.travelerData.email, subject, html);
@@ -338,12 +337,9 @@ export const processRazorpayEvent = functions.firestore
             }
 
             // --- All checks passed, update document ---
-            const tripPin = Math.floor(1000 + Math.random() * 9000).toString();
-            
             transaction.update(requestRef, {
-                status: "confirmed", // CORRECTED: Set status back to 'confirmed'
+                status: "confirmed",
                 paidAt: admin.firestore.FieldValue.serverTimestamp(),
-                tripPin,
                 'paymentDetails.razorpayPaymentId': payment.id,
                 'paymentDetails.processedEventId': eventId,
             });

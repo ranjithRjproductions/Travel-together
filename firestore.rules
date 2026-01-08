@@ -94,7 +94,7 @@ service cloud.firestore {
         (
           resource.data.status == 'payment-pending' &&
           request.resource.data.status == 'confirmed' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt', 'tripPin', 'paymentDetails'])
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt', 'paymentDetails'])
         )
       );
     }

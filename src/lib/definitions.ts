@@ -60,7 +60,6 @@ export type TravelRequest = {
   acceptedAt?: any; // Guide confirmed
   paidAt?: any; // Payment successful
   
-  tripPin?: string;
   razorpayOrderId?: string;
   
   paymentDetails?: {
