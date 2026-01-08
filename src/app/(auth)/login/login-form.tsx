@@ -28,7 +28,7 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
     <Button type="submit" className="w-full" disabled={isSubmitting}>
       {isSubmitting ? (
-        content.submitButtonSubmitting
+        "Please wait, we're preparing your dashboard..."
       ) : (
         <>
           <LogIn className="mr-2 h-4 w-4" aria-hidden />

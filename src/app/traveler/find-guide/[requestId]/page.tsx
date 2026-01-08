@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { submitTravelRequest } from '@/lib/actions';
 import { format, parseISO } from 'date-fns';
+import { AriaLive } from '@/components/ui/aria-live';
 
 function GuideCardSkeleton() {
     return (
@@ -175,6 +176,7 @@ export default function FindGuidePage() {
 
     return (
         <div className="container mx-auto py-8">
+            <AriaLive message={isLoading ? "Filtering guides..." : "Guide search complete."} />
             <div className="mb-8 flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
