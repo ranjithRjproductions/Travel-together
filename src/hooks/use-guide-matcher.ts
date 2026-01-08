@@ -95,11 +95,6 @@ export function useGuideMatcher(request: TravelRequest | null, traveler: UserDat
              return false;
         }
 
-        if (traveler.gender && guide.gender !== traveler.gender) {
-          console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Mismatched gender.`);
-          return false;
-        }
-
         const expertise = guideProfile.disabilityExpertise;
         if (!expertise) {
           console.log(`[Guide Matcher] Skipping guide ${guide.uid}: Missing disabilityExpertise.`);
