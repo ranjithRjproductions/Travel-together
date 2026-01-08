@@ -36,10 +36,20 @@ interface FirestoreTimestamp {
   toDate(): Date;
 }
 
-// Update TravelRequest to expect the server-side timestamp
-type ServerTravelRequest = Omit<TravelRequest, 'createdAt' | 'paidAt'> & {
-  createdAt: FirestoreTimestamp | string; // Can be either on the server
+// A version of TravelRequest where dates can be Timestamps
+type ServerTravelRequest = Omit<TravelRequest, 'createdAt' | 'paidAt' | 'submittedAt' | 'acceptedAt'> & {
+  createdAt?: FirestoreTimestamp | string;
+  submittedAt?: FirestoreTimestamp | string;
+  acceptedAt?: FirestoreTimestamp | string;
   paidAt?: FirestoreTimestamp | string;
+};
+
+// A fully serializable version of TravelRequest for client components
+type ClientTravelRequest = Omit<TravelRequest, 'createdAt' | 'paidAt' | 'submittedAt' | 'acceptedAt'> & {
+  createdAt?: string;
+  submittedAt?: string;
+  acceptedAt?: string;
+  paidAt?: string;
 };
 
 
@@ -59,7 +69,7 @@ async function getTravelerDetails(userId: string) {
 
     const userData = userDoc.data() as User & { uid: string, createdAt: FirestoreTimestamp };
     
-    // Convert timestamp to a serializable format (ISO string)
+    // Convert timestamp to a serializable format (ISO string) for the user object
     const user = { 
       uid: userDoc.id, 
       ...userData,
@@ -67,11 +77,21 @@ async function getTravelerDetails(userId: string) {
     };
     
     const requests = requestsSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as ServerTravelRequest))
+        .map(doc => {
+            const data = doc.data() as ServerTravelRequest;
+            // Convert all timestamp fields in each request to serializable strings
+            return {
+              id: doc.id,
+              ...data,
+              createdAt: data.createdAt && typeof (data.createdAt as any).toDate === 'function' ? (data.createdAt as FirestoreTimestamp).toDate().toISOString() : data.createdAt,
+              submittedAt: data.submittedAt && typeof (data.submittedAt as any).toDate === 'function' ? (data.submittedAt as FirestoreTimestamp).toDate().toISOString() : data.submittedAt,
+              acceptedAt: data.acceptedAt && typeof (data.acceptedAt as any).toDate === 'function' ? (data.acceptedAt as FirestoreTimestamp).toDate().toISOString() : data.acceptedAt,
+              paidAt: data.paidAt && typeof (data.paidAt as any).toDate === 'function' ? (data.paidAt as FirestoreTimestamp).toDate().toISOString() : data.paidAt,
+            } as ClientTravelRequest;
+        })
         .sort((a, b) => {
-            // Safely convert Firestore Timestamps or date strings to JS Dates for comparison
-            const dateA = a.createdAt && typeof (a.createdAt as any).toDate === 'function' ? (a.createdAt as FirestoreTimestamp).toDate().getTime() : (a.createdAt ? new Date(a.createdAt as string).getTime() : 0);
-            const dateB = b.createdAt && typeof (b.createdAt as any).toDate === 'function' ? (b.createdAt as FirestoreTimestamp).toDate().getTime() : (b.createdAt ? new Date(b.createdAt as string).getTime() : 0);
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return dateB - dateA;
         });
 
@@ -184,7 +204,7 @@ function getRequestStatusBadge(status: TravelRequest['status']) {
 }
 
 
-const getRequestTitle = (request: ServerTravelRequest): string => {
+const getRequestTitle = (request: ClientTravelRequest): string => {
     const { purposeData } = request;
     if (!purposeData?.purpose) return 'Untitled Request';
 
@@ -195,7 +215,7 @@ const getRequestTitle = (request: ServerTravelRequest): string => {
     return title;
 };
 
-function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
+function RequestsSection({ requests }: { requests: ClientTravelRequest[] }) {
     return (
         <Card>
             <CardHeader>
@@ -208,10 +228,7 @@ function RequestsSection({ requests }: { requests: ServerTravelRequest[] }) {
                 ) : (
                     <div className="space-y-4">
                         {requests.map(request => {
-                            // Safely convert createdAt to a Date object for formatting
-                            const createdAtDate = request.createdAt && typeof (request.createdAt as any).toDate === 'function' 
-                                ? (request.createdAt as FirestoreTimestamp).toDate() 
-                                : request.createdAt ? new Date(request.createdAt as string) : null;
+                            const createdAtDate = request.createdAt ? new Date(request.createdAt) : null;
 
                             return (
                                 <div key={request.id} className="p-4 border rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -282,5 +299,3 @@ export default async function TravelerDetailPage({ params }: { params: { userId:
     </div>
   );
 }
-
-    
