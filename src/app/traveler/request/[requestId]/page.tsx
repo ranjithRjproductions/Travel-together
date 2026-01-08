@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -31,6 +32,7 @@ export default function CreateRequestFormPage() {
   const { toast } = useToast();
   
   const requestDocRef = useMemo(() => {
+    // Wait until auth is resolved and we have a user and firestore instance
     if (!firestore || !requestId || isAuthLoading || !authUser) return null;
     return doc(firestore, 'travelRequests', requestId);
   }, [requestId, firestore, isAuthLoading, authUser]);
@@ -39,6 +41,7 @@ export default function CreateRequestFormPage() {
 
   // Fetch the TRAVELER'S user data using the ID from the request document.
   const travelerDocRef = useMemo(() => {
+    // Wait until auth is resolved and we have a user and the request object
     if (!firestore || !request?.travelerId || isAuthLoading || !authUser) return null;
     return doc(firestore, 'users', request.travelerId);
   }, [firestore, request?.travelerId, isAuthLoading, authUser]);
@@ -79,9 +82,11 @@ export default function CreateRequestFormPage() {
       
       if (!authUser) return;
       
-      // A normal user can only see their own requests.
-      // Admins have their own view via /admin/users/...
-      if (request.travelerId !== authUser.uid) {
+      // A user can only see their own requests, unless they are an admin.
+      const isOwner = request.travelerId === authUser.uid;
+      const isAdmin = authUser.isAdmin === true;
+
+      if (!isOwner && !isAdmin) {
           toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
           router.replace('/traveler/dashboard');
           return;
