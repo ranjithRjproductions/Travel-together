@@ -322,15 +322,13 @@ export async function verifyRazorpayPayment(data: PaymentVerificationData): Prom
 /* OTHER ACTIONS                                                              */
 /* -------------------------------------------------------------------------- */
 
-export async function createDraftRequest(): Promise<{ success: boolean; message: string; travelerId?: string }> {
+export async function createDraftRequest(): Promise<{ success: boolean; message: string; travelerId?: string; }> {
     const { adminAuth } = getAdminServices();
     try {
         const session = cookies().get('session')?.value;
-        if (!session) throw new Error('Unauthenticated');
+        if (!session) throw new Error('Unauthenticated. Please log in.');
         const decodedToken = await adminAuth.verifySessionCookie(session, true);
         
-        // This action now ONLY returns the secure user ID.
-        // Document creation is handled on the client.
         return { success: true, message: 'User authenticated.', travelerId: decodedToken.uid };
 
     } catch (error: any) {
@@ -584,5 +582,3 @@ export async function respondToTravelRequest(
     return { success: false, message: e.message };
   }
 }
-
-    

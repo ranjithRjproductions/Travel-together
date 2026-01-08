@@ -30,9 +30,7 @@ export default function CreateRequestFormPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isAdminStatusChecked, setIsAdminStatusChecked] = useState(false);
 
   const requestDocRef = useMemo(() => {
     if (!firestore || !requestId) return null;
@@ -50,7 +48,7 @@ export default function CreateRequestFormPage() {
 
 
   const [currentTab, setCurrentTab] = useState('step-1');
-  const [isEditingStep1, setIsEditingStep1] = useState(true);
+  const [isEditingStep1, setIsEditingStep1] = useState(false);
   const [isEditingStep2, setIsEditingStep2] = useState(false);
   const [isEditingStep3, setIsEditingStep3] = useState(false);
   const [isEditingStep4, setIsEditingStep4] = useState(false);
@@ -63,20 +61,18 @@ export default function CreateRequestFormPage() {
       return;
     }
     
-    // Check if user is an admin
     const checkAdminStatus = async () => {
       if (!firestore) return;
       const adminDocRef = doc(firestore, 'roles_admin', authUser.uid);
       const adminDoc = await getDoc(adminDocRef);
       setIsAdmin(adminDoc.exists());
-      setIsAdminStatusChecked(true); // Mark admin status as checked
     };
     checkAdminStatus();
     
   }, [isAuthLoading, authUser, router, firestore]);
   
   useEffect(() => {
-      if (isRequestLoading || !isAdminStatusChecked) return;
+      if (isRequestLoading) return;
 
       if (requestError) {
         toast({ title: "Error", description: "Could not load the request.", variant: "destructive" });
@@ -84,18 +80,16 @@ export default function CreateRequestFormPage() {
         return;
       }
       
-      // If we have loaded, and there's no request, it's a 404
-      if (hasLoadedOnce && !request) {
-        toast({ title: "Not Found", description: "The requested draft does not exist.", variant: "destructive" });
-        router.push('/traveler/dashboard');
+      if (!request) {
+        if (!isRequestLoading) {
+             toast({ title: "Not Found", description: "The requested draft does not exist.", variant: "destructive" });
+             router.push('/traveler/dashboard');
+        }
         return;
       }
       
-      if (!request || !authUser) return;
+      if (!authUser) return;
       
-      if (!hasLoadedOnce) {
-        setHasLoadedOnce(true);
-      }
 
       if (request.travelerId !== authUser.uid && !isAdmin) {
           toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
@@ -103,8 +97,13 @@ export default function CreateRequestFormPage() {
           return;
       }
 
-      // If not a draft, we don't need to determine editing states.
-      if (request.status !== 'draft') return;
+      if (request.status !== 'draft') {
+        setIsEditingStep1(false);
+        setIsEditingStep2(false);
+        setIsEditingStep3(false);
+        setIsEditingStep4(false);
+        return;
+      };
 
       setIsEditingStep1(!request.step1Complete);
       setIsEditingStep2(!request.step2Complete && !!request.step1Complete);
@@ -122,14 +121,14 @@ export default function CreateRequestFormPage() {
       } else {
         setCurrentTab('step-1');
       }
-  }, [isRequestLoading, isAdminStatusChecked, authUser, request, requestError, router, toast, hasLoadedOnce]);
+  }, [isRequestLoading, authUser, request, requestError, router, toast, isAdmin]);
 
 
   const handleSave = () => {
     // The useDoc hook will trigger a re-render with the updated request data
   };
 
-  const isLoading = isAuthLoading || isRequestLoading || isTravelerDataLoading || !hasLoadedOnce || !isAdminStatusChecked;
+  const isLoading = isAuthLoading || isRequestLoading || isTravelerDataLoading;
   
   if (isLoading) {
     return (
@@ -264,5 +263,3 @@ export default function CreateRequestFormPage() {
     </main>
   );
 }
-
-    

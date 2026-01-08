@@ -94,26 +94,24 @@ export default function TravelerDashboard() {
 
     setIsCreatingRequest(true);
     
-    // Step 1: Call server action to securely get travelerId
     const authResult = await createDraftRequest();
 
     if (authResult.success && authResult.travelerId && firestore) {
-        try {
-            const dataToCreate = {
-                travelerId: authResult.travelerId,
-                status: 'draft' as const,
-                createdAt: serverTimestamp(),
-                step1Complete: false,
-                step2Complete: false,
-                step3Complete: false,
-                step4Complete: false,
-            };
+        const dataToCreate = {
+            travelerId: authResult.travelerId,
+            status: 'draft' as const,
+            createdAt: serverTimestamp(),
+            step1Complete: false,
+            step2Complete: false,
+            step3Complete: false,
+            step4Complete: false,
+        };
 
+        try {
             const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), dataToCreate);
             router.push(`/traveler/request/${newRequestRef.id}`);
-
         } catch (serverError: any) {
-             const contextualError = new FirestorePermissionError({
+            const contextualError = new FirestorePermissionError({
                 path: `travelRequests`, // Path of the collection we are writing to
                 operation: 'create',
                 requestResourceData: dataToCreate
@@ -123,7 +121,7 @@ export default function TravelerDashboard() {
             toast({
                 variant: "destructive",
                 title: "Permission Error",
-                description: "You do not have permission to create a new request.",
+                description: "You do not have permission to create a new request. This might be a temporary issue, please try again.",
             });
             setIsCreatingRequest(false);
         }
@@ -204,5 +202,3 @@ export default function TravelerDashboard() {
     </>
   );
 }
-
-    
