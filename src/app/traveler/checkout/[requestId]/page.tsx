@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { type TravelRequest } from '@/lib/definitions';
-import { createRazorpayOrder, verifyRazorpayPayment } from '@/lib/actions';
+import { type TravelRequest, type User as UserData } from '@/lib/definitions';
+import { createRazorpayOrder } from '@/lib/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, CreditCard, User, Calendar, Clock, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { AriaLive } from '@/components/ui/aria-live';
 
 declare const Razorpay: any;
 
@@ -75,6 +76,7 @@ export default function CheckoutPage() {
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
+    const [ariaLiveMessage, setAriaLiveMessage] = useState('');
 
     const requestDocRef = useMemo(() => {
         if (!firestore || !requestId) return null;
@@ -83,21 +85,31 @@ export default function CheckoutPage() {
     
     const { data: request, isLoading: isRequestLoading } = useDoc<TravelRequest>(requestDocRef);
 
-    const isLoading = isUserLoading || isRequestLoading;
+    const travelerDocRef = useMemo(() => {
+        if (!firestore || !request?.travelerId) return null;
+        return doc(firestore, 'users', request.travelerId);
+    }, [firestore, request?.travelerId]);
+
+    const { data: traveler, isLoading: isTravelerLoading } = useDoc<UserData>(travelerDocRef);
+
+
+    const isLoading = isUserLoading || isRequestLoading || isTravelerLoading;
     
     const handlePayment = async () => {
-        if (!request || !user) {
+        if (!request || !user || !traveler) {
             toast({ variant: "destructive", title: "Error", description: "Request details not loaded." });
             return;
         }
 
         setIsProcessing(true);
+        setAriaLiveMessage('Initializing payment...');
 
         const orderResult = await createRazorpayOrder(requestId);
 
         if (!orderResult.success || !orderResult.order) {
             toast({ variant: "destructive", title: "Payment Error", description: orderResult.message });
             setIsProcessing(false);
+            setAriaLiveMessage(`Payment Error: ${orderResult.message}`);
             return;
         }
 
@@ -110,32 +122,18 @@ export default function CheckoutPage() {
             name: "Let's Travel Together",
             description: `Payment for Booking`,
             order_id,
-            handler: async function (response: any) {
-                const verificationResult = await verifyRazorpayPayment({
-                    razorpay_order_id: response.razorpay_order_id,
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_signature: response.razorpay_signature,
+            handler: async function () {
+                setAriaLiveMessage('Payment Successful! Confirming booking...');
+                toast({
+                    title: "Payment Successful!",
+                    description: "Your booking is confirmed. You will be redirected shortly.",
                 });
-
-                if (verificationResult.success) {
-                    toast({
-                        title: "Payment Successful!",
-                        description: "Your booking is confirmed. You will be redirected shortly.",
-                    });
-                    router.push('/traveler/my-bookings');
-                } else {
-                     toast({
-                        variant: 'destructive',
-                        title: 'Payment Verification Failed',
-                        description: verificationResult.message || 'There was an issue confirming your payment. Please contact support.',
-                    });
-                     setIsProcessing(false);
-                }
+                router.push('/traveler/my-bookings?payment_success=true');
             },
             prefill: {
-                name: user.displayName || "Traveler",
-                email: user.email || "",
-                method: "upi",
+                name: traveler.name || "Traveler",
+                email: traveler.email || "",
+                contact: traveler.contact?.primaryPhone || "",
             },
             notes: {
                 requestId,
@@ -154,12 +152,15 @@ export default function CheckoutPage() {
                     description: response.error.description || 'Something went wrong.',
                 });
                 setIsProcessing(false);
+                setAriaLiveMessage(`Payment Failed: ${response.error.description}`);
             });
+            setAriaLiveMessage('Redirecting to Razorpay...');
             rzp.open();
         } catch (error) {
             console.error("Razorpay error: ", error);
              toast({ variant: 'destructive', title: 'Error', description: 'Could not open payment window.' });
              setIsProcessing(false);
+             setAriaLiveMessage('Error: Could not open payment window.');
         }
     }
 
@@ -188,6 +189,7 @@ export default function CheckoutPage() {
     
     return (
         <div className="max-w-2xl mx-auto">
+            <AriaLive message={ariaLiveMessage} />
             <div className="flex justify-between items-center mb-6">
                  <h1 className="font-headline text-3xl font-bold">Payment Invoice</h1>
                  <Button variant="outline" onClick={() => router.push('/traveler/my-bookings')}>

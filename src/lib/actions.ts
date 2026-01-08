@@ -277,46 +277,6 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
     }
 }
 
-interface PaymentVerificationData {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-}
-
-// 🔒 See `functions/src/index.ts` for the full locked-down payment flow documentation.
-export async function verifyRazorpayPayment(data: PaymentVerificationData): Promise<{ success: boolean; message: string }> {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
-    const { adminAuth, adminDb } = getAdminServices();
-
-    try {
-        const session = cookies().get('session')?.value;
-        if (!session) throw new Error('Unauthenticated');
-        await adminAuth.verifySessionCookie(session, true);
-
-        // Securely verify the signature
-        const secret = process.env.RAZORPAY_KEY_SECRET!;
-        const body = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSignature = crypto
-            .createHmac("sha256", secret)
-            .update(body.toString())
-            .digest("hex");
-
-        if (expectedSignature !== razorpay_signature) {
-            return { success: false, message: "Invalid payment signature." };
-        }
-
-        // Signature is valid. We still let the backend cloud function handle the final state change
-        // to keep the flow robust and idempotent. This action's only job is to confirm to the client
-        // that the signature was valid.
-        revalidatePath('/traveler/my-bookings');
-        return { success: true, message: "Payment signature verified. Awaiting final confirmation from server." };
-
-    } catch (error: any) {
-        console.error("Error verifying Razorpay payment:", error);
-        return { success: false, message: error.message || "An unexpected error occurred during payment verification." };
-    }
-}
-
 
 /* -------------------------------------------------------------------------- */
 /* OTHER ACTIONS                                                              */

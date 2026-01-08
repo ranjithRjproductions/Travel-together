@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ArrowLeft, Search, Trash2, CreditCard, Loader2, CheckCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 
@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AriaLive } from '@/components/ui/aria-live';
+import { revalidatePath } from 'next/cache';
 
 function GuideInfo({ guideData }: { guideData?: Partial<UserData> }) {
     if (!guideData) {
@@ -192,6 +193,7 @@ function UpcomingRequestList({
 
 export default function MyBookingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -209,7 +211,7 @@ export default function MyBookingsPage() {
     );
   }, [user, firestore]);
 
-  const { data: inProgressRequests, isLoading: inProgressLoading } = useCollection<TravelRequest>(inProgressRequestsQuery);
+  const { data: inProgressRequests, isLoading: inProgressLoading, error: inProgressError } = useCollection<TravelRequest>(inProgressRequestsQuery);
 
   const upcomingRequestsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -220,7 +222,14 @@ export default function MyBookingsPage() {
     );
   }, [user, firestore]);
 
-  const { data: upcomingRequests, isLoading: upcomingLoading } = useCollection<TravelRequest>(upcomingRequestsQuery);
+  const { data: upcomingRequests, isLoading: upcomingLoading, error: upcomingError } = useCollection<TravelRequest>(upcomingRequestsQuery);
+
+  useEffect(() => {
+      if(searchParams.get('payment_success')) {
+          revalidatePath('/traveler/my-bookings');
+          router.replace('/traveler/my-bookings', { scroll: false });
+      }
+  }, [searchParams, router]);
 
   const handleDeleteClick = (requestId: string) => {
     setRequestToDelete(requestId);
