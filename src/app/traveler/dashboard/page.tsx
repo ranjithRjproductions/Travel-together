@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -28,7 +27,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { createDraftRequest } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -94,44 +92,46 @@ export default function TravelerDashboard() {
 
     setIsCreatingRequest(true);
     
-    const authResult = await createDraftRequest();
+    if (!user || !firestore) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "You must be logged in to create a request.",
+      });
+      setIsCreatingRequest(false);
+      return;
+    }
 
-    if (authResult.success && authResult.travelerId && firestore) {
-        const dataToCreate = {
-            travelerId: authResult.travelerId,
-            status: 'draft' as const,
-            createdAt: serverTimestamp(),
-            step1Complete: false,
-            step2Complete: false,
-            step3Complete: false,
-            step4Complete: false,
-        };
+    const dataToCreate = {
+      travelerId: user.uid,
+      status: 'draft' as const,
+      createdAt: serverTimestamp(),
+      step1Complete: false,
+      step2Complete: false,
+      step3Complete: false,
+      step4Complete: false,
+    };
 
-        try {
-            const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), dataToCreate);
-            router.push(`/traveler/request/${newRequestRef.id}`);
-        } catch (serverError: any) {
-            const contextualError = new FirestorePermissionError({
-                path: `travelRequests`, // Path of the collection we are writing to
-                operation: 'create',
-                requestResourceData: dataToCreate
-            });
-            errorEmitter.emit('permission-error', contextualError);
-
-            toast({
-                variant: "destructive",
-                title: "Permission Error",
-                description: "You do not have permission to create a new request. This might be a temporary issue, please try again.",
-            });
-            setIsCreatingRequest(false);
-        }
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: authResult.message || "Could not verify your identity to create a request.",
+    try {
+      const newRequestRef = await addDoc(
+        collection(firestore, 'travelRequests'),
+        dataToCreate
+      );
+      router.push(`/traveler/request/${newRequestRef.id}`);
+    } catch (error) {
+       const permissionError = new FirestorePermissionError({
+          path: 'travelRequests',
+          operation: 'create',
+          requestResourceData: dataToCreate
         });
-        setIsCreatingRequest(false);
+        errorEmitter.emit('permission-error', permissionError);
+
+      toast({
+        variant: "destructive",
+        title: "Permission Error",
+        description: "Unable to create a new request. Please try again.",
+      });
+      setIsCreatingRequest(false);
     }
   };
 
