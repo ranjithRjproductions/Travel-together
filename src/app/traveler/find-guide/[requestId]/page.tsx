@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon, CalendarDays } from 'lucide-react';
+import { Search, UserCheck, MapPin, Star, CheckCircle, User as UserIcon, CalendarDays, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { submitTravelRequest } from '@/lib/actions';
@@ -165,11 +165,16 @@ export default function FindGuidePage() {
 
     return (
         <div className="container mx-auto py-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
-                <div className="text-lg text-muted-foreground">
-                    {isLoading ? <Skeleton className="h-6 w-3/4" /> : "We’ve found these guides based on your request's location, gender preference, and expertise."}
+            <div className="mb-8 flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">Find Your Guide</h1>
+                    <div className="text-lg text-muted-foreground">
+                        {isLoading ? <Skeleton className="h-6 w-3/4" /> : "We’ve found these guides based on your request's location and expertise."}
+                    </div>
                 </div>
+                 <Button asChild variant="outline">
+                    <Link href="/traveler/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard</Link>
+                </Button>
             </div>
 
             {isLoading ? (
