@@ -36,15 +36,11 @@ service cloud.firestore {
 
     // TRAVEL REQUESTS
     match /travelRequests/{requestId} {
-      allow create: if 
-        // Allow client to create for themselves
-        (request.auth != null && request.resource.data.travelerId == request.auth.uid) ||
-        // Allow server action to create a draft with only essential fields
-        (
-          request.resource.data.keys().hasOnly(['travelerId', 'status', 'createdAt', 'step1Complete', 'step2Complete', 'step3Complete', 'step4Complete']) &&
-          request.resource.data.status == 'draft'
-        );
-      
+      allow create: if request.auth != null && 
+        request.resource.data.travelerId == request.auth.uid &&
+        request.resource.data.status == 'draft' &&
+        request.resource.data.keys().hasOnly(['travelerId', 'status', 'createdAt', 'step1Complete', 'step2Complete', 'step3Complete', 'step4Complete']);
+
       allow read, delete: if request.auth != null && 
         (
           (resource.data.travelerId is string && resource.data.travelerId == request.auth.uid) ||
