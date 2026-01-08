@@ -92,10 +92,9 @@ service cloud.firestore {
         ) ||
          // Case 5: Server action is verifying the payment via webhook-triggered cloud function.
         (
-          resource.data.travelerId == request.auth.uid &&
           resource.data.status == 'payment-pending' &&
-          request.resource.data.status == 'paid' &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt', 'paymentDetails', 'tripPin'])
+          request.resource.data.status == 'confirmed' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt', 'tripPin', 'paymentDetails'])
         )
       );
     }

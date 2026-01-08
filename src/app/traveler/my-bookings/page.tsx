@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -159,7 +160,17 @@ function UpcomingRequestList({
                             </p>
                         </div>
                          <div className="flex items-center gap-4">
-                            {request.status === 'confirmed' && (
+                            {/* Final state: Confirmed and Paid */}
+                            {request.status === 'confirmed' && request.paidAt && (
+                               <div className="text-right">
+                                    <Badge variant="default" className="bg-green-600 mb-2 flex items-center">
+                                       <CheckCircle className="mr-1 h-3 w-3"/> Paid & Confirmed
+                                    </Badge>
+                                    <p className="text-xs text-muted-foreground">Your booking is finalized.</p>
+                               </div>
+                            )}
+                            {/* State: Confirmed but not yet paid */}
+                            {request.status === 'confirmed' && !request.paidAt && (
                                 <Button asChild>
                                     <Link href={`/traveler/checkout/${request.id}`}>
                                       <CreditCard className="mr-2 h-4 w-4"/>
@@ -172,14 +183,6 @@ function UpcomingRequestList({
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Processing Payment...
                                 </Button>
-                            )}
-                            {request.status === 'paid' && (
-                               <div className="text-right">
-                                    <Badge variant="default" className="bg-green-600 mb-2 flex items-center">
-                                       <CheckCircle className="mr-1 h-3 w-3"/> Paid & Confirmed
-                                    </Badge>
-                                    <p className="text-xs text-muted-foreground">Your booking is finalized.</p>
-                               </div>
                             )}
                         </div>
                     </CardContent>
@@ -217,7 +220,7 @@ export default function MyBookingsPage() {
     return query(
       collection(firestore, 'travelRequests'),
       where('travelerId', '==', user.uid),
-      where('status', 'in', ['confirmed', 'payment-pending', 'paid'])
+      where('status', 'in', ['confirmed', 'payment-pending'])
     );
   }, [user, firestore]);
 

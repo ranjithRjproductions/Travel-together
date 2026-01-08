@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { getAdminDb } from '@/lib/firebase-admin';
@@ -133,8 +134,8 @@ function Section({ title, icon: Icon, children }: { title: string, icon: React.E
     );
 }
 
-function getRequestStatusBadge(status: TravelRequest['status']) {
-  if (status === 'paid') {
+function getRequestStatusBadge(status: TravelRequest['status'], paidAt: any) {
+  if (status === 'confirmed' && paidAt) {
     return <Badge className="bg-green-600 hover:bg-green-700 text-white">Paid</Badge>;
   }
   if (status === 'payment-pending') {
@@ -200,7 +201,7 @@ function RequestsSection({ requests }: { requests: ClientTravelRequest[] }) {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    {getRequestStatusBadge(request.status)}
+                                    {getRequestStatusBadge(request.status, request.paidAt)}
                                     <Button asChild size="sm" variant="outline">
                                         <Link href={`/admin/requests/${request.id}`}><View className="mr-2 h-4 w-4" /> View</Link>
                                     </Button>

@@ -52,7 +52,7 @@ export type TravelRequest = {
   id: string;
   travelerId: string;
   guideId?: string;
-  status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'payment-pending' | 'paid' | 'completed' | 'cancelled';
+  status: 'draft' | 'pending' | 'guide-selected' | 'confirmed' | 'payment-pending' | 'completed' | 'cancelled';
   
   // Timestamps
   createdAt: any; // Initially created as a draft
@@ -60,6 +60,7 @@ export type TravelRequest = {
   acceptedAt?: any; // Guide confirmed
   paidAt?: any; // Payment successful
   
+  tripPin?: string;
   razorpayOrderId?: string;
   
   paymentDetails?: {
