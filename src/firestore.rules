@@ -36,10 +36,14 @@ service cloud.firestore {
 
     // TRAVEL REQUESTS
     match /travelRequests/{requestId} {
-      // NOTE: Create is handled by a server action, which bypasses these rules.
-      // This rule is kept for any potential client-side draft creation in the future,
-      // but the primary flow is server-side.
-      allow create: if request.auth != null && request.resource.data.travelerId == request.auth.uid;
+      allow create: if 
+        // Allow client to create for themselves
+        (request.auth != null && request.resource.data.travelerId == request.auth.uid) ||
+        // Allow server action to create a draft with only essential fields
+        (
+          request.resource.data.keys().hasOnly(['travelerId', 'status', 'createdAt', 'step1Complete', 'step2Complete', 'step3Complete', 'step4Complete']) &&
+          request.resource.data.status == 'draft'
+        );
       
       allow read, delete: if request.auth != null && 
         (
@@ -111,5 +115,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
