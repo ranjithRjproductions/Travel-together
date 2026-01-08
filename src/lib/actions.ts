@@ -582,3 +582,24 @@ export async function respondToTravelRequest(
     return { success: false, message: e.message };
   }
 }
+
+export async function checkIsAdmin(): Promise<boolean> {
+  const { adminAuth, adminDb } = getAdminServices();
+
+  try {
+    const session = cookies().get('session')?.value;
+    if (!session) return false;
+
+    const decoded = await adminAuth.verifySessionCookie(session, true);
+
+    const adminDoc = await adminDb
+      .collection('roles_admin')
+      .doc(decoded.uid)
+      .get();
+
+    return adminDoc.exists;
+  } catch (error) {
+    // If cookie is invalid or any other error occurs, user is not admin
+    return false;
+  }
+}

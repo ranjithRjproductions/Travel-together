@@ -21,6 +21,7 @@ import { Step4Form, Step4View } from './step4-meeting';
 import { Step5Review } from './step5-review';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { checkIsAdmin } from '@/lib/actions';
 
 export default function CreateRequestFormPage() {
   const params = useParams();
@@ -31,6 +32,8 @@ export default function CreateRequestFormPage() {
   const router = useRouter();
   const { toast } = useToast();
   
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const requestDocRef = useMemo(() => {
     // Wait until auth is resolved and we have a user and firestore instance
     if (!firestore || !requestId || isAuthLoading || !authUser) return null;
@@ -61,10 +64,14 @@ export default function CreateRequestFormPage() {
       router.replace('/login');
       return;
     }
+    
+    // Securely check admin status via server action
+    checkIsAdmin().then(setIsAdmin).catch(() => setIsAdmin(false));
+
   }, [isAuthLoading, authUser, router]);
   
   useEffect(() => {
-      if (isRequestLoading) return;
+      if (isRequestLoading || isAuthLoading) return; // Wait for both to be resolved
 
       if (requestError) {
         toast({ title: "Error", description: "Could not load the request.", variant: "destructive" });
@@ -84,7 +91,6 @@ export default function CreateRequestFormPage() {
       
       // A user can only see their own requests, unless they are an admin.
       const isOwner = request.travelerId === authUser.uid;
-      const isAdmin = authUser.isAdmin === true;
 
       if (!isOwner && !isAdmin) {
           toast({ title: "Access Denied", description: "You do not have permission to view this request.", variant: "destructive" });
@@ -116,7 +122,7 @@ export default function CreateRequestFormPage() {
       } else {
         setCurrentTab('step-1');
       }
-  }, [isRequestLoading, authUser, request, requestError, router, toast]);
+  }, [isRequestLoading, isAuthLoading, authUser, request, requestError, router, toast, isAdmin]);
 
 
   const handleSave = () => {
