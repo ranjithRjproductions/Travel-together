@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import content from '@/app/content/traveler-dashboard.json';
 import { PlusCircle, BookMarked, User as UserIcon } from 'lucide-react';
@@ -99,23 +99,31 @@ export default function TravelerDashboard() {
 
     if (authResult.success && authResult.travelerId && firestore) {
         try {
-            // Step 2: Use travelerId to create draft on the client
-            const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), {
+            const dataToCreate = {
                 travelerId: authResult.travelerId,
-                status: 'draft',
+                status: 'draft' as const,
                 createdAt: serverTimestamp(),
                 step1Complete: false,
                 step2Complete: false,
                 step3Complete: false,
                 step4Complete: false,
-            });
-            // Step 3: Redirect to the new draft page
+            };
+
+            const newRequestRef = await addDoc(collection(firestore, 'travelRequests'), dataToCreate);
             router.push(`/traveler/request/${newRequestRef.id}`);
-        } catch (error: any) {
-             toast({
+
+        } catch (serverError: any) {
+             const contextualError = new FirestorePermissionError({
+                path: `travelRequests`, // Path of the collection we are writing to
+                operation: 'create',
+                requestResourceData: dataToCreate
+            });
+            errorEmitter.emit('permission-error', contextualError);
+
+            toast({
                 variant: "destructive",
-                title: "Error",
-                description: error.message || "Could not create a new draft request on the client.",
+                title: "Permission Error",
+                description: "You do not have permission to create a new request.",
             });
             setIsCreatingRequest(false);
         }
