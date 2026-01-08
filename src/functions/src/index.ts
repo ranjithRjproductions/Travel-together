@@ -35,14 +35,14 @@
  *        • current booking state
  *    - Uses Firestore transaction
  *    - FINAL state after successful payment:
- *        status = "paid"
+ *        status = "confirmed" (with paidAt timestamp)
  *
  * STATE RULES (DO NOT CHANGE):
  *
- * confirmed → payment-pending → paid
+ * confirmed → payment-pending → confirmed
  *
  * - "payment-pending" = retry allowed
- * - "paid" = final, paid, locked
+ * - "confirmed" with paidAt = final, paid, locked
  *
  * IMPORTANT:
  * - Clients must NEVER write payment fields
@@ -82,6 +82,7 @@ interface TravelRequest {
   travelerId: string;
   guideId?: string;
   status: string;
+  paidAt?: any; // Add paidAt to check for payment confirmation
   travelerData?: Partial<User>;
   guideData?: Partial<User>;
   emailNotified?: {
@@ -197,9 +198,11 @@ export const travelRequestStatusUpdate = functions.firestore
     }
     
     // Case 4: Traveler pays for the request. Notify Traveler.
+    // This now checks for the transition from payment-pending to confirmed AND the presence of paidAt.
     if (
-      newValue.status === "paid" &&
+      newValue.status === "confirmed" &&
       previousValue.status === "payment-pending" &&
+      newValue.paidAt && // Ensure this is a payment confirmation
       !newValue.emailNotified?.travelerPaid // Idempotency check
     ) {
         // No push notification, just email confirmation
@@ -313,12 +316,14 @@ export const processRazorpayEvent = functions.firestore
             }
 
             const request = requestSnap.data() as TravelRequest;
-
-            // --- Validation Checks ---
-            if (request.status === "paid") {
+            
+            // If the request is 'confirmed' and already has a 'paidAt' timestamp, it's already paid.
+            if (request.status === "confirmed" && request.paidAt) {
               console.log(`[Processor] Request ${requestId} is already marked as paid. Ignoring duplicate processing.`);
               return;
             }
+
+            // --- Validation Checks ---
             if (request.status !== "payment-pending") {
               throw new Error(`Request ${requestId} is not in 'payment-pending' state. Current state: ${request.status}.`);
             }
@@ -336,7 +341,7 @@ export const processRazorpayEvent = functions.firestore
             const tripPin = Math.floor(1000 + Math.random() * 9000).toString();
             
             transaction.update(requestRef, {
-                status: "paid",
+                status: "confirmed", // CORRECTED: Set status back to 'confirmed'
                 paidAt: admin.firestore.FieldValue.serverTimestamp(),
                 tripPin,
                 'paymentDetails.razorpayPaymentId': payment.id,
