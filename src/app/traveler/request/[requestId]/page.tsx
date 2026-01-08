@@ -33,9 +33,9 @@ export default function CreateRequestFormPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const requestDocRef = useMemo(() => {
-    if (!firestore || !requestId) return null;
+    if (!firestore || !requestId || isAuthLoading || !authUser) return null;
     return doc(firestore, 'travelRequests', requestId);
-  }, [requestId, firestore]);
+  }, [requestId, firestore, isAuthLoading, authUser]);
 
   const { data: request, isLoading: isRequestLoading, error: requestError } = useDoc<TravelRequest>(requestDocRef);
 
