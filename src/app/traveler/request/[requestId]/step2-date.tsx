@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { addDays, format, parseISO, startOfToday } from 'date-fns';
+import { addDays, format, parseISO, startOfToday, getYear, getMonth, getDate } from 'date-fns';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -14,10 +14,105 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Edit } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useEffect } from 'react';
+
+// DateSelect component for Day, Month, Year dropdowns
+function DateSelect({
+  control,
+  setFormValue,
+}: {
+  control: any;
+  setFormValue: (field: keyof Step2FormValues, value: any) => void;
+}) {
+  const currentYear = getYear(new Date());
+  const years = Array.from({ length: 3 }, (_, i) => currentYear + i);
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: i,
+    label: format(new Date(currentYear, i), 'MMMM'),
+  }));
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <FormField
+        control={control}
+        name="day"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Day</FormLabel>
+            <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Day" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {days.map((day) => (
+                  <SelectItem key={day} value={day.toString()}>
+                    {day}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="month"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Month</FormLabel>
+            <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {months.map((month) => (
+                  <SelectItem key={month.value} value={month.value.toString()}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="year"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Year</FormLabel>
+            <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  );
+}
+
 
 export function Step2View({ request, onEdit }: { request: TravelRequest, onEdit: () => void }) {
     const isHospitalPrebooked = request.purposeData?.purpose === 'hospital' && request.purposeData?.subPurposeData?.bookingDetails?.isAppointmentPrebooked === 'yes';
@@ -49,14 +144,32 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
   
   const isHospitalPrebooked = request.purposeData?.purpose === 'hospital' && request.purposeData.subPurposeData?.bookingDetails?.isAppointmentPrebooked === 'yes';
   
+  const initialDate = request.requestedDate ? parseISO(request.requestedDate) : null;
+  
   const form = useForm<Step2FormValues>({
     resolver: zodResolver(step2Schema),
     defaultValues: {
-        requestedDate: request.requestedDate ? parseISO(request.requestedDate) : undefined,
+        requestedDate: initialDate || undefined,
+        day: initialDate ? getDate(initialDate) : undefined,
+        month: initialDate ? getMonth(initialDate) : undefined,
+        year: initialDate ? getYear(initialDate) : undefined,
         startTime: isHospitalPrebooked ? request.purposeData?.subPurposeData?.bookingDetails?.startTime : request.startTime || '',
         endTime: isHospitalPrebooked ? request.purposeData?.subPurposeData?.bookingDetails?.endTime : request.endTime || '',
     }
   });
+
+  const watchDay = form.watch('day');
+  const watchMonth = form.watch('month');
+  const watchYear = form.watch('year');
+
+  useEffect(() => {
+    if (watchDay && watchMonth !== undefined && watchYear) {
+      const newDate = new Date(watchYear, watchMonth, watchDay);
+      if (!isNaN(newDate.getTime())) {
+        form.setValue('requestedDate', newDate, { shouldValidate: true });
+      }
+    }
+  }, [watchDay, watchMonth, watchYear, form]);
 
   const handleStep2Save = async (data: Step2FormValues) => {
     if (!firestore) return;
@@ -88,49 +201,9 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
         <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleStep2Save)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="requestedDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Date of Trip</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={'outline'}
-                                  className={cn(
-                                    'w-full pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
-                                  )}
-                                  aria-label="Open date picker"
-                                >
-                                  {field.value ? (
-                                    format(field.value, 'PPP')
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                captionLayout="dropdown-buttons"
-                                fromYear={startOfToday().getFullYear()}
-                                toYear={startOfToday().getFullYear() + 2}
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) => date < startOfToday()}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <DateSelect control={form.control} setFormValue={form.setValue} />
+                    <FormField name="requestedDate" control={form.control} render={({ field }) => <FormMessage />} />
+
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name="startTime" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} readOnly={isHospitalPrebooked} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="endTime" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} readOnly={isHospitalPrebooked} /></FormControl><FormMessage /></FormItem>)} />

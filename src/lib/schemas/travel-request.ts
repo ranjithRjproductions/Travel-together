@@ -105,6 +105,9 @@ export type Step1FormValues = z.infer<typeof step1Schema>;
 //=========== STEP 2 SCHEMA ===========//
 export const step2Schema = z.object({
   requestedDate: z.date({ required_error: "A date of trip is required." }),
+  day: z.number().optional(),
+  month: z.number().optional(),
+  year: z.number().optional(),
   startTime: z.string({ required_error: 'Start time is required.' }),
   endTime: z.string({ required_error: 'End time is required.' }),
 }).refine(data => {
