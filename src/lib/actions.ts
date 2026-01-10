@@ -218,11 +218,12 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
                 });
                 const existingOrder = await razorpay.orders.fetch(request.razorpayOrderId);
                  if (existingOrder && existingOrder.status === 'created') {
-                     // Ensure the request is in payment-pending state before returning
+                     // Ensure the request is in payment-pending state and has the correct details before returning
                      await requestRef.update({ 
                          status: 'payment-pending',
-                         razorpayOrderId: existingOrder.id, // Re-assert the order ID
-                         'paymentDetails.expectedAmount': existingOrder.amount, // IMPORTANT: Update expected amount
+                         razorpayOrderId: existingOrder.id,
+                         'paymentDetails.expectedAmount': existingOrder.amount, // CRITICAL FIX
+                         'paymentDetails.currency': existingOrder.currency,     // CRITICAL FIX
                      });
                      return { success: true, message: 'Existing order found', order: {
                         id: existingOrder.id,
