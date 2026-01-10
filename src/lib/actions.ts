@@ -536,7 +536,7 @@ export async function submitTravelRequest(
     const cost = calculateCostOnServer(request);
     
     const travelerDoc = await adminDb.collection('users').doc(travelerId).get();
-    const travelerData = travelerDoc.data();
+    const travelerData = travelerDoc.data() as User;
     
     let updateData: any = {
       status: guideId ? 'guide-selected' : 'pending',
@@ -547,6 +547,8 @@ export async function submitTravelRequest(
           name: travelerData?.name,
           email: travelerData?.email,
           disability: travelerData?.disability,
+          photoURL: travelerData?.photoURL,
+          photoAlt: travelerData?.photoAlt,
       }
     };
     
@@ -680,3 +682,4 @@ export async function getGuideRequests(): Promise<{
     return { inProgress: [], upcoming: [], past: [] };
   }
 }
+
