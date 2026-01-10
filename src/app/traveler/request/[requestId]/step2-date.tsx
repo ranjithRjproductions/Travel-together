@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -88,7 +87,48 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
         <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleStep2Save)} className="space-y-6">
-                    <FormField control={form.control} name="requestedDate" render={({ field }) => (<FormItem className="flex flex-col"><FormLabel>Date of Trip</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>{field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar captionLayout="dropdown-buttons" fromYear={startOfToday().getFullYear()} toYear={startOfToday().getFullYear() + 2} mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < startOfToday() } initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
+                    <FormField
+                      control={form.control}
+                      name="requestedDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Date of Trip</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={'outline'}
+                                  className={cn(
+                                    'w-full pl-3 text-left font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, 'PPP')
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                captionLayout="dropdown-buttons"
+                                fromYear={startOfToday().getFullYear()}
+                                toYear={startOfToday().getFullYear() + 2}
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => date < startOfToday()}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name="startTime" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="time" {...field} readOnly={isHospitalPrebooked} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="endTime" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="time" {...field} readOnly={isHospitalPrebooked} /></FormControl><FormMessage /></FormItem>)} />
