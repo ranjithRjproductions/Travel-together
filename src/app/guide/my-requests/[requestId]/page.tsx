@@ -1,5 +1,5 @@
 
-'use server';
+'use client';
 
 import { getAdminServices } from '@/lib/firebase-admin';
 import { notFound, redirect } from 'next/navigation';
@@ -12,8 +12,8 @@ import { getUser } from '@/lib/auth';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
+import { useRouter } from 'next/navigation';
 
-const siteName = homeContent.meta.title.split('–')[0].trim();
 
 // This is a Firestore server-side Timestamp
 interface FirestoreTimestamp {
@@ -74,14 +74,9 @@ async function getRequestAndUserData(requestId: string): Promise<{ request: Trav
     return { request, userData };
 }
 
-export async function generateMetadata({ params }: { params: { requestId: string } }): Promise<Metadata> {
-  const data = await getRequestAndUserData(params.requestId);
-  const travelerName = data?.userData.name || 'Traveler';
-  return {
-    title: `Request from ${travelerName} | ${siteName}`,
-  };
-}
-
+// Since we're moving this to a client component, we can no longer use generateMetadata.
+// We can handle the title update on the client if needed, or set a generic one in the layout.
+// For now, let's rely on the layout for a generic title.
 
 export default async function GuideRequestViewPage({ params }: { params: { requestId: string } }) {
   const sessionUser = await getUser();
@@ -101,20 +96,25 @@ export default async function GuideRequestViewPage({ params }: { params: { reque
     redirect('/guide/my-requests');
   }
 
-  return (
-    <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
-       <div className="flex justify-end items-center mb-6">
-        <Button asChild variant="outline">
-          <Link href="/guide/my-requests">
+  // The rendering logic remains the same, but it will be inside a Client Component wrapper now.
+  // We can't use useRouter at the top level of a Server Component.
+  const ClientPage = () => {
+    const router = useRouter();
+    return (
+      <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
+        <div className="flex justify-end items-center mb-6">
+          <Button variant="outline" onClick={() => router.push('/guide/my-requests')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to My Requests
-          </Link>
-        </Button>
-      </div>
+          </Button>
+        </div>
 
-      <div className="max-w-2xl mx-auto">
-        <Step5Review request={request} userData={userData} userRole="guide" />
-      </div>
-    </main>
-  );
+        <div className="max-w-2xl mx-auto">
+          <Step5Review request={request} userData={userData} userRole="guide" />
+        </div>
+      </main>
+    );
+  };
+
+  return <ClientPage />;
 }
