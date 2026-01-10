@@ -66,7 +66,13 @@ function InProgressRequests() {
         return <RequestListSkeleton />;
     }
     
-    if (!requests || requests.length === 0) {
+    const unpaidConfirmedRequests = requests?.filter(req => req.status === 'confirmed' && !req.paidAt) || [];
+    const paymentPendingRequests = requests?.filter(req => req.status === 'payment-pending') || [];
+    const awaitingActionRequests = requests?.filter(req => req.status === 'guide-selected') || [];
+
+    const allInProgressRequests = [...awaitingActionRequests, ...unpaidConfirmedRequests, ...paymentPendingRequests];
+
+    if (allInProgressRequests.length === 0) {
       return (
           <div className="text-center text-muted-foreground border-2 border-dashed border-muted rounded-lg p-8">
             <p>New requests and bookings awaiting payment will appear here.</p>
@@ -89,7 +95,7 @@ function InProgressRequests() {
 
     return (
       <div className="space-y-4">
-        {requests.map(request => (
+        {allInProgressRequests.map(request => (
           <Card key={request.id} className={isAwaitingAction(request.status) ? 'bg-primary/5 border-primary/20' : ''}>
               <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                   <div className="sm:col-span-2 space-y-1">
@@ -136,7 +142,7 @@ function UpcomingRequests() {
             collection(firestore, 'travelRequests'),
             where('guideId', '==', user.uid),
             where('status', '==', 'confirmed'),
-            where('paidAt', '!=', null)
+            where('paidAt', '!=', null) // Only show paid requests
         );
     }, [user, firestore]);
 

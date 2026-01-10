@@ -31,6 +31,11 @@ service cloud.firestore {
     }
 
     // TRAVEL REQUESTS
+    // Allow list access for any authenticated user, as client-side queries will filter the results.
+    match /travelRequests {
+      allow list: if request.auth != null;
+    }
+
     match /travelRequests/{requestId} {
       // Allow a user to create a draft request for themselves with a limited set of fields.
       allow create: if request.auth != null && 
