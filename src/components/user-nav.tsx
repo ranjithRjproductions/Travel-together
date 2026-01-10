@@ -38,7 +38,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
   };
 
   const initials = getInitials(user.name, user.email);
-  const photoAltText = user.photoAlt || `Profile picture of ${user.name}`;
+  const photoAltText = user.photoAlt || `Profile photo of ${user.name}`;
   const profileUrl = user.role === 'Guide' ? '/guide/profile/settings' : '/traveler/profile/settings';
 
   return (
