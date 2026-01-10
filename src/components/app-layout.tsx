@@ -12,12 +12,14 @@ export default function AppLayout({
   user: User;
 }) {
   const getDashboardUrl = () => {
+    // If the user is an admin, the "Home" button should lead to the traveler dashboard.
     if (user.isAdmin) {
-      return '/admin';
+      return '/traveler/dashboard';
     }
     if (user.role === 'Guide') {
       return '/guide/dashboard';
     }
+    // For travelers, it remains the traveler dashboard.
     return '/traveler/dashboard';
   };
 
