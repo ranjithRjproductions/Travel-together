@@ -37,6 +37,21 @@ const getRequestTitle = (request: TravelRequest): string => {
     return title;
 };
 
+const getRequestSubTitle = (request: TravelRequest): string | null => {
+    const { purposeData } = request;
+    if (purposeData?.purpose === 'education' && purposeData.subPurposeData?.subPurpose) {
+        return purposeData.subPurposeData.subPurpose === 'scribe' ? 'Scribe for Exam' : 'Admission Support';
+    }
+    if (purposeData?.purpose === 'hospital') {
+      return `Appointment at ${purposeData.subPurposeData?.hospitalName}`;
+    }
+     if (purposeData?.purpose === 'shopping') {
+      return `Shopping at ${purposeData.subPurposeData?.shopName || purposeData.subPurposeData?.shoppingArea?.area}`;
+    }
+    return null;
+}
+
+
 function InProgressRequests({ requests }: { requests: TravelRequest[] }) {
     if (requests.length === 0) {
       return (
@@ -107,24 +122,27 @@ function UpcomingRequests({ requests }: { requests: TravelRequest[] }) {
                                 <AvatarImage src={request.travelerData?.photoURL} alt={request.travelerData?.name} />
                                 <AvatarFallback>{request.travelerData?.name?.[0]}</AvatarFallback>
                             </Avatar>
-                            <span className="font-semibold">{request.travelerData?.name || 'Traveler'}</span>
+                            <span className="font-semibold">{(request.travelerData?.name || 'Traveler').split(' ')[0]}</span>
                         </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2">
-                            <MapPin className="h-4 w-4" />
-                           <span>
-                             {request.purposeData?.subPurposeData?.collegeAddress?.district || 
-                                request.purposeData?.subPurposeData?.hospitalAddress?.district || 
-                                request.purposeData?.subPurposeData?.shoppingArea?.district}
-                           </span>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2 pl-10 capitalize">
+                           <span>{request.purposeData?.purpose}</span>
+                        </div>
+                        {getRequestSubTitle(request) && (
+                           <div className="text-sm text-muted-foreground flex items-center gap-2 pl-10">
+                             <span>{getRequestSubTitle(request)}</span>
+                           </div>
+                        )}
+                         <div className="text-sm font-semibold flex items-center gap-2 pl-10">
+                           <span>Amount Paid: ₹{request.estimatedCost?.toFixed(2)}</span>
                         </div>
                     </div>
-                    <div className="text-right">
-                       <p className="font-semibold">{request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}</p>
-                       <p className="text-sm text-muted-foreground">{request.startTime} - {request.endTime}</p>
-                    </div>
-                     <div className="flex items-center gap-2">
-                        <Badge className="bg-green-600 hover:bg-green-700 text-white"><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>
-                        <Button asChild variant="secondary" size="sm">
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="text-right">
+                           <p className="font-semibold">{request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}</p>
+                           <p className="text-sm text-muted-foreground">{request.startTime} - {request.endTime}</p>
+                        </div>
+                         <Button asChild variant="secondary" size="sm">
                             <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> Details</Link>
                         </Button>
                     </div>
