@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getGuideRequests } from '@/lib/actions';
 import { RespondToRequestButtons } from './respond-buttons';
+import { TravelerContactInfo } from './traveler-contact-info';
 
 
 function RequestListSkeleton() {
@@ -134,20 +135,24 @@ function UpcomingRequests({ requests }: { requests: TravelRequest[] }) {
                             <AvatarImage src={request.travelerData?.photoURL} alt={request.travelerData?.name} />
                             <AvatarFallback>{(request.travelerData?.name || 'T').split(' ').map(n => n[0]).join('')}</AvatarFallback>
                         </Avatar>
-                        <div className="flex-grow space-y-1">
+                        <div className="flex-grow space-y-1.5">
                              <p className="font-semibold">
-                                {(request.travelerData?.name || 'Traveler').split(' ')[0]}
+                                {request.travelerData?.name?.split(' ')[0]}
                             </p>
                             <p className="text-sm font-medium capitalize">
                                 {getRequestSubTitle(request) || getRequestTitle(request)}
                             </p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                             <p className="text-sm text-muted-foreground flex items-center gap-2">
                                 <CalendarDays className="h-4 w-4" />
                                 {request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}, {formatTimeWithAMPM(request.startTime)} - {formatTimeWithAMPM(request.endTime)}
                             </p>
                             <p className="text-sm font-semibold pt-1">
                                 Amount Paid: ₹{request.estimatedCost?.toFixed(2)}
                             </p>
+                            <TravelerContactInfo 
+                                contact={request.travelerData?.contact}
+                                tripStartTime={`${request.requestedDate}T${request.startTime}`}
+                            />
                         </div>
                     </div>
 

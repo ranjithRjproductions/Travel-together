@@ -549,6 +549,7 @@ export async function submitTravelRequest(
           disability: travelerData?.disability,
           photoURL: travelerData?.photoURL,
           photoAlt: travelerData?.photoAlt,
+          contact: travelerData?.contact, // Include contact info
       }
     };
     
