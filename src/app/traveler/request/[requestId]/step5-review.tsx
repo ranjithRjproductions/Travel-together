@@ -132,7 +132,7 @@ const getStatusBadge = (status: TravelRequest['status'], paidAt: any) => {
     }
     switch (status) {
         case 'pending': return <Badge variant="secondary">Finding Guide</Badge>;
-        case 'guide-selected': return <Badge variant="secondary">Guide Notified</Badge>;
+        case 'guide-selected': return <Badge variant="secondary">Awaiting Payment</Badge>;
         case 'confirmed': return <Badge>Awaiting Payment</Badge>;
         case 'payment-pending': return <Badge variant="secondary" className="bg-amber-500 text-white">Payment Processing</Badge>;
         case 'completed': return <Badge variant="outline">Completed</Badge>;
@@ -261,6 +261,9 @@ export function Step5Review({ request, userData, userRole = 'traveler' }: { requ
                     <InfoRow label="Name" value={userData.name} />
                     <InfoRow label="Gender" value={<span className='capitalize'>{userData.gender}</span>} />
                     <InfoRow label="Disability Type" value={userData.disability?.mainDisability === 'hard-of-hearing' ? 'Hard of Hearing' : userData.disability?.mainDisability === 'visually-impaired' ? 'Visually Impaired' : 'Not Disclosed'} />
+                    {userData.disability?.mainDisability === 'visually-impaired' && userData.disability.visionPercentage && (
+                        <InfoRow label="Impairment Percentage" value={`${userData.disability.visionPercentage}%`} />
+                    )}
                 </section>
 
                 <Separator />
