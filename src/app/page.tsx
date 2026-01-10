@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AppLogo } from '@/components/app-logo';
-import { Footer } from '@/components/footer';
 import { LogIn, UserPlus, ShieldCheck, UserCheck, Accessibility } from 'lucide-react';
 import content from './content/home.json';
 
@@ -95,7 +94,6 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }
