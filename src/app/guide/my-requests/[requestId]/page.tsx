@@ -10,9 +10,26 @@ import { ArrowLeft } from 'lucide-react';
 import { Step5Review } from '@/app/traveler/request/[requestId]/step5-review';
 import { getUser } from '@/lib/auth';
 import { Timestamp } from 'firebase-admin/firestore';
+import type { Metadata } from 'next';
+import homeContent from '@/app/content/home.json';
 
-// This is a Server Component responsible for securely fetching and displaying
-// a travel request for a Guide.
+const siteName = homeContent.meta.title.split('–')[0].trim();
+
+// This is a Firestore server-side Timestamp
+interface FirestoreTimestamp {
+  _seconds: number;
+  _nanoseconds: number;
+  toDate(): Date;
+}
+
+// A version of TravelRequest where dates can be Timestamps
+type ServerTravelRequest = Omit<TravelRequest, 'createdAt' | 'paidAt' | 'submittedAt' | 'acceptedAt'> & {
+  createdAt?: FirestoreTimestamp | string;
+  submittedAt?: FirestoreTimestamp | string;
+  acceptedAt?: FirestoreTimestamp | string;
+  paidAt?: FirestoreTimestamp | string;
+};
+
 
 async function getRequestAndUserData(requestId: string): Promise<{ request: TravelRequest, userData: User } | null> {
     const { adminDb } = getAdminServices();
@@ -24,15 +41,14 @@ async function getRequestAndUserData(requestId: string): Promise<{ request: Trav
         return null;
     }
 
-    // Since Timestamps are not serializable, we convert them immediately.
-    const requestData = requestSnap.data();
+    const requestData = requestSnap.data() as ServerTravelRequest;
     const request: TravelRequest = {
         id: requestSnap.id,
         ...requestData,
-        createdAt: (requestData?.createdAt as Timestamp)?.toDate?.().toISOString() || null,
-        submittedAt: (requestData?.submittedAt as Timestamp)?.toDate?.().toISOString() || null,
-        acceptedAt: (requestData?.acceptedAt as Timestamp)?.toDate?.().toISOString() || null,
-        paidAt: (requestData?.paidAt as Timestamp)?.toDate?.().toISOString() || null,
+        createdAt: requestData?.createdAt && typeof (requestData.createdAt as any).toDate === 'function' ? (requestData.createdAt as FirestoreTimestamp).toDate().toISOString() : requestData.createdAt,
+        submittedAt: requestData?.submittedAt && typeof (requestData.submittedAt as any).toDate === 'function' ? (requestData.submittedAt as FirestoreTimestamp).toDate().toISOString() : requestData.submittedAt,
+        acceptedAt: requestData?.acceptedAt && typeof (requestData.acceptedAt as any).toDate === 'function' ? (requestData.acceptedAt as FirestoreTimestamp).toDate().toISOString() : requestData.acceptedAt,
+        paidAt: requestData?.paidAt && typeof (requestData.paidAt as any).toDate === 'function' ? (requestData.paidAt as FirestoreTimestamp).toDate().toISOString() : requestData.paidAt,
     } as TravelRequest;
     
     if (!request.travelerId) {
@@ -48,10 +64,9 @@ async function getRequestAndUserData(requestId: string): Promise<{ request: Trav
 
     const rawUserData = userSnap.data() as User & { createdAt?: Timestamp };
 
-    // Convert the user's createdAt timestamp to a serializable format.
     const userData: User = {
         ...rawUserData,
-        uid: userSnap.id, // ensure uid is set
+        uid: userSnap.id,
         // @ts-ignore
         createdAt: rawUserData.createdAt?.toDate?.().toISOString() || null,
     };
@@ -59,8 +74,16 @@ async function getRequestAndUserData(requestId: string): Promise<{ request: Trav
     return { request, userData };
 }
 
+export async function generateMetadata({ params }: { params: { requestId: string } }): Promise<Metadata> {
+  const data = await getRequestAndUserData(params.requestId);
+  const travelerName = data?.userData.name || 'Traveler';
+  return {
+    title: `Request from ${travelerName} | ${siteName}`,
+  };
+}
+
+
 export default async function GuideRequestViewPage({ params }: { params: { requestId: string } }) {
-  // Gatekeeping: Ensure only guides can access this page.
   const sessionUser = await getUser();
   if (!sessionUser || sessionUser.role !== 'Guide') {
     redirect('/login');
@@ -74,7 +97,6 @@ export default async function GuideRequestViewPage({ params }: { params: { reque
 
   const { request, userData } = data;
   
-  // A guide can only see requests assigned to them.
   if (request.guideId !== sessionUser.uid) {
     redirect('/guide/my-requests');
   }
@@ -83,7 +105,7 @@ export default async function GuideRequestViewPage({ params }: { params: { reque
     <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="font-headline text-3xl font-bold tracking-tight">
-          Request Details
+          Request Summary
         </h1>
         <Button asChild variant="outline">
           <Link href="/guide/my-requests">
@@ -94,10 +116,11 @@ export default async function GuideRequestViewPage({ params }: { params: { reque
       </div>
 
       <div className="max-w-2xl mx-auto">
-        <Step5Review request={request} userData={userData} />
+        <p className="text-muted-foreground mb-6">
+            This is a summary of your upcoming booking with {userData.name}. You can review all the trip details below.
+        </p>
+        <Step5Review request={request} userData={userData} userRole="guide" />
       </div>
     </main>
   );
 }
-
-    

@@ -142,7 +142,7 @@ const getStatusBadge = (status: TravelRequest['status'], paidAt: any) => {
 }
 
 
-export function Step5Review({ request, userData }: { request: TravelRequest, userData: UserData }) {
+export function Step5Review({ request, userData, userRole = 'traveler' }: { request: TravelRequest, userData: UserData, userRole?: 'traveler' | 'guide' }) {
     const router = useRouter();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -227,15 +227,28 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
         }
     }
 
+    const isGuideView = userRole === 'guide';
+    const isDraft = request.status === 'draft';
+
+    const getCardTitle = () => {
+        if (isGuideView) return 'Booking Summary';
+        if (isDraft) return 'Step 5: Review & Submit';
+        return 'Request Summary';
+    };
+
+    const getCardDescription = () => {
+        if (isGuideView) return `This is a summary of your booking with ${userData.name}.`;
+        if (isDraft) return 'Please review all the details below before submitting your request.';
+        return 'This is a summary of your submitted request.';
+    }
+
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{request.status === 'draft' ? 'Step 5: Review & Submit' : 'Request Summary'}</CardTitle>
+                <CardTitle>{getCardTitle()}</CardTitle>
                 <CardDescription>
-                    {request.status === 'draft' 
-                        ? 'Please review all the details below before submitting your request.'
-                        : 'This is a summary of your submitted request.'
-                    }
+                    {getCardDescription()}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -279,7 +292,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                     </p>
                 </section>
 
-                {request.status !== 'draft' && (
+                {!isDraft && (
                     <div className="pt-4 text-center">
                         <h3 className="text-lg font-semibold">Status</h3>
                         {getStatusBadge(request.status, request.paidAt)}
@@ -287,7 +300,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                 )}
 
 
-                 {request.status === 'draft' && (
+                 {isDraft && (
                     <div className="pt-4 space-y-4">
                         <div className="flex items-start space-x-2 p-4 bg-secondary/50 rounded-lg">
                             <PackageOpen className="h-5 w-5 text-muted-foreground mt-1" />
