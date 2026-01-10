@@ -126,10 +126,15 @@ const TravelDetailsReview = ({ request }: { request: TravelRequest }) => {
     );
 };
 
-const getStatusBadge = (status: TravelRequest['status']) => {
+const getStatusBadge = (status: TravelRequest['status'], paidAt: any) => {
+    if (paidAt) {
+        return <Badge className="bg-green-600 text-white">Paid & Confirmed</Badge>;
+    }
     switch (status) {
-        case 'pending': return <Badge variant="secondary">Waiting for Approval</Badge>;
-        case 'confirmed': return <Badge variant="default">Guide Assigned</Badge>;
+        case 'pending': return <Badge variant="secondary">Finding Guide</Badge>;
+        case 'guide-selected': return <Badge variant="secondary">Guide Notified</Badge>;
+        case 'confirmed': return <Badge>Awaiting Payment</Badge>;
+        case 'payment-pending': return <Badge variant="secondary" className="bg-amber-500 text-white">Payment Processing</Badge>;
         case 'completed': return <Badge variant="outline">Completed</Badge>;
         case 'cancelled': return <Badge variant="destructive">Cancelled</Badge>;
         default: return <Badge variant="secondary">{status}</Badge>;
@@ -277,7 +282,7 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
                 {request.status !== 'draft' && (
                     <div className="pt-4 text-center">
                         <h3 className="text-lg font-semibold">Status</h3>
-                        {getStatusBadge(request.status)}
+                        {getStatusBadge(request.status, request.paidAt)}
                     </div>
                 )}
 
@@ -304,5 +309,3 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
         </Card>
     );
 }
-
-    
