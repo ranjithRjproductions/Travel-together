@@ -103,10 +103,7 @@ export default async function GuideRequestViewPage({ params }: { params: { reque
 
   return (
     <main id="main-content" className="flex-grow container mx-auto px-4 md:px-6 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="font-headline text-3xl font-bold tracking-tight">
-          Request Summary
-        </h1>
+       <div className="flex justify-end items-center mb-6">
         <Button asChild variant="outline">
           <Link href="/guide/my-requests">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -116,9 +113,6 @@ export default async function GuideRequestViewPage({ params }: { params: { reque
       </div>
 
       <div className="max-w-2xl mx-auto">
-        <p className="text-muted-foreground mb-6">
-            This is a summary of your upcoming booking with {userData.name}. You can review all the trip details below.
-        </p>
         <Step5Review request={request} userData={userData} userRole="guide" />
       </div>
     </main>
