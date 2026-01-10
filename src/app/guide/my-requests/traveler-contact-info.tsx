@@ -12,24 +12,22 @@ interface TravelerContactInfoProps {
 }
 
 export function TravelerContactInfo({ contact, tripStartTime }: TravelerContactInfoProps) {
-  const [canShowContact, setCanShowContact] = useState(false);
+  const [hoursUntilTrip, setHoursUntilTrip] = useState<number | null>(null);
 
   useEffect(() => {
     const checkTime = () => {
       try {
         const tripDate = parseISO(tripStartTime);
         if (isNaN(tripDate.getTime())) {
-          setCanShowContact(false);
+          setHoursUntilTrip(null);
           return;
         }
         const now = new Date();
-        const hoursUntilTrip = differenceInHours(tripDate, now);
-        
-        // Show contact info if the trip is within the next 24 hours
-        setCanShowContact(hoursUntilTrip <= 24);
+        const hoursDifference = differenceInHours(tripDate, now);
+        setHoursUntilTrip(hoursDifference);
       } catch (error) {
         console.error("Error parsing trip start time:", error);
-        setCanShowContact(false);
+        setHoursUntilTrip(null);
       }
     };
 
@@ -40,20 +38,28 @@ export function TravelerContactInfo({ contact, tripStartTime }: TravelerContactI
     return () => clearInterval(interval);
   }, [tripStartTime]);
 
+  const canShowContact = hoursUntilTrip !== null && hoursUntilTrip <= 24;
+
   if (canShowContact) {
     return (
-      <div className="pt-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="pt-2 space-y-2">
+        <p className="text-sm text-primary font-semibold">
+            Your service will begin in {hoursUntilTrip < 1 ? 'less than an hour' : `${hoursUntilTrip} hours`}.
+        </p>
+        <p className="text-sm text-muted-foreground">
+            Please contact our traveler to ensure a comfortable journey and provide assistance.
+        </p>
+        <div className="flex items-center gap-2 text-sm">
           <Phone className="h-4 w-4" />
-          <a href={`tel:${contact?.primaryPhone}`} className="text-primary underline hover:no-underline">
+          <a href={`tel:${contact?.primaryPhone}`} className="text-primary underline hover:no-underline font-medium">
             {contact?.primaryPhone}
           </a>
           {contact?.whatsappNumber && (
             <a 
-              href={`https://wa.me/${contact.whatsappNumber}`} 
+              href={`https://wa.me/${contact.whatsappNumber.replace(/[^0-9]/g, '')}`} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="text-green-600 underline hover:no-underline"
+              className="text-green-600 underline hover:no-underline font-medium"
             >
               (WhatsApp)
             </a>
