@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -57,7 +58,7 @@ export function Step1View({ request, onEdit }: { request: TravelRequest, onEdit:
                         <p><span className="font-semibold">Address:</span> {subPurposeData.shopAddress?.street}, {subPurposeData.shopAddress?.district}, {subPurposeData.shopAddress?.pincode}</p>
                     </>
                 ) : (
-                     <p><span className="font-semibold">Area:</span> {subPurposeData.shoppingArea?.area}, {subPurposeData.shoppingArea?.district}</p>
+                     <p><span className="font-semibold">Area:</span> {`${subPurposeData.shoppingArea?.area}, ${subPurposeData.shoppingArea?.street}, ${subPurposeData.shoppingArea?.district}, ${subPurposeData.shoppingArea?.pincode}`}</p>
                 )}
             </div>
         );
@@ -98,7 +99,7 @@ export function Step1Form({ request, onSave }: { request: TravelRequest, onSave:
         shopType: undefined,
         shopName: '',
         shopAddress: { street: '', district: '', pincode: '' },
-        shoppingArea: { area: '', district: '' },
+        shoppingArea: { area: '', street: '', district: '', pincode: '' },
         agreeNotToCarry: false,
       },
     },
@@ -204,7 +205,9 @@ export function Step1Form({ request, onSave }: { request: TravelRequest, onSave:
                     <div className="space-y-4 pt-2">
                         <h4 className="font-medium">Shopping Area</h4>
                         <FormField control={form.control} name="subPurposeData.shoppingArea.area" render={({ field }) => (<FormItem><FormLabel>Area Name</FormLabel><FormControl><Input placeholder="e.g., T. Nagar" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="subPurposeData.shoppingArea.street" render={({ field }) => (<FormItem><FormLabel>Street Address</FormLabel><FormControl><Input placeholder="e.g., Usman Road" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="subPurposeData.shoppingArea.district" render={({ field }) => (<FormItem><FormLabel>District</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a district" /></SelectTrigger></FormControl><SelectContent>{tamilNaduCities.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="subPurposeData.shoppingArea.pincode" render={({ field }) => (<FormItem><FormLabel>Pincode</FormLabel><FormControl><Input placeholder="600017" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
                 )}
                  {watchShopType && (
@@ -250,3 +253,5 @@ export function Step1Form({ request, onSave }: { request: TravelRequest, onSave:
     </Card>
   );
 }
+
+    

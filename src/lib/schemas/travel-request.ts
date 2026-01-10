@@ -41,7 +41,9 @@ export const step1Schema = z.object({
     }).optional(),
     shoppingArea: z.object({
       area: z.string().optional(),
+      street: z.string().optional(),
       district: z.string().optional(),
+      pincode: z.string().optional(),
     }).optional(),
     agreeNotToCarry: z.boolean().optional(),
   }),
@@ -84,7 +86,9 @@ export const step1Schema = z.object({
         }
         if (subPurposeData.shopType === 'area') {
             if (!subPurposeData.shoppingArea?.area) ctx.addIssue({ code: 'custom', message: 'Area name is required.', path: ['subPurposeData.shoppingArea.area'] });
+            if (!subPurposeData.shoppingArea?.street) ctx.addIssue({ code: 'custom', message: 'Street address is required.', path: ['subPurposeData.shoppingArea.street'] });
             if (!subPurposeData.shoppingArea?.district) ctx.addIssue({ code: 'custom', message: 'District is required.', path: ['subPurposeData.shoppingArea.district'] });
+            if (!subPurposeData.shoppingArea?.pincode || !pincodeRegex.test(subPurposeData.shoppingArea.pincode)) ctx.addIssue({ code: 'custom', message: 'A valid 6-digit pincode is required.', path: ['subPurposeData.shoppingArea.pincode'] });
         }
         if (!subPurposeData.agreeNotToCarry) {
           ctx.addIssue({
@@ -176,3 +180,5 @@ export const step4Schema = z.object({
     }
 });
 export type Step4FormValues = z.infer<typeof step4Schema>;
+
+    

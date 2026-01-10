@@ -64,7 +64,7 @@ const ServiceDetailsReview = ({ purposeData }: { purposeData: TravelRequest['pur
                   label="Location" 
                   value={subPurposeData.shopType === 'particular' 
                     ? `${subPurposeData.shopName}, ${subPurposeData.shopAddress?.street}, ${subPurposeData.shopAddress?.district}, ${subPurposeData.shopAddress?.pincode}` 
-                    : `${subPurposeData.shoppingArea?.area}, ${subPurposeData.shoppingArea?.district}`} 
+                    : `${subPurposeData.shoppingArea?.area}, ${subPurposeData.shoppingArea?.street}, ${subPurposeData.shoppingArea?.district}, ${subPurposeData.shoppingArea?.pincode}`} 
                 />
                  <InfoRow 
                     label="Agreement" 
@@ -304,3 +304,5 @@ export function Step5Review({ request, userData }: { request: TravelRequest, use
         </Card>
     );
 }
+
+    
