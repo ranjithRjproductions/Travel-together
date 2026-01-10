@@ -8,7 +8,7 @@ export function AppLogo({ className, homeUrl = '/' }: { className?: string, home
     <Link href={homeUrl} aria-label="Let's Travel Together - Homepage" className={cn("flex items-center gap-2 text-lg font-bold text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-1", className)}>
       <Image 
         src="/logo.png" 
-        alt="Let's Travel Together logo" 
+        alt="Minimalist icon showing one person guiding another along a curved forward path, symbolizing shared and accessible travel." 
         width={40} 
         height={40}
         className="rounded-full"
