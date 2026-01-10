@@ -1,6 +1,5 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { getUser } from '@/lib/auth';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -11,13 +10,19 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/_next/static') ||
     pathname.startsWith('/_next/image') ||
     pathname.endsWith('.ico') ||
-    pathname.endsWith('.png')
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.json') ||
+    pathname.endsWith('.txt') ||
+    pathname.endsWith('.xml')
   ) {
     return NextResponse.next();
   }
 
-  const user = await getUser();
-  const isAuth = !!user;
+  const session =
+    req.cookies.get('session')?.value ||
+    req.cookies.get('__session')?.value;
+
+  const isAuth = !!session;
 
   const isAuthRoute =
     pathname.startsWith('/login') ||
@@ -26,24 +31,20 @@ export async function middleware(req: NextRequest) {
   
   const isPublicRoute = pathname === '/';
 
-  // If user is not authenticated and trying to access a protected route, redirect to login.
+  // If the user is authenticated, prevent them from accessing auth routes.
+  // Redirect them to a default dashboard. The layout for that dashboard
+  // will handle the final role-based redirect.
+  if (isAuth && isAuthRoute) {
+    return NextResponse.redirect(new URL('/traveler/dashboard', req.url));
+  }
+  
+  // If the user is not authenticated, protect all routes except the
+  // main landing page and the authentication routes.
   if (!isAuth && !isAuthRoute && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
-
-  // If the user IS authenticated and tries to visit an auth page,
-  // redirect them to their correct dashboard.
-  if (isAuth && isAuthRoute) {
-    let dashboardUrl = '/traveler/dashboard'; // Default
-    if (user.isAdmin) {
-        dashboardUrl = '/admin';
-    } else if (user.role === 'Guide') {
-        dashboardUrl = '/guide/dashboard';
-    }
-    return NextResponse.redirect(new URL(dashboardUrl, req.url));
-  }
-
-  // Otherwise, allow the request to proceed.
+  
+  // If none of the above conditions are met, allow the request to proceed.
   return NextResponse.next();
 }
 
