@@ -30,14 +30,16 @@ service cloud.firestore {
        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
     }
 
-    // TRAVEL REQUESTS
-    // This allows authenticated users to perform queries (list operations).
-    // The client-side queries will filter results, and the document-level
-    // 'read' rule below provides the actual security for accessing individual documents.
+    // TRAVEL REQUESTS (COLLECTION)
+    // This rule is essential for running queries (e.g., useCollection).
+    // It allows an authenticated user to perform a LIST operation. The actual
+    // documents returned are still secured by the document-level 'read' rule below.
     match /travelRequests {
       allow list: if request.auth != null;
     }
 
+    // TRAVEL REQUESTS (DOCUMENT)
+    // These rules govern access to individual request documents.
     match /travelRequests/{requestId} {
       // Allow a user to create a draft request for themselves with a limited set of fields.
       allow create: if request.auth != null && 
