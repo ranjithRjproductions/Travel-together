@@ -1,12 +1,11 @@
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import content from '@/app/content/home.json';
 
 export function Footer() {
   return (
-    <footer role="contentinfo" className="bg-background border-t">
-      <div className="container mx-auto px-4 divide-y">
+    <footer className="bg-background border-t">
+      <div className="container mx-auto px-4">
         <div className="py-8">
             <nav aria-label="Footer">
                 <ul className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -23,8 +22,8 @@ export function Footer() {
                 </ul>
             </nav>
         </div>
-        <div className="py-6 text-center text-sm text-muted-foreground">
-            <p>Copyright © 2024 Let's Travel Together, Inc. All rights reserved.</p>
+         <div role="contentinfo" className="py-6 border-t text-center text-sm text-muted-foreground">
+            <p>Copyright © 2026 Let's Travel Together, Inc. All rights reserved.</p>
         </div>
       </div>
     </footer>
