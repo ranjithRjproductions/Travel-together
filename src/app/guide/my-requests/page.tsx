@@ -2,7 +2,7 @@
 
 'use server';
 
-import { ArrowLeft, CheckCircle, Clock, CreditCard, FileText, Loader2, MapPin, Search, User, View, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, CreditCard, FileText, Loader2, MapPin, Search, User, View, X, CalendarDays, PenLine } from 'lucide-react';
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 
@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { type TravelRequest, type User as UserData } from '@/lib/definitions';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getGuideRequests, respondToTravelRequest } from '@/lib/actions';
+import { getGuideRequests } from '@/lib/actions';
 import { RespondToRequestButtons } from './respond-buttons';
 
 
@@ -40,7 +40,11 @@ const getRequestTitle = (request: TravelRequest): string => {
 const getRequestSubTitle = (request: TravelRequest): string | null => {
     const { purposeData } = request;
     if (purposeData?.purpose === 'education' && purposeData.subPurposeData?.subPurpose) {
-        return purposeData.subPurposeData.subPurpose === 'scribe' ? 'Scribe for Exam' : 'Admission Support';
+        if (purposeData.subPurposeData.subPurpose === 'scribe') {
+            const subjects = purposeData.subPurposeData.scribeSubjects?.join(', ') || 'exam';
+            return `Scribe for ${subjects.replace(/_/g, ' ')} Exam`;
+        }
+        return 'Admission Support';
     }
     if (purposeData?.purpose === 'hospital') {
       return `Appointment at ${purposeData.subPurposeData?.hospitalName}`;
@@ -115,29 +119,30 @@ function UpcomingRequests({ requests }: { requests: TravelRequest[] }) {
         <div className="space-y-4">
         {requests.map(request => (
             <Card key={request.id}>
-                <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div className="flex-grow space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                                <AvatarImage src={request.travelerData?.photoURL} alt={request.travelerData?.name} />
-                                <AvatarFallback>{(request.travelerData?.name || 'T').split(' ')[0][0]}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-semibold">{(request.travelerData?.name || 'Traveler').split(' ')[0]}</span>
-                        </div>
-                        <div className="pl-10 space-y-1">
-                            <p className="text-sm font-semibold capitalize">
+                <CardContent className="p-4 flex justify-between items-start gap-4">
+                     <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                            <AvatarImage src={request.travelerData?.photoURL} alt={request.travelerData?.name} />
+                            <AvatarFallback>{(request.travelerData?.name || 'T').charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-grow space-y-1">
+                             <p className="font-semibold">
+                                {(request.travelerData?.name || 'Traveler').split(' ')[0]}
+                            </p>
+                            <p className="text-sm font-medium capitalize">
                                 {getRequestSubTitle(request) || getRequestTitle(request)}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4" />
                                 {request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}, {request.startTime} - {request.endTime}
                             </p>
-                            <p className="text-sm font-semibold">
+                            <p className="text-sm font-semibold pt-1">
                                 Amount Paid: ₹{request.estimatedCost?.toFixed(2)}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center self-start sm:self-center">
+                    <div className="flex-shrink-0">
                          <Button asChild variant="secondary" size="sm">
                             <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> Details</Link>
                         </Button>
