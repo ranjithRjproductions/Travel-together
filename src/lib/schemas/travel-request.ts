@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import { startOfToday } from 'date-fns';
 
 //=========== STEP 1 SCHEMA ===========//
 export const step1Schema = z.object({
@@ -104,7 +105,7 @@ export type Step1FormValues = z.infer<typeof step1Schema>;
 
 //=========== STEP 2 SCHEMA ===========//
 export const step2Schema = z.object({
-  requestedDate: z.date({ required_error: "A date of trip is required." }),
+  requestedDate: z.date({ required_error: "Please select a valid date." }).min(startOfToday(), { message: "Date cannot be in the past." }),
   day: z.number().optional(),
   month: z.number().optional(),
   year: z.number().optional(),

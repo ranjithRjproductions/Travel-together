@@ -3,7 +3,7 @@
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { addDays, format, parseISO, startOfToday, getYear, getMonth, getDate } from 'date-fns';
+import { addDays, format, parseISO, startOfToday, getYear, getMonth, getDate, getDaysInMonth } from 'date-fns';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -17,42 +17,83 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 // DateSelect component for Day, Month, Year dropdowns
 function DateSelect({
   control,
   setFormValue,
+  watch,
 }: {
   control: any;
   setFormValue: (field: keyof Step2FormValues, value: any) => void;
+  watch: any;
 }) {
-  const currentYear = getYear(new Date());
+  const today = startOfToday();
+  const currentYear = getYear(today);
+  const currentMonth = getMonth(today);
+  const currentDay = getDate(today);
+
+  const selectedYear = watch('year');
+  const selectedMonth = watch('month');
+
   const years = Array.from({ length: 3 }, (_, i) => currentYear + i);
-  const months = Array.from({ length: 12 }, (_, i) => ({
-    value: i,
-    label: format(new Date(currentYear, i), 'MMMM'),
-  }));
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  
+  const months = useMemo(() => {
+    const allMonths = Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: format(new Date(currentYear, i), 'MMMM'),
+    }));
+
+    if (selectedYear === currentYear) {
+      return allMonths.slice(currentMonth);
+    }
+    return allMonths;
+  }, [selectedYear, currentYear, currentMonth]);
+
+  const days = useMemo(() => {
+    if (selectedYear === undefined || selectedMonth === undefined) {
+      return [];
+    }
+    const daysInMonth = getDaysInMonth(new Date(selectedYear, selectedMonth));
+    const allDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+    if (selectedYear === currentYear && selectedMonth === currentMonth) {
+      return allDays.slice(currentDay - 1);
+    }
+    return allDays;
+  }, [selectedYear, selectedMonth, currentYear, currentMonth, currentDay]);
+
+  // Reset month and day if year changes
+  useEffect(() => {
+    setFormValue('month', undefined);
+    setFormValue('day', undefined);
+  }, [selectedYear, setFormValue]);
+
+  // Reset day if month changes
+  useEffect(() => {
+    setFormValue('day', undefined);
+  }, [selectedMonth, setFormValue]);
+
 
   return (
     <div className="grid grid-cols-3 gap-4">
-      <FormField
+       <FormField
         control={control}
-        name="day"
+        name="year"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Day</FormLabel>
+            <FormLabel>Year</FormLabel>
             <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Day" />
+                  <SelectValue placeholder="Year" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {days.map((day) => (
-                  <SelectItem key={day} value={day.toString()}>
-                    {day}
+                {years.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -67,7 +108,7 @@ function DateSelect({
         render={({ field }) => (
           <FormItem>
             <FormLabel>Month</FormLabel>
-            <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()}>
+            <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()} disabled={!selectedYear}>
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Month" />
@@ -85,22 +126,22 @@ function DateSelect({
           </FormItem>
         )}
       />
-      <FormField
+       <FormField
         control={control}
-        name="year"
+        name="day"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Year</FormLabel>
-            <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()}>
+            <FormLabel>Day</FormLabel>
+            <Select onValueChange={(value) => field.onChange(parseInt(value, 10))} value={field.value?.toString()} disabled={selectedMonth === undefined}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Year" />
+                  <SelectValue placeholder="Day" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
+                {days.map((day) => (
+                  <SelectItem key={day} value={day.toString()}>
+                    {day}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -163,16 +204,21 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
   const watchYear = form.watch('year');
 
   useEffect(() => {
-    if (watchDay && watchMonth !== undefined && watchYear) {
+    if (watchDay !== undefined && watchMonth !== undefined && watchYear !== undefined) {
       const newDate = new Date(watchYear, watchMonth, watchDay);
       if (!isNaN(newDate.getTime())) {
         form.setValue('requestedDate', newDate, { shouldValidate: true });
       }
+    } else {
+        form.setValue('requestedDate', undefined, { shouldValidate: true });
     }
   }, [watchDay, watchMonth, watchYear, form]);
 
   const handleStep2Save = async (data: Step2FormValues) => {
-    if (!firestore) return;
+    if (!firestore || !data.requestedDate) {
+        toast({ title: "Error", description: "Please select a valid date.", variant: "destructive" });
+        return;
+    };
     const requestDocRef = doc(firestore, 'travelRequests', request.id);
 
     try {
@@ -196,12 +242,12 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
     <Card>
         <CardHeader>
             <CardTitle>Step 2: Date & Duration</CardTitle>
-            <CardDescription>When do you need the guide? You can now select today's date for testing.</CardDescription>
+            <CardDescription>When do you need the guide? Select a date from the dropdowns.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleStep2Save)} className="space-y-6">
-                    <DateSelect control={form.control} setFormValue={form.setValue} />
+                    <DateSelect control={form.control} setFormValue={form.setValue} watch={form.watch} />
                     <FormField name="requestedDate" control={form.control} render={({ field }) => <FormMessage />} />
 
                     <div className="grid grid-cols-2 gap-4">
