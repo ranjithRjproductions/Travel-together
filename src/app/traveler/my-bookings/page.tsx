@@ -334,6 +334,6 @@ Back to Dashboard
 </Tabs>
 </CardContent>
 </Card>
-</div>
+  </div>
 );
 }

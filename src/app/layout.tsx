@@ -5,6 +5,14 @@ import { FirebaseClientProvider } from '@/firebase';
 import homeContent from './content/home.json';
 import Script from 'next/script';
 import { NotificationProvider } from '@/components/NotificationProvider';
+import { PT_Sans } from 'next/font/google';
+
+const ptSans = PT_Sans({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-pt-sans',
+  display: 'swap', // Ensures text remains visible during webfont load
+});
 
 export const metadata: Metadata = {
   title: homeContent.meta.title,
@@ -17,14 +25,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${ptSans.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
-          rel="stylesheet"
-        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
       </head>
