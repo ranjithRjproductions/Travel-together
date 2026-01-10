@@ -116,32 +116,28 @@ function UpcomingRequests({ requests }: { requests: TravelRequest[] }) {
         {requests.map(request => (
             <Card key={request.id}>
                 <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div className="flex-grow space-y-1">
+                    <div className="flex-grow space-y-2">
                         <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
                                 <AvatarImage src={request.travelerData?.photoURL} alt={request.travelerData?.name} />
-                                <AvatarFallback>{request.travelerData?.name?.[0]}</AvatarFallback>
+                                <AvatarFallback>{(request.travelerData?.name || 'T').split(' ')[0][0]}</AvatarFallback>
                             </Avatar>
                             <span className="font-semibold">{(request.travelerData?.name || 'Traveler').split(' ')[0]}</span>
                         </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2 pl-10 capitalize">
-                           <span>{request.purposeData?.purpose}</span>
-                        </div>
-                        {getRequestSubTitle(request) && (
-                           <div className="text-sm text-muted-foreground flex items-center gap-2 pl-10">
-                             <span>{getRequestSubTitle(request)}</span>
-                           </div>
-                        )}
-                         <div className="text-sm font-semibold flex items-center gap-2 pl-10">
-                           <span>Amount Paid: ₹{request.estimatedCost?.toFixed(2)}</span>
+                        <div className="pl-10 space-y-1">
+                            <p className="text-sm font-semibold capitalize">
+                                {getRequestSubTitle(request) || getRequestTitle(request)}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                {request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}, {request.startTime} - {request.endTime}
+                            </p>
+                            <p className="text-sm font-semibold">
+                                Amount Paid: ₹{request.estimatedCost?.toFixed(2)}
+                            </p>
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                        <div className="text-right">
-                           <p className="font-semibold">{request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}</p>
-                           <p className="text-sm text-muted-foreground">{request.startTime} - {request.endTime}</p>
-                        </div>
+                    <div className="flex items-center self-start sm:self-center">
                          <Button asChild variant="secondary" size="sm">
                             <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> Details</Link>
                         </Button>
@@ -169,7 +165,7 @@ export default async function MyGuideRequestsPage() {
         </Button>
       </div>
 
-        <Tabs defaultValue="inprogress">
+        <Tabs defaultValue="upcoming">
             <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="inprogress">In Progress</TabsTrigger>
                 <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
