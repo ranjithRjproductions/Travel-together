@@ -281,7 +281,11 @@ return (
             <div className="flex justify-end gap-2">
               {userProfile.name && <Button variant="ghost" type="button" onClick={() => { reset({ name: userProfile.name, gender: userProfile.gender }); setPhotoPreview(userProfile.photoURL || null); setPhotoFile(null); setIsEditMode(false); }}>Cancel</Button>}
               <Button type="submit" disabled={isFormSubmitting}>
-                {isFormSubmitting ? 'Saving...' : 'Save Profile'}
+                {isFormSubmitting ? (
+                  <span role="alert">Saving...</span>
+                ) : (
+                  'Save Profile'
+                )}
               </Button>
             </div>
           </form>
