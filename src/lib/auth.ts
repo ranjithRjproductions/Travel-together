@@ -5,7 +5,8 @@ import { getAdminServices } from '@/lib/firebase-admin';
 import type { Timestamp } from 'firebase-admin/firestore';
 
 export async function getUser(): Promise<User | null> {
-  const sessionCookie = cookies().get('session')?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('session')?.value;
   if (!sessionCookie) return null;
 
   try {
