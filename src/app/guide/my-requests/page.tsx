@@ -132,7 +132,7 @@ function UpcomingRequests({ requests }: { requests: TravelRequest[] }) {
                      <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                             <AvatarImage src={request.travelerData?.photoURL} alt={request.travelerData?.name} />
-                            <AvatarFallback>{(request.travelerData?.name || 'T').charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{(request.travelerData?.name || 'T').split(' ').map(n => n[0]).join('')}</AvatarFallback>
                         </Avatar>
                         <div className="flex-grow space-y-1">
                              <p className="font-semibold">
@@ -200,3 +200,4 @@ export default async function MyGuideRequestsPage() {
     </div>
   );
 }
+
