@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +45,6 @@ export function UserNav({ user }: { user?: UserType | null }) {
         <Button 
           variant="ghost" 
           className="relative h-10 w-10 rounded-full"
-          aria-label={`Open user menu for ${user.name}`}
         >
           <Avatar className="h-10 w-10">
             <AvatarImage
