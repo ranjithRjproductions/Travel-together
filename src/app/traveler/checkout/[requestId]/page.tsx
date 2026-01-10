@@ -17,6 +17,7 @@ import { ArrowLeft, CreditCard, User, Calendar, Clock, Loader2 } from 'lucide-re
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { AriaLive } from '@/components/ui/aria-live';
+import { cn } from '@/lib/utils';
 
 declare const Razorpay: any;
 
@@ -97,8 +98,10 @@ export default function CheckoutPage() {
     const isLoading = isUserLoading || isRequestLoading || isTravelerLoading;
     
     const handlePayment = async () => {
-        if (!request || !user || !traveler) {
-            toast({ variant: "destructive", title: "Error", description: "Request details not loaded." });
+        if (!request || !user || !traveler || isProcessing) {
+            if (!request || !user || !traveler) {
+                toast({ variant: "destructive", title: "Error", description: "Request details not loaded." });
+            }
             return;
         }
 
@@ -264,9 +267,24 @@ export default function CheckoutPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex-col gap-4">
-                     <Button size="lg" className="w-full" onClick={handlePayment} disabled={isProcessing}>
-                        {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CreditCard className="mr-2 h-5 w-5" />}
-                        {isProcessing ? 'Processing...' : `Pay ₹${(request.estimatedCost || 0).toFixed(2)} Securely`}
+                     <Button
+                        size="lg"
+                        className={cn('w-full', isProcessing && 'pointer-events-none opacity-75')}
+                        onClick={handlePayment}
+                        aria-disabled={isProcessing}
+                        aria-live="polite"
+                     >
+                        {isProcessing ? (
+                            <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                <span>Connecting to payment gateway...</span>
+                            </>
+                        ) : (
+                            <>
+                                <CreditCard className="mr-2 h-5 w-5" />
+                                <span>{`Pay ₹${(request.estimatedCost || 0).toFixed(2)} Securely`}</span>
+                            </>
+                        )}
                     </Button>
                      <Alert>
                         <AlertDescription className="text-center">
