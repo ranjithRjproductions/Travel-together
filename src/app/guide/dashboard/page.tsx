@@ -21,9 +21,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { respondToTravelRequest } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { User, MapPin, CreditCard, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { User, MapPin, CreditCard, CheckCircle, Clock, Loader2, View } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 
 function IncomingRequests() {
@@ -122,6 +123,9 @@ function IncomingRequests() {
                 <CardFooter className="flex gap-2">
                     <Button onClick={() => handleResponse(request.id, 'confirmed')}>Accept</Button>
                     <Button variant="outline" onClick={() => handleResponse(request.id, 'declined')}>Decline</Button>
+                    <Button asChild variant="secondary" size="sm">
+                      <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> View Details</Link>
+                    </Button>
                 </CardFooter>
               </Card>
             );
@@ -231,7 +235,7 @@ function ConfirmedRequests() {
       <div className="space-y-4">
         {requests.map(request => (
           <Card key={request.id}>
-              <CardContent className="p-4 grid sm:grid-cols-3 gap-4 items-center">
+              <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                   <div className="sm:col-span-2 space-y-1">
                       <h3 className="font-semibold">{getRequestTitle(request)}</h3>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -240,8 +244,11 @@ function ConfirmedRequests() {
                            <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {request.purposeData?.subPurposeData?.collegeAddress?.district || request.purposeData?.subPurposeData?.hospitalAddress?.district || request.purposeData?.subPurposeData?.shoppingArea?.district}</div>
                       </div>
                   </div>
-                  <div className="sm:text-right">
+                  <div className="sm:text-right flex items-center justify-end gap-2">
                       <RequestTravelerInfo travelerData={request.travelerData} status={request.status} paidAt={request.paidAt} />
+                       <Button asChild variant="secondary" size="sm">
+                        <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> Details</Link>
+                      </Button>
                   </div>
               </CardContent>
           </Card>
