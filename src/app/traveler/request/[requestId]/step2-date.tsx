@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -26,7 +27,7 @@ export function Step2View({ request, onEdit }: { request: TravelRequest, onEdit:
             <CardHeader>
                 <CardTitle className="flex justify-between items-center">
                     Step 2: Date & Duration
-                    <Button variant="ghost" size="sm" onClick={onEdit}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={onEdit} aria-label="Edit date and duration"><Edit className="mr-2 h-4 w-4" /> Edit</Button>
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -102,6 +103,7 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
                                     'w-full pl-3 text-left font-normal',
                                     !field.value && 'text-muted-foreground'
                                   )}
+                                  aria-label="Open date picker"
                                 >
                                   {field.value ? (
                                     format(field.value, 'PPP')

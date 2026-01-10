@@ -65,6 +65,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
         <Button 
           variant="ghost" 
           className="relative h-10 w-10 rounded-full"
+          aria-label="Open user menu"
         >
           <Avatar className="h-10 w-10">
             <AvatarImage

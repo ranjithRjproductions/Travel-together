@@ -25,7 +25,7 @@ export function Step4View({ request, onEdit }: { request: TravelRequest; onEdit:
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           Step 4: Meeting Point
-          <Button variant="ghost" size="sm" onClick={onEdit}>
+          <Button variant="ghost" size="sm" onClick={onEdit} aria-label="Edit meeting point">
             <Edit className="mr-2 h-4 w-4" /> Edit
           </Button>
         </CardTitle>
