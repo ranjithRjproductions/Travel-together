@@ -47,14 +47,14 @@ import { differenceInMinutes, parseISO } from 'date-fns';
  *        • current booking state
  *    - Uses Firestore transaction
  *    - FINAL state after successful payment:
- *        status = "paid"
+ *        status = "confirmed" (with paidAt timestamp)
  *
  * STATE RULES (DO NOT CHANGE):
  *
- * confirmed → payment-pending → paid
+ * confirmed → payment-pending → confirmed
  *
  * - "payment-pending" = retry allowed
- * - "paid" = final, paid, locked
+ * - "confirmed" with paidAt = final, paid, locked
  *
  * IMPORTANT:
  * - Clients must NEVER write payment fields
@@ -218,7 +218,11 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
                 });
                 const existingOrder = await razorpay.orders.fetch(request.razorpayOrderId);
                  if (existingOrder && existingOrder.status === 'created') {
-                     await requestRef.update({ status: 'payment-pending' });
+                     // Ensure the request is in payment-pending state before returning
+                     await requestRef.update({ 
+                         status: 'payment-pending',
+                         razorpayOrderId: existingOrder.id // Re-assert the order ID
+                     });
                      return { success: true, message: 'Existing order found', order: {
                         id: existingOrder.id,
                         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -563,3 +567,5 @@ export async function checkIsAdmin(): Promise<boolean> {
     return false;
   }
 }
+
+    
