@@ -25,6 +25,7 @@ import { Eye } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import type { Metadata } from 'next';
 import homeContent from '@/app/content/home.json';
+import type { Timestamp } from 'firebase-admin/firestore';
 
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
@@ -71,7 +72,7 @@ async function getTravelers(): Promise<SerializableTravelerWithStats[]> {
 
     const travelersWithStats = await Promise.all(
         usersSnapshot.docs.map(async (doc) => {
-            const userData = doc.data() as User;
+            const userData = doc.data() as User & { createdAt?: Timestamp };
             const travelerId = doc.id;
             
             const requestsSnapshot = await db.collection('travelRequests').where('travelerId', '==', travelerId).get();
@@ -100,7 +101,7 @@ async function getTravelers(): Promise<SerializableTravelerWithStats[]> {
             const profileCompletion = calculateProfileCompletion(userData);
 
             // Convert Firestore Timestamp to ISO string to make it serializable
-            const createdAt = (userData as any).createdAt?.toDate?.().toISOString() || new Date().toISOString();
+            const createdAt = userData.createdAt?.toDate().toISOString() || new Date().toISOString();
 
             return {
                 ...userData,

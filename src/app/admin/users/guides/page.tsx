@@ -27,6 +27,7 @@ import homeContent from '@/app/content/home.json';
 import { Progress } from '@/components/ui/progress';
 import { DeleteGuideButton } from './delete-guide-button';
 import { ManageGuideStatusButtons } from './approve-reject-buttons';
+import type { Timestamp } from 'firebase-admin/firestore';
 
 const siteName = homeContent.meta.title.split('–')[0].trim();
 
@@ -37,8 +38,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-type GuideWithStats = User & {
+// Ensure all data passed to client is serializable
+type SerializableGuideWithStats = Omit<User, 'createdAt'> & {
   id: string;
+  createdAt?: string; // createdAt is now a string
   onboardingState?: string;
   isAvailable?: boolean;
   profileCompletion: number;
@@ -70,7 +73,7 @@ const calculateGuideProfileCompletion = (user: User, guideProfile: any): number 
 }
 
 
-async function getGuides(): Promise<GuideWithStats[]> {
+async function getGuides(): Promise<SerializableGuideWithStats[]> {
   const db = getAdminDb();
   try {
     const usersSnapshot = await db.collection('users').where('role', '==', 'Guide').get();
@@ -79,7 +82,7 @@ async function getGuides(): Promise<GuideWithStats[]> {
     }
 
     const guides = await Promise.all(usersSnapshot.docs.map(async (userDoc) => {
-      const userData = { id: userDoc.id, uid: userDoc.id, ...userDoc.data() } as User & { id: string, uid: string };
+      const userData = userDoc.data() as User & { createdAt?: Timestamp };
       const guideProfileSnapshot = await db.collection('users').doc(userDoc.id).collection('guideProfile').limit(1).get();
 
       let onboardingState = 'not_started';
@@ -92,13 +95,19 @@ async function getGuides(): Promise<GuideWithStats[]> {
       }
       
       const profileCompletion = calculateGuideProfileCompletion(userData, guideProfileData);
-
-      return {
-        ...userData,
-        onboardingState,
-        isAvailable,
-        profileCompletion,
+      
+      // Serialize the user data
+      const serializableUserData: SerializableGuideWithStats = {
+          ...userData,
+          id: userDoc.id,
+          uid: userDoc.id,
+          createdAt: userData.createdAt?.toDate().toISOString() || undefined,
+          onboardingState,
+          isAvailable,
+          profileCompletion,
       };
+
+      return serializableUserData;
     }));
 
     return guides;
@@ -256,5 +265,3 @@ export default async function ManageGuidesPage() {
     </Card>
   );
 }
-
-    
