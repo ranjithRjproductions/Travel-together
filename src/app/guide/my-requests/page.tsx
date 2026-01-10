@@ -42,8 +42,8 @@ const getRequestSubTitle = (request: TravelRequest): string | null => {
     const { purposeData } = request;
     if (purposeData?.purpose === 'education' && purposeData.subPurposeData?.subPurpose) {
         if (purposeData.subPurposeData.subPurpose === 'scribe') {
-            const subjects = purposeData.subPurposeData.scribeSubjects?.join(', ') || 'exam';
-            return `Scribe for ${subjects.replace(/_/g, ' ')} Exam`;
+            const subjects = purposeData.subPurposeData.scribeSubjects?.map((s: string) => s.replace(/_/g, ' ')).join(', ');
+            return `Scribe for ${subjects} Exam`;
         }
         return 'Admission Support';
     }
@@ -84,7 +84,7 @@ function InProgressRequests({ requests }: { requests: TravelRequest[] }) {
                   </div>
                   <div className="sm:text-right flex items-center justify-end gap-2">
                        <Button asChild variant="secondary" size="sm">
-                        <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> Details</Link>
+                        <Link href={`/guide/my-requests/${request.id}`}><View className="mr-2 h-4 w-4" /> Details</Link>
                       </Button>
                   </div>
               </CardContent>
@@ -158,7 +158,7 @@ function UpcomingRequests({ requests }: { requests: TravelRequest[] }) {
 
                     <div className="flex-shrink-0">
                          <Button asChild variant="secondary" size="sm">
-                            <Link href={`/traveler/request/${request.id}`}><View className="mr-2 h-4 w-4" /> Details</Link>
+                            <Link href={`/guide/my-requests/${request.id}`}><View className="mr-2 h-4 w-4" /> Details</Link>
                         </Button>
                     </div>
                 </CardContent>
@@ -206,3 +206,6 @@ export default async function MyGuideRequestsPage() {
   );
 }
 
+
+
+    
