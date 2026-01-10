@@ -17,28 +17,10 @@ import { User, LogOut, BookMarked, Shield, FileText } from 'lucide-react';
 import type { User as UserType } from '@/lib/definitions';
 import Link from 'next/link';
 import { Skeleton } from './ui/skeleton';
-import { useState } from 'react';
-import { useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
 
 export function UserNav({ user }: { user?: UserType | null }) {
-  const [open, setOpen] = useState(false);
-  const auth = useAuth();
-  const router = useRouter();
-
   if (!user) {
     return <Skeleton className="h-10 w-10 rounded-full" />;
-  }
-  
-  const handleLogout = async () => {
-    try {
-        await logoutAction(); // Clear server session cookie
-        await signOut(auth); // Sign out from Firebase client
-        router.replace('/login?message=You have been logged out.'); // Force a page reload to clear state
-    } catch(error) {
-        console.error("Logout failed:", error);
-    }
   }
 
   const getInitials = (name?: string, email?: string) => {
@@ -58,9 +40,9 @@ export function UserNav({ user }: { user?: UserType | null }) {
   const initials = getInitials(user.name, user.email);
   const photoAltText = user.photoAlt || `Profile picture of ${user.name}`;
   const profileUrl = user.role === 'Guide' ? '/guide/profile/settings' : '/traveler/profile/settings';
-  
+
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
@@ -124,10 +106,14 @@ export function UserNav({ user }: { user?: UserType | null }) {
           </>
         )}
         <DropdownMenuSeparator />
-         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-            <LogOut aria-hidden="true" />
-            <span>Log out</span>
-        </DropdownMenuItem>
+        <form action={logoutAction}>
+            <button type="submit" className="w-full">
+                <DropdownMenuItem className="cursor-pointer">
+                    <LogOut aria-hidden="true" />
+                    <span>Log out</span>
+                </DropdownMenuItem>
+            </button>
+        </form>
       </DropdownMenuContent>
     </DropdownMenu>
   );
