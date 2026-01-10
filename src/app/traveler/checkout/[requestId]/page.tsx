@@ -16,7 +16,6 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, CreditCard, User, Calendar, Clock, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { AriaLive } from '@/components/ui/aria-live';
 import { cn } from '@/lib/utils';
 
 declare const Razorpay: any;
@@ -78,7 +77,6 @@ export default function CheckoutPage() {
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
-    const [ariaLiveMessage, setAriaLiveMessage] = useState('');
 
     const requestDocRef = useMemo(() => {
         if (!firestore || !requestId) return null;
@@ -106,14 +104,12 @@ export default function CheckoutPage() {
         }
 
         setIsProcessing(true);
-        setAriaLiveMessage('Initializing payment...');
 
         const orderResult = await createRazorpayOrder(requestId);
 
         if (!orderResult.success || !orderResult.order) {
             toast({ variant: "destructive", title: "Payment Error", description: orderResult.message });
             setIsProcessing(false);
-            setAriaLiveMessage(`Payment Error: ${orderResult.message}`);
             return;
         }
 
@@ -127,7 +123,6 @@ export default function CheckoutPage() {
             description: `Payment for Booking`,
             order_id,
             handler: async function (response: any) {
-                setAriaLiveMessage('Payment Successful! Verifying booking...');
                 
                 const verificationResult = await verifyRazorpayPayment(
                     response.razorpay_order_id,
@@ -148,7 +143,6 @@ export default function CheckoutPage() {
                         description: verificationResult.message || 'Could not verify payment. Please contact support.',
                     });
                     setIsProcessing(false);
-                    setAriaLiveMessage(`Verification Failed: ${verificationResult.message}`);
                 }
             },
             prefill: {
@@ -173,15 +167,12 @@ export default function CheckoutPage() {
                     description: response.error.description || 'Something went wrong.',
                 });
                 setIsProcessing(false);
-                setAriaLiveMessage(`Payment Failed: ${response.error.description}`);
             });
-            setAriaLiveMessage('Redirecting to Razorpay...');
             rzp.open();
         } catch (error) {
             console.error("Razorpay error: ", error);
              toast({ variant: 'destructive', title: 'Error', description: 'Could not open payment window.' });
              setIsProcessing(false);
-             setAriaLiveMessage('Error: Could not open payment window.');
         }
     }
 
@@ -210,7 +201,6 @@ export default function CheckoutPage() {
     
     return (
         <div className="max-w-2xl mx-auto">
-            <AriaLive message={ariaLiveMessage} />
             <div className="flex justify-between items-center mb-6">
                  <h1 className="font-headline text-3xl font-bold">Payment Invoice</h1>
                  <Button variant="outline" onClick={() => router.push('/traveler/my-bookings')}>
@@ -272,12 +262,11 @@ export default function CheckoutPage() {
                         className={cn('w-full', isProcessing && 'pointer-events-none opacity-75')}
                         onClick={handlePayment}
                         aria-disabled={isProcessing}
-                        aria-live="polite"
                      >
                         {isProcessing ? (
                             <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                <span>Connecting to payment gateway...</span>
+                                <span>Processing...</span>
                             </>
                         ) : (
                             <>
