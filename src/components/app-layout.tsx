@@ -1,4 +1,5 @@
 
+
 import { AppLogo } from '@/components/app-logo';
 import { UserNav } from '@/components/user-nav';
 import { type User } from '@/lib/definitions';
@@ -12,14 +13,10 @@ export default function AppLayout({
   user: User;
 }) {
   const getDashboardUrl = () => {
-    // If the user is an admin, the "Home" button should lead to the traveler dashboard.
-    if (user.isAdmin) {
-      return '/traveler/dashboard';
-    }
     if (user.role === 'Guide') {
       return '/guide/dashboard';
     }
-    // For travelers, it remains the traveler dashboard.
+    // For travelers and admins, the primary dashboard is the traveler one.
     return '/traveler/dashboard';
   };
 

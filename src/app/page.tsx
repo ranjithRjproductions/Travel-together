@@ -1,4 +1,5 @@
 
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -14,9 +15,7 @@ export default async function Home() {
 
   // If the user is authenticated, redirect them to their respective dashboard.
   if (user) {
-    if (user.isAdmin) {
-      redirect('/admin');
-    } else if (user.role === 'Guide') {
+    if (user.role === 'Guide') {
       redirect('/guide/dashboard');
     } else {
       redirect('/traveler/dashboard');
