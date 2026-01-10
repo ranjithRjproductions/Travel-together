@@ -32,6 +32,7 @@ service cloud.firestore {
 
     // TRAVEL REQUESTS
     // Allow list access for any authenticated user, as client-side queries will filter the results.
+    // The document-level 'read' rule below provides the actual security for accessing individual documents.
     match /travelRequests {
       allow list: if request.auth != null;
     }
