@@ -130,7 +130,7 @@ export async function logoutAction() {
   // This redirect is intentional and terminal. The user's session is being destroyed.
   // Per docs/REDIRECT_CONTRACT.md, this is a valid use of redirect() in a Server Action.
   // DO NOT reuse this pattern for auth gating or role-based routing.
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('session') || cookieStore.get('__session');
 
   if (sessionCookie) {
@@ -200,7 +200,7 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
     const { adminAuth, adminDb } = getAdminServices();
 
     try {
-        const session = cookies().get('session')?.value;
+        const session = (await cookies()).get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
         await adminAuth.verifySessionCookie(session, true);
         
@@ -291,7 +291,7 @@ export async function verifyRazorpayPayment(
   const { adminAuth, adminDb } = getAdminServices();
 
   try {
-    const session = cookies().get('session')?.value;
+    const session = (await cookies()).get('session')?.value;
     if (!session) throw new Error('Unauthenticated');
     await adminAuth.verifySessionCookie(session, true);
 
@@ -352,7 +352,7 @@ export async function verifyRazorpayPayment(
 export async function createDraftRequest(): Promise<{ success: boolean; message: string; travelerId?: string; }> {
     const { adminAuth } = getAdminServices();
     try {
-        const session = cookies().get('session')?.value;
+        const session = (await cookies()).get('session')?.value;
         if (!session) throw new Error('Unauthenticated. Please log in.');
         const decodedToken = await adminAuth.verifySessionCookie(session, true);
         
@@ -368,7 +368,7 @@ export async function createDraftRequest(): Promise<{ success: boolean; message:
 export async function updateGuideStatus(guideId: string, status: 'active' | 'rejected') {
     const { adminAuth, adminDb } = getAdminServices();
     try {
-        const session = cookies().get('session')?.value;
+        const session = (await cookies()).get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
         const decoded = await adminAuth.verifySessionCookie(session, true);
 
@@ -390,7 +390,7 @@ export async function updateGuideStatus(guideId: string, status: 'active' | 'rej
 export async function deleteTravelerAccount(travelerId: string) {
     const { adminAuth, adminDb } = getAdminServices();
     try {
-        const session = cookies().get('session')?.value;
+        const session = (await cookies()).get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
         const decoded = await adminAuth.verifySessionCookie(session, true);
         const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
@@ -415,7 +415,7 @@ export async function deleteTravelerAccount(travelerId: string) {
 export async function deleteGuideAccount(guideId: string) {
     const { adminAuth, adminDb } = getAdminServices();
     try {
-        const session = cookies().get('session')?.value;
+        const session = (await cookies()).get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
         const decoded = await adminAuth.verifySessionCookie(session, true);
         const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
@@ -438,7 +438,7 @@ export async function deleteGuideAccount(guideId: string) {
 export async function deleteTravelerProfileInfo(travelerId: string) {
     const { adminAuth, adminDb } = getAdminServices();
     try {
-        const session = cookies().get('session')?.value;
+        const session = (await cookies()).get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
         const decoded = await adminAuth.verifySessionCookie(session, true);
         const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
@@ -461,7 +461,7 @@ export async function deleteTravelerProfileInfo(travelerId: string) {
 export async function deleteTravelRequest(requestId: string) {
     const { adminAuth, adminDb } = getAdminServices();
     try {
-        const session = cookies().get('session')?.value;
+        const session = (await cookies()).get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
         const decoded = await adminAuth.verifySessionCookie(session, true);
         const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
@@ -480,7 +480,7 @@ export async function deleteTravelRequest(requestId: string) {
 export async function deleteDraftRequestsForTraveler(travelerId: string) {
     const { adminAuth, adminDb } = getAdminServices();
     try {
-        const session = cookies().get('session')?.value;
+        const session = (await cookies()).get('session')?.value;
         if (!session) throw new Error('Unauthenticated');
         const decoded = await adminAuth.verifySessionCookie(session, true);
         const adminDoc = await adminDb.collection('roles_admin').doc(decoded.uid).get();
@@ -515,7 +515,7 @@ export async function submitTravelRequest(
 ) {
   const { adminAuth, adminDb } = getAdminServices();
   try {
-    const session = cookies().get('session')?.value;
+    const session = (await cookies()).get('session')?.value;
     if (!session) throw new Error('Unauthenticated');
 
     const decoded = await adminAuth.verifySessionCookie(session, true);
@@ -576,7 +576,7 @@ export async function respondToTravelRequest(
 ) {
   const { adminAuth, adminDb } = getAdminServices();
   try {
-    const session = cookies().get('session')?.value;
+    const session = (await cookies()).get('session')?.value;
     if (!session) throw new Error('Unauthenticated');
 
     const decoded = await adminAuth.verifySessionCookie(session, true);
@@ -603,6 +603,7 @@ export async function respondToTravelRequest(
     }
 
     revalidatePath('/guide/dashboard');
+    revalidatePath('/guide/my-requests');
     revalidatePath('/traveler/my-bookings');
     return { success: true };
   } catch(e: any) {
@@ -614,7 +615,7 @@ export async function checkIsAdmin(): Promise<boolean> {
   const { adminAuth, adminDb } = getAdminServices();
 
   try {
-    const session = cookies().get('session')?.value;
+    const session = (await cookies()).get('session')?.value;
     if (!session) return false;
 
     const decoded = await adminAuth.verifySessionCookie(session, true);
@@ -631,3 +632,51 @@ export async function checkIsAdmin(): Promise<boolean> {
   }
 }
 
+export async function getGuideRequests(): Promise<{
+  inProgress: TravelRequest[];
+  upcoming: TravelRequest[];
+  past: TravelRequest[];
+}> {
+  const { adminAuth, adminDb } = getAdminServices();
+  try {
+    const session = (await cookies()).get('session')?.value;
+    if (!session) {
+      throw new Error('User not authenticated');
+    }
+    const decodedToken = await adminAuth.verifySessionCookie(session, true);
+    const guideId = decodedToken.uid;
+
+    const requestsQuery = adminDb
+      .collection('travelRequests')
+      .where('guideId', '==', guideId);
+
+    const snapshot = await requestsQuery.get();
+    const requests = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      // Convert Timestamps to serializable strings
+      const serializedData: any = { id: doc.id };
+      for (const key in data) {
+        if (data[key] instanceof admin.firestore.Timestamp) {
+          serializedData[key] = (data[key] as admin.firestore.Timestamp)
+            .toDate()
+            .toISOString();
+        } else {
+          serializedData[key] = data[key];
+        }
+      }
+      return serializedData as TravelRequest;
+    });
+
+    const inProgress = requests.filter((r) =>
+      ['guide-selected', 'confirmed', 'payment-pending'].includes(r.status) && !r.paidAt
+    );
+    const upcoming = requests.filter((r) => r.status === 'confirmed' && r.paidAt);
+    const past = requests.filter((r) => r.status === 'completed');
+
+    return { inProgress, upcoming, past };
+  } catch (error) {
+    console.error('Error fetching guide requests:', error);
+    // In case of error, return empty arrays to prevent page crashes
+    return { inProgress: [], upcoming: [], past: [] };
+  }
+}
