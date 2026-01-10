@@ -239,54 +239,6 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
         toast({ title: "Error", description: "Could not save. Please try again.", variant: "destructive" });
     }
   };
-
-  const handleContinue = async () => {
-    if (!firestore) return;
-    const requestDocRef = doc(firestore, 'travelRequests', request.id);
-    try {
-        await updateDoc(requestDocRef, { step2Complete: true });
-        onSave();
-    } catch(e) {
-        console.error("Error updating request:", e);
-        toast({ title: "Error", description: "Could not proceed. Please try again.", variant: "destructive" });
-    }
-  }
-
-  // If hospital visit is pre-booked, show a confirmation view instead of the form.
-  if (isHospitalPrebooked) {
-    return (
-       <Card>
-        <CardHeader>
-            <CardTitle>Step 2: Date & Duration</CardTitle>
-            <CardDescription>Your appointment date and time have been pre-filled from Step 1.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-             <div className="flex items-center gap-3 p-3 bg-secondary rounded-md">
-                <CalendarDays className="h-5 w-5 text-muted-foreground" />
-                <div>
-                    <p className="text-sm text-muted-foreground">Date</p>
-                    <p className="font-semibold">{request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'Not Set'}</p>
-                </div>
-            </div>
-             <div className="flex items-center gap-3 p-3 bg-secondary rounded-md">
-                <Clock className="h-5 w-5 text-muted-foreground" />
-                 <div>
-                    <p className="text-sm text-muted-foreground">Time</p>
-                    <p className="font-semibold">{request.startTime} - {request.endTime}</p>
-                </div>
-            </div>
-            <p className="text-xs text-muted-foreground text-center pt-2">
-                To change the date or time, please go back and edit Step 1.
-            </p>
-            <div className="flex justify-end pt-4">
-                <Button onClick={handleContinue}>
-                    Continue
-                </Button>
-            </div>
-        </CardContent>
-    </Card>
-    )
-  }
   
   return (
     <Card>
@@ -316,4 +268,3 @@ export function Step2Form({ request, onSave }: { request: TravelRequest, onSave:
     </Card>
   );
 }
-
