@@ -9,6 +9,7 @@ import { LogIn, UserPlus, ShieldCheck, UserCheck, Accessibility } from 'lucide-r
 import content from './content/home.json';
 import { getUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { Footer } from '@/components/footer';
 
 export default async function Home() {
   const user = await getUser();
@@ -109,6 +110,7 @@ export default async function Home() {
           </div>
         </section>
       </main>
+      <Footer />
     </>
   );
 }
