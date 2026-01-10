@@ -115,6 +115,15 @@ function UpcomingRequests({ requests }: { requests: TravelRequest[] }) {
       );
     }
     
+    const formatTimeWithAMPM = (timeString: string | undefined): string => {
+        if (!timeString) return '';
+        const [hours, minutes] = timeString.split(':');
+        const date = new Date();
+        date.setHours(parseInt(hours, 10));
+        date.setMinutes(parseInt(minutes, 10));
+        return format(date, 'p'); // 'p' formats as 'h:mm a'
+    }
+
     return (
         <div className="space-y-4">
         {requests.map(request => (
@@ -134,7 +143,7 @@ function UpcomingRequests({ requests }: { requests: TravelRequest[] }) {
                             </p>
                             <p className="text-sm text-muted-foreground flex items-center gap-2">
                                 <CalendarDays className="h-4 w-4" />
-                                {request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}, {request.startTime} - {request.endTime}
+                                {request.requestedDate ? format(parseISO(request.requestedDate), 'PPP') : 'N/A'}, {formatTimeWithAMPM(request.startTime)} - {formatTimeWithAMPM(request.endTime)}
                             </p>
                             <p className="text-sm font-semibold pt-1">
                                 Amount Paid: ₹{request.estimatedCost?.toFixed(2)}
