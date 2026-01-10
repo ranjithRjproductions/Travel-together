@@ -72,7 +72,7 @@ export function UserNav({ user }: { user?: UserType | null }) {
               <span>Profile Settings</span>
             </Link>
           </DropdownMenuItem>
-           {user.role === 'Traveler' && (
+           {user.role === 'Traveler' ? (
             <>
               <DropdownMenuItem asChild>
                 <Link href="/traveler/my-bookings">
@@ -87,7 +87,14 @@ export function UserNav({ user }: { user?: UserType | null }) {
                 </Link>
               </DropdownMenuItem>
             </>
-          )}
+          ) : user.role === 'Guide' ? (
+             <DropdownMenuItem asChild>
+                <Link href="/guide/my-requests">
+                  <FileText aria-hidden="true" />
+                  <span>My Requests</span>
+                </Link>
+              </DropdownMenuItem>
+          ): null}
         </DropdownMenuGroup>
         {user.isAdmin && (
           <>
