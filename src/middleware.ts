@@ -1,13 +1,8 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { getAdminServices } from '@/lib/firebase-admin';
 import { getUser } from '@/lib/auth';
 
 export async function middleware(req: NextRequest) {
-  // NOTE: Per docs/REDIRECT_CONTRACT.md, this middleware is for simple routing.
-  // It handles redirects for logged-in users away from public/auth pages and
-  // unauthenticated users away from most protected routes.
-  // Complex role-based gating is handled in the respective server component layouts.
   const { pathname } = req.nextUrl;
 
   // Explicitly bypass all API routes and static assets to prevent interference.
@@ -36,9 +31,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // If the user IS authenticated and tries to visit an auth page OR the public homepage,
+  // If the user IS authenticated and tries to visit an auth page,
   // redirect them to their correct dashboard.
-  if (isAuth && (isAuthRoute || isPublicRoute)) {
+  if (isAuth && isAuthRoute) {
     let dashboardUrl = '/traveler/dashboard'; // Default
     if (user.isAdmin) {
         dashboardUrl = '/admin';
