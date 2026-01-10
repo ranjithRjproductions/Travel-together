@@ -90,8 +90,9 @@ service cloud.firestore {
            resource.data.status == 'confirmed' &&
            request.resource.data.status == 'payment-pending'
         ) ||
-         // Case 5: Server action is verifying the payment via webhook-triggered cloud function.
+         // Case 5: Server action is verifying the payment via server action
         (
+          resource.data.travelerId == request.auth.uid &&
           resource.data.status == 'payment-pending' &&
           request.resource.data.status == 'confirmed' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt', 'paymentDetails'])
@@ -105,12 +106,6 @@ service cloud.firestore {
     match /roles_admin/{userId} {
       allow get, list: if isAdmin();
       allow write: if false;
-    }
-
-    // PAYMENT EVENTS (Write-only for server, no client access)
-    // The webhook writes here, and the cloud function reads. Clients should not have access.
-    match /payment_events/{eventId} {
-      allow read, write: if false;
     }
   }
 }

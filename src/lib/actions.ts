@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -12,58 +13,64 @@ import { getAdminServices } from '@/lib/firebase-admin';
 import type { User, TravelRequest } from './definitions';
 import { differenceInMinutes, parseISO } from 'date-fns';
 
-/**
- * ──────────────────────────────────────────────────────────────
- * 🔒 PAYMENT FLOW (LOCKED – PRODUCTION SAFE)
- * ──────────────────────────────────────────────────────────────
- *
- * This project uses a STRICT, server-controlled payment flow.
- * Any change here can cause double charges, stuck bookings,
- * or financial inconsistencies.
- *
- * PAYMENT ARCHITECTURE:
- *
- * 1. Server Action (createRazorpayOrder)
- *    - Calculates amount on the server ONLY
- *    - Creates Razorpay order
- *    - Sets booking status → "payment-pending"
- *
- * 2. Client Checkout Page
- *    - Opens Razorpay Checkout using server order ID
- *    - NEVER updates payment status
- *    - NEVER trusts client success callbacks
- *
- * 3. Razorpay Webhook (DUMB)
- *    - Verifies signature
- *    - Stores raw event in /payment_events
- *    - NO business logic
- *
- * 4. Cloud Function (SMART)
- *    - Triggered on /payment_events creation
- *    - Validates:
- *        • order ID
- *        • amount (server vs Razorpay)
- *        • currency
- *        • current booking state
- *    - Uses Firestore transaction
- *    - FINAL state after successful payment:
- *        status = "confirmed" (with paidAt timestamp)
- *
- * STATE RULES (DO NOT CHANGE):
- *
- * confirmed → payment-pending → confirmed
- *
- * - "payment-pending" = retry allowed
- * - "confirmed" with paidAt = final, paid, locked
- *
- * IMPORTANT:
- * - Clients must NEVER write payment fields
- * - Webhook must remain idempotent
- * - Amount must NEVER be client-controlled
- *
- * ⚠️ Any change here REQUIRES architectural review.
- * ──────────────────────────────────────────────────────────────
- */
+/* 
+* ────────────────────────────────────────────────────────────────────────────────
+* 🔒 PAYMENT FLOW (LOCKED – PRODUCTION SAFE)
+* ────────────────────────────────────────────────────────────────────────────────
+* 
+* This project uses a STRICT, server-controlled payment flow.
+* Any change here can cause double charges, stuck bookings,
+* or financial inconsistencies.
+* 
+* PAYMENT ARCHITECTURE:
+* 
+* 
+* 1. Server Action (createRazorpayOrder)
+* 
+*   ◦ Calculates amount on the server ONLY
+* 
+*   ◦ Creates Razorpay order
+* 
+*   ◦ Sets booking status → "payment-pending"
+* 
+* 
+* 2. Client Checkout Page
+* 
+*   ◦ Opens Razorpay Checkout using server order ID
+* 
+*   ◦ On success, calls `verifyRazorpayPayment` server action
+* 
+* 
+* 3. Server Action (verifyRazorpayPayment)
+* 
+*   ◦ Verifies Razorpay signature (critically important for security)
+* 
+*   ◦ Updates booking status from "payment-pending" → "confirmed"
+* 
+*   ◦ Adds `paidAt` timestamp
+* 
+* 
+* STATE RULES (DO NOT CHANGE):
+* 
+*   confirmed → payment-pending → confirmed
+* 
+* 
+*   ◦ "payment-pending" = retry allowed
+* 
+*   ◦ "confirmed" + "paidAt" = final, paid, locked
+* 
+* 
+* IMPORTANT:
+* 
+*   ◦ Clients must NEVER write payment fields.
+* 
+*   ◦ Amount must NEVER be client-controlled.
+* 
+*   ◦ Signature verification MUST happen on the server.
+* 
+* ⚠️ Any change here REQUIRES architectural review.
+* ────────────────────────────────────────────────────────────────────────────────
+*/
 
 
 /* -------------------------------------------------------------------------- */
@@ -186,11 +193,9 @@ const calculateCostOnServer = (request: TravelRequest): number => {
         cost = baseCost + additionalCost;
     }
 
-    // Remove the incorrect Math.round call
     return cost;
 };
 
-// 🔒 See `functions/src/index.ts` for the full locked-down payment flow documentation.
 export async function createRazorpayOrder(requestId: string): Promise<{ success: boolean; message: string; order?: any }> {
     const { adminAuth, adminDb } = getAdminServices();
 
@@ -209,16 +214,16 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
             return { success: false, message: 'This request is not ready for payment.' };
         }
 
+        const razorpay = new Razorpay({
+            key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+            key_secret: process.env.RAZORPAY_KEY_SECRET!,
+        });
+
+        // If an order ID already exists and is still in 'created' state, reuse it.
         if (request.razorpayOrderId) {
-            // Re-fetch the order from Razorpay to ensure it's still valid
             try {
-                const razorpay = new Razorpay({
-                    key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-                    key_secret: process.env.RAZORPAY_KEY_SECRET!,
-                });
                 const existingOrder = await razorpay.orders.fetch(request.razorpayOrderId);
                  if (existingOrder && existingOrder.status === 'created') {
-                     // Ensure the request is in payment-pending state and has the correct details before returning
                      await requestRef.update({ 
                          status: 'payment-pending',
                          razorpayOrderId: existingOrder.id,
@@ -233,8 +238,7 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
                      }};
                  }
             } catch (e) {
-                // If fetching order fails, it might be expired or invalid. Proceed to create a new one.
-                console.warn("Could not fetch existing Razorpay order. A new one will be created.", e);
+                console.warn("Could not fetch existing Razorpay order or it was already paid. A new one will be created.", e);
             }
         }
 
@@ -243,11 +247,6 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
             throw new Error('Calculated amount must be positive.');
         }
         const amountInPaise = Math.round(amountInRupees * 100);
-
-        const razorpay = new Razorpay({
-            key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-            key_secret: process.env.RAZORPAY_KEY_SECRET!,
-        });
 
         const options = {
             amount: amountInPaise,
@@ -283,6 +282,68 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
     }
 }
 
+
+export async function verifyRazorpayPayment(
+  razorpay_order_id: string,
+  razorpay_payment_id: string,
+  razorpay_signature: string
+) {
+  const { adminAuth, adminDb } = getAdminServices();
+
+  try {
+    const session = cookies().get('session')?.value;
+    if (!session) throw new Error('Unauthenticated');
+    await adminAuth.verifySessionCookie(session, true);
+
+    const secret = process.env.RAZORPAY_KEY_SECRET!;
+    const body = razorpay_order_id + '|' + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(body.toString())
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      throw new Error('Invalid payment signature');
+    }
+
+    // Signature is valid, now fetch the request from Firestore
+    const query = adminDb.collection('travelRequests').where('razorpayOrderId', '==', razorpay_order_id).limit(1);
+    const snapshot = await query.get();
+
+    if (snapshot.empty) {
+      throw new Error('No matching travel request found for this order.');
+    }
+
+    const requestRef = snapshot.docs[0].ref;
+    const request = snapshot.docs[0].data() as TravelRequest;
+
+    // Idempotency check: if already paid, do nothing.
+    if (request.status === 'confirmed' && request.paidAt) {
+        console.log('Payment already verified for this request.');
+        revalidatePath('/traveler/my-bookings');
+        return { success: true, message: 'Payment already verified.' };
+    }
+
+    if (request.status !== 'payment-pending') {
+      throw new Error(`Request is not in payment-pending state. Current state: ${request.status}`);
+    }
+
+    // All checks passed. Update the document.
+    await requestRef.update({
+        status: "confirmed", // Set status back to confirmed
+        paidAt: admin.firestore.FieldValue.serverTimestamp(),
+        'paymentDetails.razorpayPaymentId': razorpay_payment_id,
+    });
+    
+    revalidatePath('/traveler/my-bookings');
+    revalidatePath('/guide/dashboard');
+    return { success: true, message: 'Payment verified and booking confirmed.' };
+
+  } catch (error: any) {
+    console.error('Razorpay verification failed:', error);
+    return { success: false, message: error.message };
+  }
+}
 
 /* -------------------------------------------------------------------------- */
 /* OTHER ACTIONS                                                              */
@@ -570,4 +631,3 @@ export async function checkIsAdmin(): Promise<boolean> {
   }
 }
 
-    

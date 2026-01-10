@@ -1,12 +1,13 @@
 
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { type TravelRequest, type User as UserData } from '@/lib/definitions';
-import { createRazorpayOrder } from '@/lib/actions';
+import { createRazorpayOrder, verifyRazorpayPayment } from '@/lib/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -122,13 +123,30 @@ export default function CheckoutPage() {
             name: "Let's Travel Together",
             description: `Payment for Booking`,
             order_id,
-            handler: async function () {
-                setAriaLiveMessage('Payment Successful! Confirming booking...');
-                toast({
-                    title: "Payment Successful!",
-                    description: "Your booking is confirmed. You will be redirected shortly.",
-                });
-                router.push('/traveler/my-bookings?payment_success=true');
+            handler: async function (response: any) {
+                setAriaLiveMessage('Payment Successful! Verifying booking...');
+                
+                const verificationResult = await verifyRazorpayPayment(
+                    response.razorpay_order_id,
+                    response.razorpay_payment_id,
+                    response.razorpay_signature
+                );
+
+                if (verificationResult.success) {
+                    toast({
+                        title: "Payment Verified!",
+                        description: "Your booking is confirmed. You will be redirected shortly.",
+                    });
+                    router.push('/traveler/my-bookings?payment_success=true');
+                } else {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Verification Failed',
+                        description: verificationResult.message || 'Could not verify payment. Please contact support.',
+                    });
+                    setIsProcessing(false);
+                    setAriaLiveMessage(`Verification Failed: ${verificationResult.message}`);
+                }
             },
             prefill: {
                 name: traveler.name || "Traveler",

@@ -1,60 +1,67 @@
 
 
-/**
- * ──────────────────────────────────────────────────────────────
- * 🔒 PAYMENT FLOW (LOCKED – PRODUCTION SAFE)
- * ──────────────────────────────────────────────────────────────
- *
- * This project uses a STRICT, server-controlled payment flow.
- * Any change here can cause double charges, stuck bookings,
- * or financial inconsistencies.
- *
- * PAYMENT ARCHITECTURE:
- *
- * 1. Server Action (createRazorpayOrder)
- *    - Calculates amount on the server ONLY
- *    - Creates Razorpay order
- *    - Sets booking status → "payment-pending"
- *
- * 2. Client Checkout Page
- *    - Opens Razorpay Checkout using server order ID
- *    - NEVER updates payment status
- *    - NEVER trusts client success callbacks
- *
- * 3. Razorpay Webhook (DUMB)
- *    - Verifies signature
- *    - Stores raw event in /payment_events
- *    - NO business logic
- *
- * 4. Cloud Function (SMART)
- *    - Triggered on /payment_events creation
- *    - Validates:
- *        • order ID
- *        • amount (server vs Razorpay)
- *        • currency
- *        • current booking state
- *    - Uses Firestore transaction
- *    - FINAL state after successful payment:
- *        status = "confirmed" (with paidAt timestamp)
- *
- * STATE RULES (DO NOT CHANGE):
- *
- * confirmed → payment-pending → confirmed
- *
- * - "payment-pending" = retry allowed
- * - "confirmed" with paidAt = final, paid, locked
- *
- * IMPORTANT:
- * - Clients must NEVER write payment fields
- * - Webhook must remain idempotent
- * - Amount must NEVER be client-controlled
- *
- * ⚠️ Any change here REQUIRES architectural review.
- * ──────────────────────────────────────────────────────────────
- */
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as sgMail from "@sendgrid/mail";
+
+/* 
+* ────────────────────────────────────────────────────────────────────────────────
+* 🔒 PAYMENT FLOW (LOCKED – PRODUCTION SAFE)
+* ────────────────────────────────────────────────────────────────────────────────
+* 
+* This project uses a STRICT, server-controlled payment flow.
+* Any change here can cause double charges, stuck bookings,
+* or financial inconsistencies.
+* 
+* PAYMENT ARCHITECTURE:
+* 
+* 
+* 1. Server Action (createRazorpayOrder)
+* 
+*   ◦ Calculates amount on the server ONLY
+* 
+*   ◦ Creates Razorpay order
+* 
+*   ◦ Sets booking status → "payment-pending"
+* 
+* 
+* 2. Client Checkout Page
+* 
+*   ◦ Opens Razorpay Checkout using server order ID
+* 
+*   ◦ On success, calls `verifyRazorpayPayment` server action
+* 
+* 
+* 3. Server Action (verifyRazorpayPayment)
+* 
+*   ◦ Verifies Razorpay signature (critically important for security)
+* 
+*   ◦ Updates booking status from "payment-pending" → "confirmed"
+* 
+*   ◦ Adds `paidAt` timestamp
+* 
+* 
+* STATE RULES (DO NOT CHANGE):
+* 
+*   confirmed → payment-pending → confirmed
+* 
+* 
+*   ◦ "payment-pending" = retry allowed
+* 
+*   ◦ "confirmed" + "paidAt" = final, paid, locked
+* 
+* 
+* IMPORTANT:
+* 
+*   ◦ Clients must NEVER write payment fields.
+* 
+*   ◦ Amount must NEVER be client-controlled.
+* 
+*   ◦ Signature verification MUST happen on the server.
+* 
+* ⚠️ Any change here REQUIRES architectural review.
+* ────────────────────────────────────────────────────────────────────────────────
+*/
 
 admin.initializeApp();
 
@@ -198,11 +205,10 @@ export const travelRequestStatusUpdate = functions.firestore
     }
     
     // Case 4: Traveler pays for the request. Notify Traveler.
-    // This now checks for the transition from payment-pending to confirmed AND the presence of paidAt.
+    // This now checks for the presence of paidAt being newly set.
     if (
-      newValue.status === "confirmed" &&
-      previousValue.status === "payment-pending" &&
-      newValue.paidAt && // Ensure this is a payment confirmation
+      newValue.paidAt && 
+      !previousValue.paidAt && // This ensures it only runs when paidAt is newly set
       !newValue.emailNotified?.travelerPaid // Idempotency check
     ) {
         // No push notification, just email confirmation
@@ -276,80 +282,6 @@ export const travelRequestStatusUpdate = functions.firestore
       return userDoc.ref.update({
         fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove),
       });
-    }
-
-    return null;
-  });
-
-// "Smart" Payment Processor Cloud Function
-export const processRazorpayEvent = functions.firestore
-  .document("payment_events/{eventId}")
-  .onCreate(async (snap, context) => {
-    const event = snap.data();
-    const eventId = context.params.eventId;
-
-    if (event.event !== "payment.captured") {
-        console.log(`[Processor] Ignoring event '${event.event}' (${eventId}).`);
-        return null;
-    }
-
-    const payment = event.payload.payment.entity;
-    const requestId = payment?.notes?.requestId;
-    const receivedAmount = payment?.amount;
-    const receivedCurrency = payment?.currency;
-    const razorpayOrderId = payment?.order_id;
-
-    if (!requestId || !razorpayOrderId) {
-        console.error(`[Processor Error] Missing 'requestId' or 'order_id' in event ${eventId}.`);
-        return null;
-    }
-
-    const requestRef = db.collection("travelRequests").doc(requestId);
-
-    try {
-        await db.runTransaction(async (transaction) => {
-            const requestSnap = await transaction.get(requestRef);
-
-            if (!requestSnap.exists) {
-                throw new Error(`Travel request ${requestId} not found.`);
-            }
-
-            const request = requestSnap.data() as TravelRequest;
-            
-            // If the request is 'confirmed' and already has a 'paidAt' timestamp, it's already paid.
-            if (request.status === "confirmed" && request.paidAt) {
-              console.log(`[Processor] Request ${requestId} is already marked as paid. Ignoring duplicate processing.`);
-              return;
-            }
-
-            // --- Validation Checks ---
-            if (request.status !== "payment-pending") {
-              throw new Error(`Request ${requestId} is not in 'payment-pending' state. Current state: ${request.status}.`);
-            }
-            if (request.razorpayOrderId !== razorpayOrderId) {
-              throw new Error(`Razorpay Order ID mismatch for request ${requestId}.`);
-            }
-            if (request.paymentDetails?.expectedAmount !== receivedAmount) {
-              throw new Error(`Amount mismatch for request ${requestId}. Expected ${request.paymentDetails?.expectedAmount}, got ${receivedAmount}.`);
-            }
-             if (request.paymentDetails?.currency !== receivedCurrency) {
-              throw new Error(`Currency mismatch for request ${requestId}. Expected ${request.paymentDetails?.currency}, got ${receivedCurrency}.`);
-            }
-
-            // --- All checks passed, update document ---
-            transaction.update(requestRef, {
-                status: "confirmed", // CORRECTED: Set status back to 'confirmed'
-                paidAt: admin.firestore.FieldValue.serverTimestamp(),
-                'paymentDetails.razorpayPaymentId': payment.id,
-                'paymentDetails.processedEventId': eventId,
-            });
-
-            console.log(`[Processor] Successfully processed payment for request ${requestId}.`);
-        });
-    } catch (error: any) {
-        console.error(`[Processor Transaction Error] for event ${eventId}:`, error);
-        // If the transaction fails, the event document remains, and it can be retried or inspected manually.
-        // You could also add a retry count to the event document to prevent infinite loops.
     }
 
     return null;
