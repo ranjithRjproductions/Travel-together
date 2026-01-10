@@ -1,42 +1,51 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
+import { getAdminServices } from '@/lib/firebase-admin';
+import { getUser } from '@/lib/auth';
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   // NOTE: Per docs/REDIRECT_CONTRACT.md, this middleware is for simple routing.
   // It handles redirects for logged-in users away from public/auth pages and
   // unauthenticated users away from most protected routes.
   // Complex role-based gating is handled in the respective server component layouts.
   const { pathname } = req.nextUrl;
 
-  // Explicitly bypass all API routes to prevent interference.
-  if (pathname.startsWith('/api/')) {
+  // Explicitly bypass all API routes and static assets to prevent interference.
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/static') ||
+    pathname.startsWith('/_next/image') ||
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.png')
+  ) {
     return NextResponse.next();
   }
 
-  // Check for the session cookie.
-  const session = req.cookies.get('session')?.value;
-  const isAuth = !!session;
+  const user = await getUser();
+  const isAuth = !!user;
 
-  // Define public auth routes.
   const isAuthRoute =
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/forgot-password');
-
-  // Define other public routes, like the homepage.
+  
   const isPublicRoute = pathname === '/';
 
-  // If the user is not authenticated and is trying to access a protected route,
-  // redirect them to the login page.
+  // If user is not authenticated and trying to access a protected route, redirect to login.
   if (!isAuth && !isAuthRoute && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // If the user is authenticated and tries to access an auth page (like login)
-  // or the public homepage, redirect them to the root. The layouts will handle
-  // routing them to their correct dashboard from there.
+  // If the user IS authenticated and tries to visit an auth page OR the public homepage,
+  // redirect them to their correct dashboard.
   if (isAuth && (isAuthRoute || isPublicRoute)) {
-    return NextResponse.redirect(new URL('/traveler/dashboard', req.url));
+    let dashboardUrl = '/traveler/dashboard'; // Default
+    if (user.isAdmin) {
+        dashboardUrl = '/admin';
+    } else if (user.role === 'Guide') {
+        dashboardUrl = '/guide/dashboard';
+    }
+    return NextResponse.redirect(new URL(dashboardUrl, req.url));
   }
 
   // Otherwise, allow the request to proceed.
