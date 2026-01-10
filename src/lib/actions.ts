@@ -221,7 +221,8 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
                      // Ensure the request is in payment-pending state before returning
                      await requestRef.update({ 
                          status: 'payment-pending',
-                         razorpayOrderId: existingOrder.id // Re-assert the order ID
+                         razorpayOrderId: existingOrder.id, // Re-assert the order ID
+                         'paymentDetails.expectedAmount': existingOrder.amount, // IMPORTANT: Update expected amount
                      });
                      return { success: true, message: 'Existing order found', order: {
                         id: existingOrder.id,
@@ -567,3 +568,5 @@ export async function checkIsAdmin(): Promise<boolean> {
     return false;
   }
 }
+
+    
