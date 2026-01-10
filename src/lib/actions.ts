@@ -222,8 +222,8 @@ export async function createRazorpayOrder(requestId: string): Promise<{ success:
                      await requestRef.update({ 
                          status: 'payment-pending',
                          razorpayOrderId: existingOrder.id,
-                         'paymentDetails.expectedAmount': existingOrder.amount, // CRITICAL FIX
-                         'paymentDetails.currency': existingOrder.currency,     // CRITICAL FIX
+                         'paymentDetails.expectedAmount': existingOrder.amount,
+                         'paymentDetails.currency': existingOrder.currency,
                      });
                      return { success: true, message: 'Existing order found', order: {
                         id: existingOrder.id,

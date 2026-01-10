@@ -148,46 +148,50 @@ return (
 
 return (
 <div className="space-y-4">
-  {requests.map(request => (
-      <Card key={request.id}>
-          <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <div className="flex-grow">
-                  <h3 className="font-semibold capitalize flex items-center gap-2">
-                      {request.purposeData?.purpose} with <GuideInfo guideData={request.guideData} />
-                  </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {request.requestedDate ? format(new Date(request.requestedDate), 'PPPP') : 'Date not set'}
-                  </p>
-              </div>
-                <div className="flex items-center gap-4">
-                  {/* Final state: Confirmed and Paid */}
-                  {request.status === 'confirmed' && request.paidAt && (
-                      <div className="text-right">
-                          <Badge variant="default" className="bg-green-600 mb-2 flex items-center">
-                              <CheckCircle className="mr-1 h-3 w-3"/> Paid & Confirmed
-                          </Badge>
-                          <p className="text-xs text-muted-foreground">Your booking is finalized.</p>
-                      </div>
-                  )}
-                  {/* State: Confirmed but not yet paid */}
-                  {request.status === 'confirmed' && !request.paidAt && (
-                      <Button asChild>
-                          <Link href={`/traveler/checkout/${request.id}`}>
-                            <CreditCard className="mr-2 h-4 w-4"/>
-                            Pay Now (₹{request.estimatedCost?.toFixed(2)})
-                          </Link>
-                      </Button>
-                  )}
-                  {request.status === 'payment-pending' && (
-                      <Button disabled variant="secondary">
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing Payment...
-                      </Button>
-                  )}
-              </div>
-          </CardContent>
-      </Card>
-  ))}
+  {requests.map(request => {
+      const isPaid = request.status === 'confirmed' && request.paidAt;
+      const isPaymentPending = request.status === 'payment-pending';
+      const isConfirmedUnpaid = request.status === 'confirmed' && !request.paidAt;
+
+      return (
+          <Card key={request.id}>
+              <CardContent className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div className="flex-grow">
+                      <h3 className="font-semibold capitalize flex items-center gap-2">
+                          {request.purposeData?.purpose} with <GuideInfo guideData={request.guideData} />
+                      </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {request.requestedDate ? format(new Date(request.requestedDate), 'PPPP') : 'Date not set'}
+                      </p>
+                  </div>
+                    <div className="flex items-center gap-4">
+                      {isPaid && (
+                          <div className="text-right">
+                              <Badge variant="default" className="bg-green-600 mb-2 flex items-center">
+                                  <CheckCircle className="mr-1 h-3 w-3"/> Paid & Confirmed
+                              </Badge>
+                              <p className="text-xs text-muted-foreground">Your booking is finalized.</p>
+                          </div>
+                      )}
+                      {isConfirmedUnpaid && (
+                          <Button asChild>
+                              <Link href={`/traveler/checkout/${request.id}`}>
+                                <CreditCard className="mr-2 h-4 w-4"/>
+                                Pay Now (₹{request.estimatedCost?.toFixed(2)})
+                              </Link>
+                          </Button>
+                      )}
+                      {isPaymentPending && (
+                          <Button disabled variant="secondary">
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing Payment...
+                          </Button>
+                      )}
+                  </div>
+              </CardContent>
+          </Card>
+      )
+  })}
 </div>
 );
 }
