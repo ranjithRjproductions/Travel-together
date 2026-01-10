@@ -6,8 +6,24 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { AppLogo } from '@/components/app-logo';
 import { LogIn, UserPlus, ShieldCheck, UserCheck, Accessibility } from 'lucide-react';
 import content from './content/home.json';
+import { getUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
-export default function Home() {
+export default async function Home() {
+  const user = await getUser();
+
+  // If the user is authenticated, redirect them to their respective dashboard.
+  if (user) {
+    if (user.isAdmin) {
+      redirect('/admin');
+    } else if (user.role === 'Guide') {
+      redirect('/guide/dashboard');
+    } else {
+      redirect('/traveler/dashboard');
+    }
+  }
+
+  // The rest of the component will only render for unauthenticated users.
   const heroImage = PlaceHolderImages.find((img) => img.id === 'landing-hero');
   const featureIcons = [
     <Accessibility key="a11y" aria-hidden="true" />,
