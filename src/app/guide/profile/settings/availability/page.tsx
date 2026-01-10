@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 
 const availabilitySchema = z.object({
   isAvailable: z.boolean().default(true),
@@ -25,6 +26,7 @@ export default function GuideAvailabilityPage() {
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const guideProfileDocRef = useMemo(() => {
     if (user && firestore) {
@@ -33,7 +35,7 @@ export default function GuideAvailabilityPage() {
     return null;
   }, [user, firestore]);
 
-  const { control, reset, watch } = useForm<AvailabilityFormData>({
+  const { control, reset, watch, handleSubmit } = useForm<AvailabilityFormData>({
     resolver: zodResolver(availabilitySchema),
     defaultValues: {
       isAvailable: true,
@@ -67,17 +69,15 @@ export default function GuideAvailabilityPage() {
 
     fetchGuideProfile();
   }, [guideProfileDocRef, isUserLoading, reset, toast]);
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    const subscription = watch(async (value) => {
-      if (value.isAvailable === undefined || !guideProfileDocRef) return;
+  
+  const onSubmit = async (data: AvailabilityFormData) => {
+      if (!guideProfileDocRef) return;
+      setIsSubmitting(true);
       try {
-        await setDoc(guideProfileDocRef, { isAvailable: value.isAvailable }, { merge: true });
+        await setDoc(guideProfileDocRef, { isAvailable: data.isAvailable }, { merge: true });
         toast({
           title: 'Status Updated',
-          description: `You are now ${value.isAvailable ? 'available' : 'unavailable'} for new requests.`,
+          description: `You are now ${data.isAvailable ? 'available' : 'unavailable'} for new requests.`,
         });
       } catch (error) {
         toast({
@@ -85,24 +85,23 @@ export default function GuideAvailabilityPage() {
           title: 'Error',
           description: 'Failed to update availability status.',
         });
+      } finally {
+        setIsSubmitting(false);
       }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [guideProfileDocRef, watch, toast, isLoading]);
+  };
 
 
   if (isLoading) {
-    return <Skeleton className="h-24 w-full" />;
+    return <Skeleton className="h-40 w-full" />;
   }
 
   return (
-    <div>
+    <form onSubmit={handleSubmit(onSubmit)}>
       <CardDescription className="mb-6">
         Use this toggle to control your visibility for new travel requests. When you're unavailable, you will not appear in traveler searches.
       </CardDescription>
 
-      <div className="flex items-center space-x-4 rounded-md border p-4">
+      <div className="flex items-center space-x-4 rounded-md border p-4 mb-6">
         <div className="flex-1 space-y-1">
           <p className="text-sm font-medium leading-none">
             Available for New Requests
@@ -124,6 +123,11 @@ export default function GuideAvailabilityPage() {
           )}
         />
       </div>
-    </div>
+      <div className="flex justify-end">
+        <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </div>
+    </form>
   );
 }
