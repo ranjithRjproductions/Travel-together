@@ -66,6 +66,7 @@ function InProgressRequests() {
         return <RequestListSkeleton />;
     }
     
+    // This now correctly separates unpaid from requests needing action
     const unpaidConfirmedRequests = requests?.filter(req => req.status === 'confirmed' && !req.paidAt) || [];
     const paymentPendingRequests = requests?.filter(req => req.status === 'payment-pending') || [];
     const awaitingActionRequests = requests?.filter(req => req.status === 'guide-selected') || [];
@@ -91,7 +92,8 @@ function InProgressRequests() {
     };
 
     const isAwaitingAction = (status: TravelRequest['status']) => status === 'guide-selected';
-    const isAwaitingPayment = (status: TravelRequest['status']) => status === 'confirmed' || status === 'payment-pending';
+    // Corrected condition: a confirmed but unpaid request is awaiting payment
+    const isAwaitingPayment = (status: TravelRequest['status'], paidAt: any) => (status === 'confirmed' && !paidAt) || status === 'payment-pending';
 
     return (
       <div className="space-y-4">
@@ -118,7 +120,7 @@ function InProgressRequests() {
                     <Button variant="outline" onClick={() => handleResponse(request.id, 'declined')}><X className="mr-2 h-4 w-4" />Decline</Button>
                 </CardFooter>
               )}
-               {isAwaitingPayment(request.status) && (
+               {isAwaitingPayment(request.status, request.paidAt) && (
                 <CardFooter>
                     <div className="flex items-center justify-start gap-2 text-amber-600 font-semibold text-sm">
                         {request.status === 'payment-pending' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
@@ -136,6 +138,7 @@ function UpcomingRequests() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     
+    // CORRECTED: The query now correctly fetches only paid requests for the "Upcoming" tab.
     const upcomingQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(
