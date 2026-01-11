@@ -166,7 +166,7 @@ export default function TravelerDashboard() {
         </h1>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="flex flex-col">
+          <Card className="flex flex-col bg-secondary/50">
             <CardHeader>
               <CardTitle>{content.createRequest.title}</CardTitle>
               <CardDescription>
@@ -177,14 +177,14 @@ export default function TravelerDashboard() {
               <Button onClick={handleCreateRequestClick} size="lg" className="w-full" disabled={isCreatingRequest}>
                 {isCreatingRequest ? 'Creating...' : (
                     <>
-                        <PlusCircle aria-hidden="true" /> {content.createRequest.cta}
+                        <PlusCircle className="mr-2 h-5 w-5" aria-hidden="true" /> {content.createRequest.cta}
                     </>
                 )}
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col">
+          <Card className="flex flex-col bg-secondary/50">
             <CardHeader>
               <CardTitle>{content.myRequests.title}</CardTitle>
               <CardDescription>{content.myRequests.description}</CardDescription>
@@ -192,7 +192,7 @@ export default function TravelerDashboard() {
             <CardContent className="flex-grow flex items-end">
               <Button asChild size="lg" className="w-full" variant="secondary">
                 <Link href="/traveler/my-bookings">
-                  <BookMarked aria-hidden="true" /> View My Bookings
+                  <BookMarked className="mr-2 h-5 w-5" aria-hidden="true" /> View My Bookings
                 </Link>
               </Button>
             </CardContent>
