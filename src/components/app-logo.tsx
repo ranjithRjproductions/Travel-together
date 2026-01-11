@@ -9,8 +9,8 @@ export function AppLogo({ className, homeUrl = '/' }: { className?: string, home
       <Image 
         src="/logo.png" 
         alt="Let's Travel Together logo: a minimalist icon showing one person guiding another along a curved forward path, symbolizing shared and accessible travel." 
-        width={40} 
-        height={40}
+        width={60} 
+        height={60}
         className="rounded-full"
       />
       <span className="font-headline text-primary hidden sm:inline-block" aria-hidden="true">Let&apos;s Travel Together</span>
